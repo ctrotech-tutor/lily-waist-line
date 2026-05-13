@@ -1,0 +1,5 @@
+export { getWelcomeEmailTemplate, type WelcomeEmailData } from './welcome-email'
+export { getOrderConfirmationTemplate, type OrderConfirmationData } from './order-confirmation'
+export { getPaymentReceivedTemplate, type PaymentReceivedData } from './payment-received'
+export { getShippingUpdateTemplate, type ShippingUpdateData } from './shipping-update'
+export { getLoginAlertTemplate, type LoginAlertData } from './login-alert'

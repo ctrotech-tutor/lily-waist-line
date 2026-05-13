@@ -57,7 +57,7 @@ export function Footer() {
                 className="h-12 w-auto object-contain"
               />
               <span className="font-heading text-lg font-semibold tracking-tight text-foreground">
-                Lily Waist Line
+                LWL
               </span>
             </Link>
             <p className="max-w-xs font-sans text-sm leading-relaxed text-muted-foreground">

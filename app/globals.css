@@ -38,13 +38,13 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: 0px;
-  --radius-md: 0px;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: 0px;
-  --radius-2xl: 0px;
-  --radius-3xl: 0px;
-  --radius-4xl: 0px;
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
 }
 
 :root {
@@ -123,9 +123,12 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
   }
+
   body {
     @apply bg-background text-foreground antialiased;
   }
@@ -161,13 +164,26 @@
   scrollbar-color: #d4af37 transparent;
 }
 
-/* Remove caret from all input fields */
-input, textarea, [contenteditable] {
+/* all input fields */
+input,
+textarea,
+[contenteditable] {
   caret-color: transparent !important;
 }
 
-/* Remove caret from focused elements */
-input:focus, textarea:focus, [contenteditable]:focus {
-  caret-color: transparent !important;
+/* focused elements */
+input:focus,
+textarea:focus,
+[contenteditable]:focus {
+  caret-color: #d4af37 !important;
   outline: none;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px transparent inset !important;
+  -webkit-text-fill-color: #e2e2e2 !important;
+  transition: background-color 5000s ease-in-out 0s;
 }

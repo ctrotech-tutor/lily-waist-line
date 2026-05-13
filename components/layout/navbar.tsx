@@ -16,6 +16,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import { useRouter } from "next/navigation";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -130,6 +131,7 @@ function MobileNav({ className }: { className?: string }) {
 }
 
 export function Navbar() {
+  const router = useRouter();
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-360 items-center justify-between px-5 md:px-12 lg:px-20">
@@ -165,6 +167,7 @@ export function Navbar() {
         <div className="flex items-center gap-1">
           <ThemeToggle className="hidden lg:flex" />
           <Button
+            onClick={() => router.push('/wishlist')}
             variant="ghost"
             size="icon"
             className="relative hidden lg:flex"
@@ -173,6 +176,7 @@ export function Navbar() {
             <Heart className="h-5 w-5" />
           </Button>
           <Button
+            onClick={() => router.push('/cart')}
             variant="ghost"
             size="icon"
             className="relative hidden lg:flex"
@@ -181,6 +185,7 @@ export function Navbar() {
             <ShoppingBag className="h-5 w-5" />
           </Button>
           <Button
+            onClick={() => router.push('/account')}
             variant="ghost"
             size="icon"
             className="relative hidden lg:flex"
