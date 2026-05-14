@@ -1,5 +1,7 @@
 import prisma from '@/lib/prisma'
 import { unstable_cache } from 'next/cache'
+import { Decimal } from '@/lib/prisma'
+import type { Prisma } from '@/lib/generated/prisma/client'
 
 // Types for admin operations
 export interface AdminOrderFilters {
@@ -10,8 +12,61 @@ export interface AdminOrderFilters {
   fulfillmentStatus?: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
 }
 
+// Type for admin order with selected fields
+type AdminOrder = {
+  id: string
+  subtotal: Decimal
+  shippingFee: Decimal
+  total: Decimal
+  paymentMethod: string
+  paymentStatus: string
+  fulfillmentStatus: string
+  createdAt: Date
+  updatedAt: Date
+  user: {
+    id: string
+    email: string
+    fullName: string
+  }
+  address: {
+    firstName: string
+    lastName: string
+    addressLine1: string
+    city: string
+    state: string
+    country: string
+    postalCode: string
+  }
+  orderItems: Array<{
+    quantity: number
+    unitPrice: Decimal
+    product: {
+      name: string
+      slug: string
+    }
+    variant: {
+      size: string
+      compressionLevel: string
+      sku: string
+    }
+  }>
+  paymentProofs: Array<{
+    id: string
+    imageUrl: string
+    status: string
+    uploadedAt: Date
+  }>
+  shipments: Array<{
+    id: string
+    carrier: string
+    trackingNumber: string | null
+    shippedAt: Date | null
+    deliveredAt: Date | null
+  }>
+}
+
 export interface AdminOrderResult {
-  orders: any[]
+  orders: AdminOrder[]
   pagination: {
     currentPage: number
     totalPages: number
@@ -22,12 +77,25 @@ export interface AdminOrderResult {
   }
 }
 
+// Type for recent order with selected fields
+type RecentOrder = {
+  id: string
+  total: Decimal
+  paymentStatus: string
+  fulfillmentStatus: string
+  createdAt: Date
+  user: {
+    fullName: string
+    email: string
+  }
+}
+
 export interface AdminDashboardMetrics {
   totalOrders: number
   totalRevenue: number
   pendingOrders: number
   shippedOrders: number
-  recentOrders: any[]
+  recentOrders: RecentOrder[]
   alerts: {
     paymentConfirmations: number
     lowStock: number
@@ -56,7 +124,7 @@ export class AdminService {
     const offset = (page - 1) * limit
 
     // Build optimized where clause using indexes
-    const where: any = {}
+    const where: Prisma.OrderWhereInput = {}
 
     if (search) {
       where.OR = [
@@ -302,7 +370,7 @@ export class AdminService {
 
     // Transform customers with computed fields
     const transformedCustomers = customers.map(customer => {
-      const totalSpent = customer.orders.reduce((sum: number, order: any) => sum + order.total.toNumber(), 0)
+      const totalSpent = customer.orders.reduce((sum: number, order: { total: Decimal }) => sum + order.total.toNumber(), 0)
       const orderCount = customer._count.orders
       
       // Determine customer segment
@@ -340,7 +408,7 @@ export class AdminService {
   static async getProducts(page: number = 1, limit: number = 20, search?: string, stockFilter?: string) {
     const offset = (page - 1) * limit
 
-    const where: any = {}
+    const where: Prisma.ProductWhereInput = {}
 
     if (search) {
       where.OR = [
@@ -351,7 +419,7 @@ export class AdminService {
 
     if (stockFilter) {
       where.variants = {
-        some: stockFilter === 'OUT_OF_STOCK' 
+        some: stockFilter === 'OUT_OF_STOCK'
           ? { stockQuantity: 0 }
           : stockFilter === 'LOW_STOCK'
           ? { stockQuantity: { gt: 0, lt: 5 } }

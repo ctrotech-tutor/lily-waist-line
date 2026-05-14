@@ -1,6 +1,5 @@
 export const ROUTE_ACCESS = {
   public: [
-    "/",
     "/shop",
     "/product",
   ],

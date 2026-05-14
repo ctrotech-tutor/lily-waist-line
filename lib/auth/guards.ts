@@ -1,3 +1,4 @@
+import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 
@@ -7,6 +8,7 @@ export interface AuthUser {
   fullName: string
   role: 'CUSTOMER' | 'ADMIN'
   emailVerified: boolean
+  createdAt: Date
 }
 
 /**
@@ -30,7 +32,8 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
         email: true,
         fullName: true,
         role: true,
-        emailVerified: true
+        emailVerified: true,
+        createdAt: true
       }
     })
 
@@ -43,7 +46,8 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       email: dbUser.email,
       fullName: dbUser.fullName,
       role: dbUser.role,
-      emailVerified: dbUser.emailVerified
+      emailVerified: dbUser.emailVerified,
+      createdAt: dbUser.createdAt
     }
   } catch (error) {
     console.error('Error getting current user:', error)

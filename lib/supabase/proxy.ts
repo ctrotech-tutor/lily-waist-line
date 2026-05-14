@@ -39,16 +39,22 @@ export async function updateSession(request: NextRequest) {
 
   // IMPORTANT: If you remove getClaims() and you use server-side rendering
   // with Supabase client, your users may be randomly logged out.
-  // const { data } = await supabase.auth.getClaims()
-  const { data } = await supabase.auth.getUser()
-  const user = data?.user
+  const { data } = await supabase.auth.getClaims()
+  const user = data?.claims
   const pathname = request.nextUrl.pathname
 
   // Route-based access control - NO database operations in middleware
+  // Handle root path separately to prevent prefix matching bug
+  const isRootPath = pathname === '/'
   const isPublicRoute = ROUTE_ACCESS.public.some(route => pathname.startsWith(route))
   const isGuestOnlyRoute = ROUTE_ACCESS.guestOnly.some(route => pathname === route)
   const isUserRoute = ROUTE_ACCESS.user.some(route => pathname.startsWith(route))
   const isAdminRoute = ROUTE_ACCESS.admin.some(route => pathname.startsWith(route))
+
+  // Root path - always allow (public)
+  if (isRootPath) {
+    return supabaseResponse
+  }
 
   // Public routes - always allow
   if (isPublicRoute) {
