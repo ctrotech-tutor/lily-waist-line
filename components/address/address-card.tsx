@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, Star, Pencil, Trash2 } from "lucide-react";
+import { MapPin, Star, Pencil, Trash2, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,8 @@ interface AddressCardProps {
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
   onSetDefault?: (id: string) => void;
+  isDeleting?: boolean;
+  isSettingDefault?: boolean;
 }
 
 export function AddressCard({
@@ -35,6 +37,8 @@ export function AddressCard({
   onEdit,
   onDelete,
   onSetDefault,
+  isDeleting = false,
+  isSettingDefault = false,
 }: AddressCardProps) {
   const fullName = `${address.firstName} ${address.lastName}`;
   const fullAddress = [
@@ -112,10 +116,20 @@ export function AddressCard({
             variant="outline"
             size="sm"
             onClick={() => onSetDefault?.(address.id)}
+            disabled={isSettingDefault}
             className="flex-1 text-xs font-button tracking-wide uppercase border-border hover:border-[#d4af37] hover:text-[#d4af37] transition-colors"
           >
-            <Star className="w-4 h-4 mr-2" />
-            Set Default
+            {isSettingDefault ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Setting...
+              </>
+            ) : (
+              <>
+                <Star className="w-4 h-4 mr-2" />
+                Set Default
+              </>
+            )}
           </Button>
         )}
 
@@ -123,10 +137,20 @@ export function AddressCard({
           variant="outline"
           size="sm"
           onClick={() => onDelete?.(address.id)}
+          disabled={isDeleting}
           className="flex-1 text-xs font-button tracking-wide uppercase border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors"
         >
-          <Trash2 className="w-4 h-4 mr-2" />
-          Remove
+          {isDeleting ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Removing...
+            </>
+          ) : (
+            <>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Remove
+            </>
+          )}
         </Button>
       </div>
     </Card>

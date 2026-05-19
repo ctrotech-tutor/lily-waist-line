@@ -1,46 +1,70 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AddressHeader } from "@/components/address/address-header";
 import { AddressList } from "@/components/address/address-list";
 import { EmptyAddressState } from "@/components/address/empty-address-state";
 import { AddressData } from "@/components/address/address-card";
-
-// Mock addresses for testing the "saved addresses" state
-// const mockAddresses: AddressData[] = [
-//   {
-//     id: "1",
-//     firstName: "Sarah",
-//     lastName: "Johnson",
-//     company: "Lily Waist Line",
-//     addressLine1: "123 Elegance Boulevard",
-//     addressLine2: "Suite 456",
-//     city: "New York",
-//     state: "NY",
-//     postalCode: "10001",
-//     country: "United States",
-//     phone: "+1 (555) 123-4567",
-//     isDefault: true,
-//   },
-//   {
-//     id: "2",
-//     firstName: "Sarah",
-//     lastName: "Johnson",
-//     addressLine1: "789 Transformation Ave",
-//     city: "Los Angeles",
-//     state: "CA",
-//     postalCode: "90210",
-//     country: "United States",
-//     phone: "+1 (555) 987-6543",
-//     isDefault: false,
-//   },
-// ];
+import { AddressHeaderSkeleton } from "@/components/address/address-header-skeleton";
+import { AddressListSkeleton } from "@/components/address/address-list-skeleton";
+import { getUserAddresses, deleteAddress, setDefaultAddress } from "@/server/actions/address";
 
 export default function AddressPage() {
   const router = useRouter();
   const [addresses, setAddresses] = useState<AddressData[]>([]);
-  const [isLoaded] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isSettingDefault, setIsSettingDefault] = useState<string | null>(null);
+
+  // Transform backend data to match UI interface
+  const transformAddressData = (backendAddress: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    company: string | null;
+    addressLine1: string;
+    addressLine2: string | null;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+    phone: string | null;
+    isDefault: boolean;
+  }): AddressData => ({
+    id: backendAddress.id,
+    firstName: backendAddress.firstName,
+    lastName: backendAddress.lastName,
+    company: backendAddress.company || undefined,
+    addressLine1: backendAddress.addressLine1,
+    addressLine2: backendAddress.addressLine2 || undefined,
+    city: backendAddress.city,
+    state: backendAddress.state,
+    postalCode: backendAddress.postalCode,
+    country: backendAddress.country,
+    phone: backendAddress.phone || "",
+    isDefault: backendAddress.isDefault,
+  });
+
+  // Fetch addresses on mount
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      setIsLoading(true);
+      try {
+        const result = await getUserAddresses();
+        if (result.success && result.data) {
+          const transformedAddresses = result.data.map(transformAddressData);
+          setAddresses(transformedAddresses);
+        }
+      } catch (error) {
+        console.error("Failed to load addresses:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAddresses();
+  }, []);
 
   const handleAddAddress = () => {
     router.push("/address/new");
@@ -50,34 +74,58 @@ export default function AddressPage() {
     router.push(`/address/${id}`);
   };
 
-  const handleDeleteAddress = (id: string) => {
-    // Local state only - no backend
-    setAddresses((prev) => prev.filter((addr) => addr.id !== id));
+  const handleDeleteAddress = async (id: string) => {
+    setIsDeleting(id);
+    try {
+      const result = await deleteAddress(id);
+      if (result.success) {
+        setAddresses((prev) => prev.filter((addr) => addr.id !== id));
+      }
+    } catch (error) {
+      console.error("Failed to delete address:", error);
+    } finally {
+      setIsDeleting(null);
+    }
   };
 
-  const handleSetDefault = (id: string) => {
-    // Local state only - no backend
-    setAddresses((prev) =>
-      prev.map((addr) => ({
-        ...addr,
-        isDefault: addr.id === id,
-      }))
-    );
+  const handleSetDefault = async (id: string) => {
+    setIsSettingDefault(id);
+    try {
+      const result = await setDefaultAddress(id);
+      if (result.success) {
+        setAddresses((prev) =>
+          prev.map((addr) => ({
+            ...addr,
+            isDefault: addr.id === id,
+          }))
+        );
+      }
+    } catch (error) {
+      console.error("Failed to set default address:", error);
+    } finally {
+      setIsSettingDefault(null);
+    }
   };
 
   return (
     <>
       <main className="min-h-screen bg-background">
         {/* Page Header */}
-        <AddressHeader
-          addressCount={addresses.length}
-          isLoaded={isLoaded}
-          onAddAddress={handleAddAddress}
-        />
+        {isLoading ? (
+          <AddressHeaderSkeleton />
+        ) : (
+          <AddressHeader
+            addressCount={addresses.length}
+            isLoaded={!isLoading}
+            onAddAddress={handleAddAddress}
+          />
+        )}
 
         {/* Address Content */}
         <div className="container mx-auto px-4 py-8 md:py-12">
-          {addresses.length === 0 ? (
+          {isLoading ? (
+            <AddressListSkeleton count={4} />
+          ) : addresses.length === 0 ? (
             <EmptyAddressState onAddAddress={handleAddAddress} />
           ) : (
             <AddressList
@@ -85,6 +133,8 @@ export default function AddressPage() {
               onEdit={handleEditAddress}
               onDelete={handleDeleteAddress}
               onSetDefault={handleSetDefault}
+              isDeleting={isDeleting}
+              isSettingDefault={isSettingDefault}
             />
           )}
         </div>

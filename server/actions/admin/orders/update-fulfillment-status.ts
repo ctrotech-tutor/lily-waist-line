@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import type { FulfillmentStatus } from '@prisma/client'
+import type { FulfillmentStatus } from '@/lib/generated/prisma/enums'
 import { sendShippingUpdateEmail } from '@/lib/services/email/email-triggers'
 
 // Input validation schema

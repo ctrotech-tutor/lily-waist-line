@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { ArrowUpDown, Check } from "lucide-react";
 import { useShopURLSync } from "@/lib/shop-url-sync-client";
 import { ShopSearchParams } from "@/lib/shop-url-sync-server";
@@ -56,31 +57,32 @@ export interface ShopSortProps {
   searchParams?: ShopSearchParams;
 }
 
-export function ShopSort({ defaultValue = "featured", onSortChange, className, searchParams }: ShopSortProps) {
+export function ShopSort({
+  defaultValue = "featured",
+  onSortChange,
+  className,
+  searchParams,
+}: ShopSortProps) {
   const { updateParams } = useShopURLSync();
+
   const [selectedSort, setSelectedSort] = useState<SortOption>(() => {
     if (searchParams?.sort) {
       return urlToSortMap[searchParams.sort] || defaultValue;
     }
     return defaultValue;
   });
+
   const [open, setOpen] = useState(false);
-  
   const prevSortRef = useRef(searchParams?.sort);
-  
-  // Update selected sort when URL params change
+
   useEffect(() => {
-    // Check if sort actually changed
     if (prevSortRef.current === searchParams?.sort) return;
     prevSortRef.current = searchParams?.sort;
-    
-    // Use microtask to avoid synchronous setState in effect body
+
     queueMicrotask(() => {
       if (searchParams?.sort) {
         const sortValue = urlToSortMap[searchParams.sort];
-        if (sortValue) {
-          setSelectedSort(sortValue);
-        }
+        if (sortValue) setSelectedSort(sortValue);
       } else {
         setSelectedSort(defaultValue);
       }
@@ -90,37 +92,43 @@ export function ShopSort({ defaultValue = "featured", onSortChange, className, s
   const handleChange = (value: string) => {
     const sortValue = value as SortOption;
     setSelectedSort(sortValue);
-    
-    // Update URL
+
     const urlSortValue = sortToUrlMap[sortValue];
     updateParams({ sort: urlSortValue });
-    
+
     onSortChange?.(sortValue);
   };
 
-  const currentLabel = sortOptions.find((opt) => opt.value === selectedSort)?.label || "Sort";
+  const currentLabel =
+    sortOptions.find((opt) => opt.value === selectedSort)?.label || "Sort";
 
   return (
     <div className={cn("flex items-center gap-3", className)}>
       {/* Label */}
       <div className="hidden sm:flex items-center gap-2">
-        <div className="w-1.5 h-1.5 bg-[#d4af37]" />
+        <div className="w-1.5 h-1.5 bg-[#d4af37] rounded-full" />
         <span className="font-sans text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Sort by
         </span>
       </div>
 
-      {/* Custom Select Trigger */}
-      <Select value={selectedSort} onValueChange={handleChange} open={open} onOpenChange={setOpen}>
+      {/* Select */}
+      <Select
+        value={selectedSort}
+        onValueChange={handleChange}
+        open={open}
+        onOpenChange={setOpen}
+      >
         <SelectTrigger
           className={cn(
             "w-fit min-w-40 px-4 py-2",
-            "bg-transparent border-border",
+            "bg-transparent border border-border",
             "font-sans text-sm text-foreground",
-            "focus:ring-2 focus:ring-ring focus:ring-offset-0",
             "hover:border-[#d4af37]/50 transition-colors duration-200",
+            "focus:ring-2 focus:ring-ring focus:ring-offset-0",
             "data-[state=open]:border-[#d4af37]/50",
-            "[&>svg]:text-[#d4af37]"
+            "[&>svg]:text-[#d4af37]",
+            "rounded-full"
           )}
         >
           <div className="flex items-center gap-2">
@@ -131,16 +139,17 @@ export function ShopSort({ defaultValue = "featured", onSortChange, className, s
           </div>
         </SelectTrigger>
 
-        {/* Premium Dropdown Content */}
+        {/* Dropdown */}
         <SelectContent
           className={cn(
             "min-w-52 p-0",
-            "bg-popover border-border",
-            "shadow-lg"
+            "bg-popover border border-border",
+            "shadow-lg",
+            "rounded-2xl overflow-hidden"
           )}
           position="popper"
           align="end"
-          sideOffset={4}
+          sideOffset={6}
         >
           {/* Header */}
           <div className="px-4 py-3 border-b border-border/50">
@@ -149,7 +158,7 @@ export function ShopSort({ defaultValue = "featured", onSortChange, className, s
             </span>
           </div>
 
-          {/* Sort Options */}
+          {/* Items */}
           <div className="py-1">
             {sortOptions.map((option) => (
               <SelectItem
@@ -160,8 +169,9 @@ export function ShopSort({ defaultValue = "featured", onSortChange, className, s
                   "cursor-pointer",
                   "focus:bg-accent focus:text-accent-foreground",
                   "data-[state=checked]:bg-primary/5",
-                  "transition-colors duration-150",
-                  "outline-none"
+                  "transition-all duration-150",
+                  "outline-none",
+                  "rounded-md mx-1"
                 )}
               >
                 <div className="flex items-center justify-between w-full gap-4">
@@ -179,31 +189,37 @@ export function ShopSort({ defaultValue = "featured", onSortChange, className, s
   );
 }
 
-// Alternative inline version for compact spaces
+/* ================= INLINE VERSION ================= */
+
 export interface ShopSortInlineProps {
   value: SortOption;
   onChange: (value: SortOption) => void;
   className?: string;
 }
 
-export function ShopSortInline({ value, onChange, className }: ShopSortInlineProps) {
+export function ShopSortInline({
+  value,
+  onChange,
+  className,
+}: ShopSortInlineProps) {
   return (
     <div className={cn("flex items-center gap-1", className)}>
       {sortOptions.map((option) => (
-        <button
+        <Button
           key={option.value}
+          type="button"
+          variant={value === option.value ? "default" : "ghost"}
           onClick={() => onChange(option.value)}
           className={cn(
-            "px-3 py-1.5 font-sans text-xs",
-            "transition-all duration-200",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "px-3 py-1.5 h-auto text-xs font-sans",
+            "rounded-full transition-all duration-200",
             value === option.value
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:text-foreground hover:bg-card"
           )}
         >
           {option.label}
-        </button>
+        </Button>
       ))}
     </div>
   );

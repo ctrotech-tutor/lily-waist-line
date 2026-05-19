@@ -70,9 +70,9 @@ export async function getOrderDetails(orderId: string) {
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       // Pricing snapshot (immutable)
-      subtotal: order.subtotal,
-      shippingFee: order.shippingFee,
-      total: order.total,
+      subtotal: order.subtotal.toNumber(),
+      shippingFee: order.shippingFee.toNumber(),
+      total: order.total.toNumber(),
       // Payment information
       paymentMethod: order.paymentMethod,
       paymentStatus: order.paymentStatus,
@@ -96,8 +96,8 @@ export async function getOrderDetails(orderId: string) {
       items: order.orderItems.map(item => ({
         id: item.id,
         quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        totalPrice: item.unitPrice.mul(item.quantity),
+        unitPrice: item.unitPrice.toNumber(),
+        totalPrice: item.unitPrice.mul(item.quantity).toNumber(),
         product: {
           id: item.product.id,
           name: item.product.name,

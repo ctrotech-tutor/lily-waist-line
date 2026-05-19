@@ -1,0 +1,19 @@
+<svg width="240" height="80" viewBox="0 0 240 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  
+  <!-- Background (optional remove if you want transparent only) -->
+  <rect width="240" height="80" fill="transparent"/>
+
+  <!-- L -->
+  <path d="M40 20V60H70" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- W -->
+  <path d="M95 20L110 60L125 35L140 60L155 20" 
+        stroke="currentColor" 
+        stroke-width="6" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+
+  <!-- L -->
+  <path d="M180 20V60H210" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+</svg>

@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Shield, Lock, Truck, Headphones } from "lucide-react";
+import {
+  Shield,
+  Lock,
+  Truck,
+  Headphones,
+  Sparkles,
+} from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 const features = [
@@ -21,13 +28,13 @@ const features = [
     icon: Truck,
     title: "Fast Delivery",
     description:
-      "Complimentary express shipping on all orders. Receive your transformation tools within 2-3 business days.",
+      "Complimentary express shipping on all orders. Receive your transformation tools within 2–3 business days.",
   },
   {
     icon: Headphones,
-    title: "Customer Support",
+    title: "Dedicated Support",
     description:
-      "Dedicated concierge service available to guide your journey and answer every question with care.",
+      "Personal concierge support ready to guide your transformation journey with expert care.",
   },
 ];
 
@@ -35,66 +42,82 @@ export function WhyChooseSection() {
   const [isLoaded] = useState(true);
 
   return (
-    <section className="relative py-24 md:py-32 lg:py-40 overflow-hidden">
-      {/* Subtle background gradient */}
-      <div className="absolute inset-0 bg-linear-to-b from-transparent via-card/30 to-transparent opacity-50" />
+    <section className="relative overflow-hidden py-12 md:py-16 lg:py-20">
 
-      <div className="relative max-w-360 mx-auto px-5 sm:px-6 lg:px-8 xl:px-12">
-        {/* Section Header */}
-        <div className="text-center mb-16 md:mb-20 lg:mb-24">
-          {/* Eyebrow Label */}
+      {/* Ambient background */}
+      <div className="absolute inset-0 bg-linear-to-b from-transparent via-card/20 to-transparent" />
+
+      {/* Glow */}
+      <div className="absolute top-20 right-0 h-75 w-75 bg-primary/5 blur-[120px]" />
+
+      <div className="relative mx-auto max-w-360 px-5 sm:px-6 lg:px-8 xl:px-12">
+
+        {/* HEADER */}
+        <div className="mb-16 text-center md:mb-20 lg:mb-24">
+
+          {/* Eyebrow */}
           <div
             className={cn(
+              "mb-6 flex items-center justify-center gap-2",
               "transition-all duration-700",
-              isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+              isLoaded
+                ? "translate-y-0 opacity-100"
+                : "translate-y-4 opacity-0"
             )}
           >
-            <span className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-[#d4af37]">
+            <Sparkles className="h-4 w-4 text-primary" />
+
+            <span className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               Crafted For Transformation
             </span>
           </div>
 
-          {/* Gold Divider */}
+          {/* Divider */}
           <div
             className={cn(
-              "w-12 h-px bg-[#d4af37] mx-auto mt-6 mb-8",
+              "mx-auto mb-8 h-px w-14 bg-primary",
               "transition-all duration-700 delay-100",
-              isLoaded ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
+              isLoaded
+                ? "scale-x-100 opacity-100"
+                : "scale-x-0 opacity-0"
             )}
           />
 
-          {/* Main Heading */}
+          {/* Heading */}
           <h2
             className={cn(
-              "font-heading text-3xl sm:text-4xl md:text-5xl lg:text-6xl",
-              "leading-[1.15] tracking-tight text-foreground",
-              "mb-6",
+              "mb-6 font-heading text-3xl text-foreground sm:text-4xl md:text-5xl lg:text-6xl",
+              "leading-[1.1] tracking-tight",
               "transition-all duration-700 delay-200",
-              isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+              isLoaded
+                ? "translate-y-0 opacity-100"
+                : "translate-y-4 opacity-0"
             )}
           >
             More Than Waist Training
           </h2>
 
-          {/* Supporting Copy */}
+          {/* Copy */}
           <p
             className={cn(
-              "font-sans text-base sm:text-lg",
-              "text-muted-foreground leading-relaxed",
-              "max-w-2xl mx-auto",
+              "mx-auto max-w-2xl font-sans text-base leading-relaxed text-muted-foreground sm:text-lg",
               "transition-all duration-700 delay-300",
-              isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+              isLoaded
+                ? "translate-y-0 opacity-100"
+                : "translate-y-4 opacity-0"
             )}
           >
-            Experience the intersection of luxury craftsmanship and body confidence. 
-            Every detail engineered for your comfort, support, and premium transformation.
+            Experience the intersection of luxury craftsmanship and body confidence.
+            Every detail is engineered for comfort, support, and premium transformation.
           </p>
         </div>
 
-        {/* Feature Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+        {/* FEATURES */}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+
           {features.map((feature, index) => {
             const Icon = feature.icon;
+
             return (
               <div
                 key={feature.title}
@@ -102,51 +125,41 @@ export function WhyChooseSection() {
                   "group relative",
                   "transition-all duration-700",
                   isLoaded
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-8",
-                  isLoaded && `delay-${(index + 4) * 100}`
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-8 opacity-0"
                 )}
-                style={{ transitionDelay: isLoaded ? `${(index + 4) * 100}ms` : "0ms" }}
+                style={{
+                  transitionDelay: `${(index + 4) * 100}ms`,
+                }}
               >
-                {/* Card Container */}
+                {/* Card */}
                 <div
                   className={cn(
-                    "relative h-full",
+                    "relative h-full overflow-hidden rounded-3xl",
+                    "bg-card/40 backdrop-blur-xl",
                     "p-8 md:p-10",
-                    "bg-card/50",
-                    "border border-outline/20",
-                    "transition-all duration-500 ease-out",
-                    "group-hover:border-[#d4af37]/40",
-                    "group-hover:bg-card/80"
+                    "transition-all duration-500",
+                    "group-hover:-translate-y-2",
+                    "group-hover:bg-card/70"
                   )}
                 >
-                  {/* Gold accent corner */}
-                  <div
-                    className={cn(
-                      "absolute top-0 right-0 w-12 h-12",
-                      "border-t border-r border-[#d4af37]/0",
-                      "transition-all duration-500",
-                      "group-hover:border-[#d4af37]/30"
-                    )}
-                  />
+                  {/* Glow */}
+                  <div className="absolute inset-0 bg-primary/0 transition-all duration-500 group-hover:bg-primary/3" />
 
                   {/* Icon */}
                   <div
                     className={cn(
-                      "w-12 h-12 mb-6",
-                      "flex items-center justify-center",
-                      "border border-[#d4af37]/30",
+                      "relative mb-6 flex h-14 w-14 items-center justify-center rounded-2xl",
+                      "bg-primary/5",
                       "transition-all duration-500",
-                      "group-hover:border-[#d4af37]/60",
-                      "group-hover:bg-[#d4af37]/5"
+                      "group-hover:bg-primary/10"
                     )}
                   >
                     <Icon
                       className={cn(
-                        "w-5 h-5",
-                        "text-foreground/70",
+                        "h-5 w-5 text-foreground/70",
                         "transition-all duration-500",
-                        "group-hover:text-[#d4af37]"
+                        "group-hover:text-primary"
                       )}
                       strokeWidth={1.5}
                     />
@@ -155,52 +168,25 @@ export function WhyChooseSection() {
                   {/* Title */}
                   <h3
                     className={cn(
-                      "font-heading text-xl md:text-2xl",
-                      "text-foreground",
-                      "mb-3",
+                      "mb-3 font-heading text-xl text-foreground md:text-2xl",
                       "transition-colors duration-500",
-                      "group-hover:text-[#d4af37]"
+                      "group-hover:text-primary"
                     )}
                   >
                     {feature.title}
                   </h3>
 
                   {/* Description */}
-                  <p
-                    className={cn(
-                      "font-sans text-sm md:text-base",
-                      "text-muted-foreground leading-relaxed"
-                    )}
-                  >
+                  <p className="font-sans text-sm leading-relaxed text-muted-foreground md:text-base">
                     {feature.description}
                   </p>
-
-                  {/* Bottom gold line on hover */}
-                  <div
-                    className={cn(
-                      "absolute bottom-0 left-0 right-0 h-px",
-                      "bg-[#d4af37]/0",
-                      "transition-all duration-500",
-                      "group-hover:bg-[#d4af37]/40"
-                    )}
-                  />
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
 
-      {/* Decorative bottom line */}
-      <div
-        className={cn(
-          "absolute bottom-0 left-1/2 -translate-x-1/2",
-          "w-32 h-px",
-          "bg-linear-to-r from-transparent via-[#d4af37]/30 to-transparent",
-          "transition-all duration-1000 delay-700",
-          isLoaded ? "opacity-100" : "opacity-0"
-        )}
-      />
+      </div>
     </section>
   );
 }

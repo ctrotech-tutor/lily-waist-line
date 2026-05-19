@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,24 +12,38 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getPaymentConfiguration } from "@/server/actions/payment/get-payment-config";
 
 export type PaymentMethodType = "cashapp" | "paypal" | null;
 
 export interface PaymentNextStepProps {
   method: PaymentMethodType;
-  cashAppHandle?: string;
-  paypalEmail?: string;
   className?: string;
 }
 
 export function PaymentNextStep({
   method,
-  cashAppHandle = "(Your handle will appear here)",
-  paypalEmail = "(Merchant email will appear here)",
   className,
 }: PaymentNextStepProps) {
+  const [paymentConfig, setPaymentConfig] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [configLoading, setConfigLoading] = useState(false);
+
+  useEffect(() => {
+    if (method) {
+      setConfigLoading(true);
+      getPaymentConfiguration().then((result) => {
+        if (result.success && result.data) {
+          const config = result.data.find(
+            (c: any) => c.paymentMethod === (method === "cashapp" ? "CASH_APP" : "PAYPAL")
+          );
+          setPaymentConfig(config);
+        }
+        setConfigLoading(false);
+      });
+    }
+  }, [method]);
 
   const handleCompletePayment = () => {
     setIsLoading(true);
@@ -57,7 +71,24 @@ export function PaymentNextStep({
     );
   }
 
+  if (configLoading) {
+    return (
+      <Card
+        className={cn(
+          "p-6 md:p-8 border border-border bg-muted/30",
+          className
+        )}
+      >
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+        </div>
+      </Card>
+    );
+  }
+
   const isCashApp = method === "cashapp";
+  const handle = isCashApp ? paymentConfig?.cashAppHandle : null;
+  const email = !isCashApp ? paymentConfig?.paypalEmail : null;
 
   return (
     <Card
@@ -89,7 +120,7 @@ export function PaymentNextStep({
 
       {/* Payment Details */}
       <div className="space-y-5 mb-6">
-        {/* Handle/Email Placeholder */}
+        {/* Handle/Email */}
         <div>
           <p className="font-sans text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             {isCashApp ? "Cash App Handle" : "PayPal Email"}
@@ -100,13 +131,13 @@ export function PaymentNextStep({
                 <span className="text-[#d4af37] font-sans text-lg font-semibold">
                   $
                 </span>
-                <span className="font-sans text-sm text-muted-foreground">
-                  {cashAppHandle}
+                <span className="font-sans text-sm text-foreground">
+                  {handle || "Loading..."}
                 </span>
               </>
             ) : (
-              <span className="font-sans text-sm text-muted-foreground">
-                {paypalEmail}
+              <span className="font-sans text-sm text-foreground">
+                {email || "Loading..."}
               </span>
             )}
           </div>

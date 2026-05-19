@@ -1,8 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { Package, MapPin, Heart } from 'lucide-react'
 import { Card } from '@/components/ui/card'
-import Link from 'next/link'
 
 interface AccountStatsProps {
   ordersCount: number
@@ -42,22 +42,32 @@ export function AccountStats({
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
       {stats.map((stat) => (
-        <Link key={stat.label} href={stat.href}>
-          <Card className="border-white/10 bg-white/5 p-6 transition-all hover:border-[#D4AF37]/50 hover:bg-white/10">
-            <div className="flex items-start justify-between">
+        <Link
+          key={stat.label}
+          href={stat.href}
+          className="group block"
+        >
+          <Card className="border-border bg-card p-6 transition-all duration-300 group-hover:-translate-y-1 group-hover:border-secondary/50 group-hover:bg-muted">
+            <div className="flex items-start justify-between gap-4">
               <div className="space-y-2">
-                <p className="font-['Montserrat'] text-xs uppercase tracking-wider text-gray-400">
+                <p className="font-['Montserrat'] text-xs uppercase tracking-wider text-muted-foreground">
                   {stat.label}
                 </p>
-                <p className="font-['Bodoni_Moda'] text-4xl font-bold text-white">
+
+                <p className="font-['Bodoni_Moda'] text-4xl font-bold text-card-foreground">
                   {stat.value}
                 </p>
-                <p className="font-['Montserrat'] text-xs text-gray-500">
+
+                <p className="font-['Montserrat'] text-xs text-muted-foreground">
                   {stat.description}
                 </p>
               </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-[#D4AF37]/10">
-                <stat.icon className="h-6 w-6 text-[#D4AF37]" strokeWidth={1.5} />
+
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm bg-secondary/10">
+                <stat.icon
+                  className="h-6 w-6 text-secondary"
+                  strokeWidth={1.5}
+                />
               </div>
             </div>
           </Card>

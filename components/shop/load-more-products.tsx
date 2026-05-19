@@ -33,7 +33,7 @@ export function LoadMoreProducts({
           "bg-transparent text-foreground",
           "font-sans text-sm font-semibold uppercase tracking-widest",
           "border border-foreground/30",
-          "rounded-none",
+          "rounded-full", // changed from rounded-none
           "transition-all duration-300 ease-out",
           "hover:border-[#d4af37] hover:text-[#d4af37]",
           "disabled:opacity-50 disabled:cursor-not-allowed",

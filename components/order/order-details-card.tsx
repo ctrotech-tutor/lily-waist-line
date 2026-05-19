@@ -4,11 +4,12 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Hash, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PaymentStatus } from "@/lib/generated/prisma/enums";
 
 export interface OrderDetailsCardProps {
   orderNumber?: string;
   orderDate?: string;
-  paymentStatus?: "pending" | "completed" | "failed";
+  paymentStatus?: PaymentStatus;
   className?: string;
 }
 
@@ -19,12 +20,12 @@ export function OrderDetailsCard({
     month: "long",
     day: "numeric",
   }),
-  paymentStatus = "pending",
+  paymentStatus = PaymentStatus.PENDING,
   className,
 }: OrderDetailsCardProps) {
   const getStatusBadge = () => {
     switch (paymentStatus) {
-      case "completed":
+      case PaymentStatus.PAID:
         return (
           <Badge
             variant="secondary"
@@ -33,7 +34,7 @@ export function OrderDetailsCard({
             Paid
           </Badge>
         );
-      case "failed":
+      case PaymentStatus.REJECTED:
         return (
           <Badge
             variant="secondary"

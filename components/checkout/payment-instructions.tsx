@@ -1,10 +1,12 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, ArrowRight, AlertCircle } from "lucide-react";
+import { CreditCard, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PaymentMethod } from "./payment-method-selector";
+import { getPaymentConfiguration } from "@/server/actions/payment/get-payment-config";
 
 interface PaymentInstructionsProps {
   method: PaymentMethod | null;
@@ -15,6 +17,24 @@ export function PaymentInstructions({
   method,
   className,
 }: PaymentInstructionsProps) {
+  const [paymentConfig, setPaymentConfig] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (method) {
+      setIsLoading(true);
+      getPaymentConfiguration().then((result) => {
+        if (result.success && result.data) {
+          const config = result.data.find(
+            (c: any) => c.paymentMethod === (method === "cashapp" ? "CASH_APP" : "PAYPAL")
+          );
+          setPaymentConfig(config);
+        }
+        setIsLoading(false);
+      });
+    }
+  }, [method]);
+
   if (!method) {
     return (
       <Card
@@ -38,7 +58,26 @@ export function PaymentInstructions({
     );
   }
 
-  if (method === "cashapp") {
+  if (isLoading) {
+    return (
+      <Card
+        className={cn(
+          "p-5 md:p-6 border border-border bg-muted/30",
+          className
+        )}
+      >
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+        </div>
+      </Card>
+    );
+  }
+
+  const isCashApp = method === "cashapp";
+  const handle = isCashApp ? paymentConfig?.cashAppHandle : null;
+  const email = !isCashApp ? paymentConfig?.paypalEmail : null;
+
+  if (isCashApp) {
     return (
       <Card
         className={cn(
@@ -70,7 +109,7 @@ export function PaymentInstructions({
 
         {/* Instructions */}
         <div className="space-y-4">
-          {/* Cash App Handle Placeholder */}
+          {/* Cash App Handle */}
           <div>
             <p className="font-sans text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
               Cash App Handle
@@ -79,8 +118,8 @@ export function PaymentInstructions({
               <span className="text-[#d4af37] font-sans text-lg font-semibold">
                 $
               </span>
-              <span className="font-sans text-sm text-muted-foreground">
-                (Your handle will appear here)
+              <span className="font-sans text-sm text-foreground">
+                {handle || "Loading..."}
               </span>
             </div>
           </div>
@@ -130,14 +169,14 @@ export function PaymentInstructions({
 
       {/* Instructions */}
       <div className="space-y-4">
-        {/* PayPal Email Placeholder */}
+        {/* PayPal Email */}
         <div>
           <p className="font-sans text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
             PayPal Email
           </p>
           <div className="p-3 border border-[#d4af37]/20 bg-card">
-            <span className="font-sans text-sm text-muted-foreground">
-              (Merchant email will appear here)
+            <span className="font-sans text-sm text-foreground">
+              {email || "Loading..."}
             </span>
           </div>
         </div>

@@ -6,40 +6,49 @@ export interface ProductCardSkeletonProps {
   className?: string;
 }
 
-export function ProductCardSkeleton({ className }: ProductCardSkeletonProps) {
+export function ProductCardSkeleton({
+  className,
+}: ProductCardSkeletonProps) {
   return (
-    <div className={cn("group relative flex flex-col", className)}>
+    <div
+      className={cn(
+        "group relative flex flex-col cursor-pointer",
+        className
+      )}
+    >
       {/* Image Container */}
-      <div className="relative aspect-3/4 overflow-hidden bg-muted">
-        {/* Shimmer Effect */}
+      <div
+        className={cn(
+          "relative aspect-3/4 overflow-hidden",
+          "rounded-3xl",
+          "bg-muted/70"
+        )}
+      >
+        {/* Premium shimmer */}
         <div
           className={cn(
             "absolute inset-0",
-            "bg-linear-to-r from-transparent via-background/20 to-transparent",
-            "animate-shimmer",
-            "-translate-x-full"
+            "bg-linear-to-r from-transparent via-background/40 to-transparent",
+            "-translate-x-full animate-shimmer"
           )}
-          style={{
-            animation: "shimmer 2s infinite",
-          }}
         />
       </div>
 
       {/* Product Details */}
-      <div className="flex flex-col gap-1.5 pt-4">
-        {/* Product Name */}
-        <div className="h-6 w-3/4 bg-muted animate-pulse" />
+      <div className="flex flex-col gap-2 pt-5">
+        {/* Title */}
+        <div className="h-5 w-3/4 rounded-full bg-muted animate-pulse" />
 
-        {/* Product Subtitle */}
-        <div className="h-4 w-1/2 bg-muted animate-pulse" />
+        {/* Subtitle */}
+        <div className="h-4 w-1/2 rounded-full bg-muted animate-pulse" />
 
-        {/* Pricing Row */}
-        <div className="flex items-center gap-2 mt-1">
-          <div className="h-5 w-16 bg-muted animate-pulse" />
+        {/* Price */}
+        <div className="flex items-center gap-2 pt-1">
+          <div className="h-5 w-16 rounded-full bg-muted animate-pulse" />
         </div>
 
-        {/* Stock Status */}
-        <div className="h-3 w-20 bg-muted animate-pulse" />
+        {/* Stock */}
+        <div className="h-3 w-20 rounded-full bg-muted animate-pulse" />
       </div>
     </div>
   );

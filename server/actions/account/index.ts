@@ -67,8 +67,8 @@ export async function updateProfile(formData: FormData) {
 
     revalidatePath('/account')
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       user: {
         id: updatedUser.id,
         email: updatedUser.email,
@@ -138,31 +138,62 @@ export async function changePassword(formData: FormData) {
  */
 export async function resendVerificationEmail() {
   try {
-    const user = await getCurrentUser()
-    if (!user) {
-      return { success: false, error: 'Unauthorized' }
-    }
-
-    if (user.emailVerified) {
-      return { success: false, error: 'Email is already verified' }
-    }
-
     const { createClient } = await import('@/lib/supabase/server')
     const supabase = await createClient()
 
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: user.email,
-    })
+    // Get live auth user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
 
-    if (error) {
-      return { success: false, error: 'Failed to resend verification email' }
+    if (userError || !user) {
+      return {
+        success: false,
+        error: 'Unauthorized',
+      }
     }
 
-    return { success: true }
+    // Already verified?
+    if (user.email_confirmed_at) {
+      return {
+        success: false,
+        error: 'Email already verified',
+      }
+    }
+
+    const { error } =
+      await supabase.auth.resend({
+        type: 'signup',
+        email: user.email!,
+        options: {
+          emailRedirectTo:
+            `${process.env.NEXT_PUBLIC_SITE_URL || 'https://lily-waist-line.vercel.app'}/auth/callback`,
+        },
+      })
+
+    if (error) {
+      console.error(error)
+
+      return {
+        success: false,
+        error: error.message,
+      }
+    }
+
+    return {
+      success: true,
+    }
   } catch (error) {
-    console.error('Error resending verification email:', error)
-    return { success: false, error: 'Failed to resend verification email' }
+    console.error(
+      'Resend verification error:',
+      error
+    )
+
+    return {
+      success: false,
+      error: 'Failed to resend verification email',
+    }
   }
 }
 
@@ -206,9 +237,9 @@ export async function deleteAccount(formData: FormData) {
     })
 
     if (activeOrders.length > 0) {
-      return { 
-        success: false, 
-        error: 'Cannot delete account with active orders. Please complete or cancel your orders first.' 
+      return {
+        success: false,
+        error: 'Cannot delete account with active orders. Please complete or cancel your orders first.'
       }
     }
 

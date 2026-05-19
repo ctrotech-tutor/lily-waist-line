@@ -58,9 +58,7 @@ export function ShopLayout({
                 {sidebarContent ? (
                   sidebarContent
                 ) : showFilters ? (
-                  <div className="p-6 bg-card/30 border border-border/30">
-                    <ShopFilters searchParams={searchParams} />
-                  </div>
+                  <ShopFilters searchParams={searchParams} />
                 ) : null}
               </div>
             </aside>
@@ -89,7 +87,7 @@ export function ShopLayout({
                   </div>
 
                   {/* Product Grid */}
-                  <ProductGrid 
+                  <ProductGrid
                     searchParams={searchParams}
                     initialProducts={initialProducts}
                     initialTotalCount={initialTotalCount}
@@ -99,9 +97,9 @@ export function ShopLayout({
               )}
 
               {/* Footer */}
-              <div className="mt-16 pt-8 border-t border-border/30">
+              {/* <div className="mt-16 pt-8 border-t border-border/30">
                 <Footer />
-              </div>
+              </div> */}
             </main>
           </div>
         </div>

@@ -13,6 +13,8 @@ const mockProducts = [
     badge: "Best Seller",
     stockState: "in-stock" as const,
     isWishlisted: false,
+    variantId: "1",
+    slug: "classic-hourglass-waist-trainer",
   },
   {
     id: "2",
@@ -23,6 +25,8 @@ const mockProducts = [
     badge: "New Arrival",
     stockState: "in-stock" as const,
     isWishlisted: true,
+    variantId: "2",
+    slug: "latex-performance-trainer",
   },
   {
     id: "3",
@@ -33,6 +37,8 @@ const mockProducts = [
     originalPrice: 54.99,
     stockState: "low-stock" as const,
     isWishlisted: false,
+    variantId: "3",
+    slug: "adjustable-velcro-trainer",
   },
   {
     id: "4",
@@ -43,6 +49,8 @@ const mockProducts = [
     badge: "Limited",
     stockState: "out-of-stock" as const,
     isWishlisted: false,
+    variantId: "4",
+    slug: "luxe-gold-edition-trainer",
   },
   {
     id: "5",
@@ -53,6 +61,8 @@ const mockProducts = [
     originalPrice: 99.99,
     stockState: "in-stock" as const,
     isWishlisted: false,
+    variantId: "5",
+    slug: "full-body-shaper-bodysuit",
   },
   {
     id: "6",
@@ -62,6 +72,8 @@ const mockProducts = [
     price: 29.99,
     stockState: "in-stock" as const,
     isWishlisted: false,
+    variantId: "6",
+    slug: "neoprene-thigh-trimmer",
   },
 ];
 

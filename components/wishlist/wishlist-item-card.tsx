@@ -1,165 +1,195 @@
 "use client";
 
-import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { ShoppingBag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { ProductImage } from "@/components/shared/optimized-image";
 
 export type StockState = "in-stock" | "low-stock" | "out-of-stock";
 
 export interface WishlistItemCardProps {
   id: string;
+  slug: string;
   image: string;
   name: string;
   tagline?: string;
   price: number;
   originalPrice?: number;
   stockState?: StockState;
+  variantId?: string;
   className?: string;
-  onAddToCart?: (id: string) => void;
+  onAddToCart?: (variantId: string) => void;
   onRemove?: (id: string) => void;
 }
 
 export function WishlistItemCard({
   id,
+  slug,
   image,
   name,
   tagline,
   price,
   originalPrice,
   stockState = "in-stock",
+  variantId,
   className,
   onAddToCart,
   onRemove,
 }: WishlistItemCardProps) {
+  const router = useRouter();
+
   const hasDiscount = originalPrice && originalPrice > price;
+
   const discountPercentage = hasDiscount
     ? Math.round(((originalPrice! - price) / originalPrice!) * 100)
     : null;
 
   const stockConfig = {
-    "in-stock": { label: "In Stock", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" },
-    "low-stock": { label: "Low Stock", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
-    "out-of-stock": { label: "Out of Stock", color: "bg-red-500/10 text-red-500 border-red-500/20" },
+    "in-stock": {
+      label: "In Stock",
+      color:
+        "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+    },
+    "low-stock": {
+      label: "Low Stock",
+      color:
+        "bg-amber-500/10 text-amber-500 border-amber-500/20",
+    },
+    "out-of-stock": {
+      label: "Out of Stock",
+      color: "bg-red-500/10 text-red-500 border-red-500/20",
+    },
   };
 
-  const handleAddToCart = () => {
-    onAddToCart?.(id);
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (variantId) onAddToCart?.(variantId);
   };
 
-  const handleRemove = () => {
+  const handleRemove = (e: React.MouseEvent) => {
+    e.stopPropagation();
     onRemove?.(id);
+  };
+
+  const handleCardClick = () => {
+    router.push(`/product/${id}/${slug}`);
   };
 
   return (
     <div
+      onClick={handleCardClick}
       className={cn(
-        "group relative flex flex-col",
+        "group relative flex flex-col cursor-pointer",
         "bg-card border border-border",
+        "rounded-2xl overflow-hidden",
         "transition-all duration-500 ease-out",
-        "hover:border-[#d4af37]/30 hover:shadow-[0_0_30px_rgba(212,175,55,0.08)]",
+        "hover:border-[#d4af37]/30 hover:shadow-[0_0_35px_rgba(212,175,55,0.10)]",
         className
       )}
     >
-      {/* Image Container */}
+      {/* IMAGE */}
       <div className="relative aspect-3/4 overflow-hidden bg-muted">
-        {/* Product Image */}
-        <Image
+        <ProductImage
           src={image}
           alt={name}
-          fill
-          className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          className={cn(
+            "transition-transform duration-700 ease-out",
+            "group-hover:scale-105"
+          )}
         />
 
-        {/* Remove Button - Top Right */}
+        {/* REMOVE */}
         <button
           onClick={handleRemove}
           className={cn(
             "absolute top-3 right-3 z-10",
-            "w-9 h-9 flex items-center justify-center",
-            "bg-black/60 backdrop-blur-sm text-white",
-            "transition-all duration-300 ease-out",
-            "hover:bg-red-500/80 hover:text-white"
+            "w-9 h-9 rounded-full",
+            "flex items-center justify-center",
+            "bg-black/60 backdrop-blur-md text-white",
+            "transition-all duration-300",
+            "hover:bg-red-500/80"
           )}
-          aria-label="Remove from wishlist"
         >
           <X className="w-4 h-4" />
         </button>
 
-        {/* Discount Badge */}
+        {/* DISCOUNT */}
         {discountPercentage && (
           <div className="absolute top-3 left-3 z-10">
-            <Badge
-              className="bg-[#d4af37] text-black border-0 font-sans text-[10px] font-semibold uppercase tracking-widest px-2 py-1"
-            >
+            <Badge className="rounded-full bg-[#d4af37] text-black font-semibold text-[10px] uppercase tracking-widest px-2 py-1">
               -{discountPercentage}%
             </Badge>
           </div>
         )}
 
-        {/* Out of Stock Overlay */}
+        {/* OUT OF STOCK */}
         {stockState === "out-of-stock" && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-            <span className="font-sans text-xs font-semibold uppercase tracking-widest text-white/80">
+            <span className="text-xs uppercase tracking-widest text-white/80">
               Out of Stock
             </span>
           </div>
         )}
       </div>
 
-      {/* Product Details */}
+      {/* DETAILS */}
       <div className="flex flex-col gap-2 p-4">
-        {/* Stock Status Badge */}
+        {/* STOCK BADGE */}
         <Badge
           variant="outline"
           className={cn(
-            "w-fit font-sans text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-none",
+            "w-fit rounded-full",
+            "text-[10px] font-semibold uppercase tracking-wider px-2 py-1",
             stockConfig[stockState].color
           )}
         >
           {stockConfig[stockState].label}
         </Badge>
 
-        {/* Product Name */}
-        <h3 className="font-heading text-lg leading-tight text-foreground line-clamp-1">
+        {/* NAME */}
+        <h3 className="text-lg font-heading leading-tight line-clamp-1">
           {name}
         </h3>
 
-        {/* Product Tagline */}
+        {/* TAGLINE */}
         {tagline && (
-          <p className="font-sans text-sm text-muted-foreground line-clamp-1">
+          <p className="text-sm text-muted-foreground line-clamp-1">
             {tagline}
           </p>
         )}
 
-        {/* Pricing Row */}
+        {/* PRICE */}
         <div className="flex items-center gap-2 mt-1">
-          <span className="font-heading text-xl text-foreground">
+          <span className="text-xl font-heading">
             ${price.toFixed(2)}
           </span>
+
           {hasDiscount && (
-            <span className="font-heading text-sm text-muted-foreground line-through">
+            <span className="text-sm text-muted-foreground line-through">
               ${originalPrice!.toFixed(2)}
             </span>
           )}
         </div>
 
-        {/* Add to Cart Button */}
+        {/* CTA */}
         <Button
           onClick={handleAddToCart}
-          disabled={stockState === "out-of-stock"}
+          disabled={stockState === "out-of-stock" || !variantId}
           className={cn(
-            "w-full mt-2 py-3",
-            "font-button text-sm font-semibold uppercase tracking-wide",
+            "w-full mt-2 h-11",
+            "rounded-full",
             "bg-[#d4af37] text-black hover:bg-[#d4af37]/90",
+            "font-semibold uppercase tracking-wide",
             "transition-all duration-300",
             "disabled:opacity-50 disabled:cursor-not-allowed"
           )}
         >
           <ShoppingBag className="w-4 h-4 mr-2" />
-          {stockState === "out-of-stock" ? "Sold Out" : "Add to Cart"}
+          {stockState === "out-of-stock" || !variantId
+            ? "Sold Out"
+            : "Add to Cart"}
         </Button>
       </div>
     </div>

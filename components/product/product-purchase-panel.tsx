@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -18,35 +19,21 @@ import {
   Truck,
   RefreshCw,
   Lock,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { addToCart } from "@/server/actions/cart";
+import { addToWishlist } from "@/server/actions/wishlist";
+import type { ProductWithDetails } from "@/lib/services";
 
-// Mock product data interface
 interface ProductPurchasePanelProps {
-  product?: {
-    name: string;
-    tagline: string;
-    price: number;
-    originalPrice?: number;
-    stockStatus: "in-stock" | "low-stock" | "out-of-stock";
-  };
+  product: ProductWithDetails;
 }
 
-// Default mock data
-const defaultProduct = {
-  name: "Elite Sculpt Waist Trainer",
-  tagline: "Maximum Compression for Ultimate Transformation",
-  price: 89.99,
-  originalPrice: 119.99,
-  stockStatus: "in-stock" as const,
-};
-
-const sizeOptions = ["XS", "S", "M", "L", "XL"];
-
 const compressionLevels = [
-  { value: "light", label: "Light Sculpt" },
-  { value: "medium", label: "Medium Sculpt" },
-  { value: "maximum", label: "Maximum Sculpt" },
+  { value: "LIGHT", label: "Light Sculpt" },
+  { value: "MEDIUM", label: "Medium Sculpt" },
+  { value: "HIGH", label: "Maximum Sculpt" },
 ];
 
 const stockConfig = {
@@ -65,21 +52,104 @@ const stockConfig = {
 };
 
 export function ProductPurchasePanel({
-  product = defaultProduct,
+  product,
 }: ProductPurchasePanelProps) {
+  const router = useRouter();
   const [selectedSize, setSelectedSize] = useState<string>("M");
-  const [compressionLevel, setCompressionLevel] = useState<string>("medium");
+  const [compressionLevel, setCompressionLevel] = useState<string>("MEDIUM");
   const [quantity, setQuantity] = useState<number>(1);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [cartMessage, setCartMessage] = useState<string | null>(null);
+
+  // Get unique sizes from variants
+  const availableSizes = Array.from(new Set(product.variants.map(v => v.size)));
+  
+  // Find selected variant based on size and compression level
+  const selectedVariant = product.variants.find(
+    v => v.size === selectedSize && v.compressionLevel === compressionLevel
+  );
 
   const handleQuantityDecrease = () => {
     setQuantity((prev) => Math.max(1, prev - 1));
   };
 
   const handleQuantityIncrease = () => {
-    setQuantity((prev) => Math.min(10, prev + 1));
+    setQuantity((prev) => Math.min(selectedVariant?.stockQuantity || 10, prev + 1));
   };
 
-  const isOutOfStock = product.stockStatus === "out-of-stock";
+  const handleAddToCart = async () => {
+    if (!selectedVariant || selectedVariant.stockQuantity === 0) return;
+
+    setIsAddingToCart(true);
+    setCartMessage(null);
+
+    try {
+      const result = await addToCart({ variantId: selectedVariant.id, quantity });
+      if (result.success) {
+        setCartMessage("Added to cart!");
+        setTimeout(() => setCartMessage(null), 2000);
+      } else {
+        setCartMessage(result.error || "Failed to add to cart");
+        setTimeout(() => setCartMessage(null), 3000);
+      }
+    } catch (error) {
+      setCartMessage("Failed to add to cart");
+      setTimeout(() => setCartMessage(null), 3000);
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
+  const handleAddToWishlist = async () => {
+    setIsAddingToWishlist(true);
+
+    try {
+      const result = await addToWishlist(product.id);
+      if (result.success) {
+        setIsWishlisted(true);
+      } else {
+        if (result.error?.includes("logged in")) {
+          router.push("/login");
+          return;
+        }
+        console.error(result.error);
+      }
+    } catch (error) {
+      console.error("Failed to add to wishlist", error);
+    } finally {
+      setIsAddingToWishlist(false);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!selectedVariant || selectedVariant.stockQuantity === 0) return;
+
+    setIsAddingToCart(true);
+
+    try {
+      const result = await addToCart({ variantId: selectedVariant.id, quantity });
+      if (result.success) {
+        // Navigate to checkout page (to be implemented)
+        router.push("/checkout");
+      } else {
+        setCartMessage(result.error || "Failed to add to cart");
+        setTimeout(() => setCartMessage(null), 3000);
+      }
+    } catch (error) {
+      setCartMessage("Failed to add to cart");
+      setTimeout(() => setCartMessage(null), 3000);
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
+  const isOutOfStock = !selectedVariant || selectedVariant.stockQuantity === 0;
+  const isLowStock = selectedVariant && selectedVariant.stockQuantity > 0 && selectedVariant.stockQuantity <= 5;
+  const stockStatus = isOutOfStock ? "out-of-stock" : isLowStock ? "low-stock" : "in-stock";
+  const price = product.basePrice;
+  const originalPrice = product.compareAtPrice;
 
   return (
     <div className="flex flex-col">
@@ -88,9 +158,9 @@ export function ProductPurchasePanel({
         {/* Stock Badge */}
         <Badge
           variant="secondary"
-          className={cn("font-sans text-xs", stockConfig[product.stockStatus].className)}
+          className={cn("font-sans text-xs", stockConfig[stockStatus].className)}
         >
-          {stockConfig[product.stockStatus].label}
+          {stockConfig[stockStatus].label}
         </Badge>
 
         {/* Product Name */}
@@ -100,22 +170,22 @@ export function ProductPurchasePanel({
 
         {/* Tagline */}
         <p className="font-sans text-sm text-muted-foreground italic">
-          {product.tagline}
+          {product.shortDescription || "Premium waist trainer for ultimate transformation"}
         </p>
 
         {/* Price */}
         <div className="flex items-baseline gap-3">
           <span className="font-heading text-3xl text-foreground">
-            ${product.price.toFixed(2)}
+            ${parseFloat(price.toString()).toFixed(2)}
           </span>
-          {product.originalPrice && (
+          {originalPrice && (
             <span className="font-heading text-xl text-muted-foreground line-through">
-              ${product.originalPrice.toFixed(2)}
+              ${parseFloat(originalPrice.toString()).toFixed(2)}
             </span>
           )}
-          {product.originalPrice && (
+          {originalPrice && (
             <span className="font-sans text-sm text-secondary">
-              Save ${(product.originalPrice - product.price).toFixed(2)}
+              Save ${(parseFloat(originalPrice.toString()) - parseFloat(price.toString())).toFixed(2)}
             </span>
           )}
         </div>
@@ -145,7 +215,7 @@ export function ProductPurchasePanel({
               <SelectValue placeholder="Select size" />
             </SelectTrigger>
             <SelectContent className="border-border bg-card">
-              {sizeOptions.map((size) => (
+              {availableSizes.map((size) => (
                 <SelectItem
                   key={size}
                   value={size}
@@ -210,7 +280,7 @@ export function ProductPurchasePanel({
             </div>
             <button
               onClick={handleQuantityIncrease}
-              disabled={quantity >= 10 || isOutOfStock}
+              disabled={quantity >= (selectedVariant?.stockQuantity || 10) || isOutOfStock}
               className={cn(
                 "flex h-12 w-12 items-center justify-center",
                 "border border-l-0 border-border bg-transparent",
@@ -231,7 +301,8 @@ export function ProductPurchasePanel({
         {/* Primary Action - Add to Cart */}
         <Button
           size="lg"
-          disabled={isOutOfStock}
+          onClick={handleAddToCart}
+          disabled={isOutOfStock || isAddingToCart}
           className={cn(
             "w-full gap-2 bg-secondary text-secondary-foreground",
             "font-sans text-sm font-semibold uppercase tracking-wide",
@@ -240,7 +311,11 @@ export function ProductPurchasePanel({
             "disabled:opacity-50 disabled:cursor-not-allowed"
           )}
         >
-          <ShoppingBag className="h-4 w-4" />
+          {isAddingToCart ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <ShoppingBag className="h-4 w-4" />
+          )}
           {isOutOfStock ? "Out of Stock" : "Add to Cart"}
         </Button>
 
@@ -248,6 +323,8 @@ export function ProductPurchasePanel({
         <Button
           size="lg"
           variant="outline"
+          onClick={handleAddToWishlist}
+          disabled={isAddingToWishlist}
           className={cn(
             "w-full gap-2 border-border bg-transparent",
             "font-sans text-sm font-semibold uppercase tracking-wide text-foreground",
@@ -255,24 +332,42 @@ export function ProductPurchasePanel({
             "h-14"
           )}
         >
-          <Heart className="h-4 w-4" />
-          Add to Wishlist
+          {isAddingToWishlist ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Heart className={cn("h-4 w-4", isWishlisted && "fill-current text-secondary")} />
+          )}
+          {isWishlisted ? "In Wishlist" : "Add to Wishlist"}
         </Button>
 
-        {/* Optional - Buy Now (placeholder, disabled) */}
+        {/* Buy Now */}
         <Button
           size="lg"
           variant="ghost"
-          disabled
+          onClick={handleBuyNow}
+          disabled={isOutOfStock || isAddingToCart}
           className={cn(
             "w-full gap-2",
             "font-sans text-sm font-semibold uppercase tracking-wide",
-            "h-14 opacity-50 cursor-not-allowed"
+            "h-14",
+            "disabled:opacity-50 disabled:cursor-not-allowed"
           )}
         >
           Buy Now
         </Button>
       </div>
+
+      {/* Success/Error Message */}
+      {cartMessage && (
+        <div className="mt-4 text-center">
+          <span className={cn(
+            "inline-block px-4 py-2 text-xs font-semibold uppercase tracking-wider",
+            cartMessage.includes("Added") ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+          )}>
+            {cartMessage}
+          </span>
+        </div>
+      )}
 
       {/* Trust Micro Section */}
       <div className="mt-8 grid grid-cols-3 gap-2">

@@ -1,41 +1,55 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProductCard } from "@/components/store/product-card";
 import { ProductCardSkeleton } from "@/components/shared/product-card-skeleton";
 import { SectionHeadingSkeleton } from "@/components/shared/section-heading-skeleton";
 import { getFeaturedProducts } from "@/server/actions/products";
 import type { FeaturedProductData, ProductWithDetails } from "@/types/product";
+import Link from "next/link";
 
 export function FeaturedProductsSection() {
   const [isLoaded] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [products, setProducts] = useState<FeaturedProductData[]>([]);
 
-  // Fetch real data from database
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const featuredProducts = await getFeaturedProducts(8);
-        
-        // Transform products to match ProductCard interface
-        const transformedProducts = featuredProducts.map((product: ProductWithDetails): FeaturedProductData => ({
-          id: product.id,
-          image: product.images[0]?.url || "/img-p-1.png",
-          name: product.name,
-          subtitle: product.shortDescription,
-          price: parseFloat(product.minPrice.toString()),
-          originalPrice: product.compareAtPrice ? parseFloat(product.compareAtPrice.toString()) : undefined,
-          badge: product.totalStock > 10 ? undefined : "Limited",
-          stockState: product.inStock ? "in-stock" as const : "out-of-stock" as const,
-          slug: product.slug,
-        }));
-        
+
+        const transformedProducts = featuredProducts.map(
+          (product: ProductWithDetails): FeaturedProductData => {
+            // Calculate stock state consistently with wishlist page
+            let stockState: "in-stock" | "low-stock" | "out-of-stock" = "in-stock";
+            if (!product.inStock) {
+              stockState = "out-of-stock";
+            } else if (product.variants.some(v => v.stockQuantity > 0 && v.stockQuantity <= 5)) {
+              stockState = "low-stock";
+            }
+
+            return {
+              id: product.id,
+              variantId: product.variants[0]?.id || product.id,
+              slug: product.slug,
+              image: product.images[0]?.url || "/img-p-1.png",
+              name: product.name,
+              subtitle: product.shortDescription,
+              price: parseFloat(product.minPrice.toString()),
+              originalPrice: product.compareAtPrice
+                ? parseFloat(product.compareAtPrice.toString())
+                : undefined,
+              badge: product.totalStock > 10 ? undefined : "Limited",
+              stockState,
+            };
+          }
+        );
+
         setProducts(transformedProducts);
       } catch (error) {
-        console.error('Error fetching featured products:', error);
+        console.error("Error fetching featured products:", error);
       } finally {
         setIsLoading(false);
       }
@@ -44,63 +58,75 @@ export function FeaturedProductsSection() {
     fetchProducts();
   }, []);
 
-
   return (
-    <section id="featured" className="relative py-24 md:py-32 lg:py-40 overflow-hidden">
-      {/* Subtle background */}
+    <section
+      id="featured"
+      className="relative py-12 md:py-16 lg:py-20 overflow-hidden"
+    >
+      {/* Background */}
       <div className="absolute inset-0 bg-linear-to-b from-transparent via-card/20 to-transparent opacity-50" />
 
       <div className="relative max-w-360 mx-auto px-5 sm:px-6 lg:px-8 xl:px-12">
-        {/* Section Header */}
+
+        {/* HEADER */}
         <div className="text-center mb-16 md:mb-20 lg:mb-24">
+
           {isLoading ? (
             <SectionHeadingSkeleton />
           ) : (
             <>
-              {/* Eyebrow Label */}
+              {/* Eyebrow */}
               <div
                 className={cn(
                   "flex items-center justify-center gap-2 mb-6",
                   "transition-all duration-700",
-                  isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                  isLoaded
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-4"
                 )}
               >
-                <Sparkles className="w-4 h-4 text-[#d4af37]" />
-                <span className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-[#d4af37]">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                   Curated Collection
                 </span>
               </div>
 
-              {/* Gold Divider */}
+              {/* Divider */}
               <div
                 className={cn(
-                  "w-12 h-px bg-[#d4af37] mx-auto mb-8",
+                  "w-12 h-px bg-primary mx-auto mb-8",
                   "transition-all duration-700 delay-100",
-                  isLoaded ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
+                  isLoaded
+                    ? "opacity-100 scale-x-100"
+                    : "opacity-0 scale-x-0"
                 )}
               />
 
-              {/* Main Heading */}
+              {/* Title */}
               <h2
                 className={cn(
                   "font-heading text-3xl sm:text-4xl md:text-5xl lg:text-6xl",
                   "leading-[1.15] tracking-tight text-foreground",
                   "mb-6",
                   "transition-all duration-700 delay-200",
-                  isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                  isLoaded
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-4"
                 )}
               >
                 Featured Waist Trainers
               </h2>
 
-              {/* Supporting Copy */}
+              {/* Description */}
               <p
                 className={cn(
                   "font-sans text-base sm:text-lg",
                   "text-muted-foreground leading-relaxed",
                   "max-w-2xl mx-auto",
                   "transition-all duration-700 delay-300",
-                  isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                  isLoaded
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-4"
                 )}
               >
                 Discover our most sought-after pieces, engineered for transformation.
@@ -110,76 +136,70 @@ export function FeaturedProductsSection() {
           )}
         </div>
 
-        {/* Products Grid */}
+        {/* PRODUCTS GRID */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {isLoading
-            ? // Skeleton loading state
-              Array.from({ length: 4 }).map((_, index) => (
-                <div
-                  key={`skeleton-${index}`}
-                  className={cn(
-                    "transition-all duration-700",
-                    isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-                  )}
-                  style={{ transitionDelay: `${index * 100}ms` }}
-                >
-                  <ProductCardSkeleton />
-                </div>
-              ))
-            : // Product cards
-              products.map((product: FeaturedProductData, index: number) => (
-                <div
-                  key={product.id}
-                  className={cn(
-                    "transition-all duration-700",
-                    isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-                  )}
-                  style={{ transitionDelay: `${(index + 4) * 100}ms` }}
-                >
-                  <ProductCard {...product} />
-                </div>
-              ))}
+            ? Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={`skeleton-${index}`}
+                className={cn(
+                  "transition-all duration-700",
+                  isLoaded
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-8"
+                )}
+                style={{ transitionDelay: `${index * 100}ms` }}
+              >
+                <ProductCardSkeleton />
+              </div>
+            ))
+            : products.map((product, index) => (
+              <div
+                key={product.id}
+                className={cn(
+                  "transition-all duration-700",
+                  isLoaded
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-8"
+                )}
+                style={{ transitionDelay: `${(index + 4) * 100}ms` }}
+              >
+                <ProductCard {...product} />
+              </div>
+            ))}
         </div>
 
-        {/* View All CTA */}
+        {/* CTA */}
         {!isLoading && (
           <div
             className={cn(
               "flex justify-center mt-16 md:mt-20",
               "transition-all duration-700 delay-800",
-              isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+              isLoaded
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-4"
             )}
           >
-            <a
+            <Link
               href="/shop"
               className={cn(
-                "group flex items-center gap-3",
+                "group inline-flex items-center gap-3",
                 "px-8 py-4",
-                "border border-[#d4af37]",
+                "rounded-full", // rounded upgrade
+                "border border-primary",
                 "font-sans text-sm font-semibold uppercase tracking-wider",
                 "text-foreground",
                 "transition-all duration-300 ease-out",
-                "hover:bg-[#d4af37]/10 hover:border-[#d4af37]",
-                "focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:ring-offset-2 focus:ring-offset-background"
+                "hover:bg-primary/10 hover:border-primary/70",
+                "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
               )}
             >
               View All Products
-              <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
-            </a>
+              <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+            </Link>
           </div>
         )}
       </div>
-
-      {/* Decorative lines */}
-      <div
-        className={cn(
-          "absolute top-0 left-1/2 -translate-x-1/2",
-          "w-32 h-px",
-          "bg-linear-to-r from-transparent via-[#d4af37]/20 to-transparent",
-          "transition-all duration-1000",
-          isLoaded ? "opacity-100" : "opacity-0"
-        )}
-      />
     </section>
   );
 }

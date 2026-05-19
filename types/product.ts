@@ -1,5 +1,4 @@
 import type { ProductModel, ProductVariantModel, ProductImageModel } from '@/lib/generated/prisma/models'
-import type { Decimal } from '@/lib/prisma'
 
 // Prisma types with relations included
 export type ProductWithVariantsAndImages = ProductModel & {
@@ -43,6 +42,8 @@ export interface TransformedProduct {
 // Featured product data structure
 export interface FeaturedProductData {
   id: string
+  variantId: string
+  slug: string
   image: string
   name: string
   subtitle: string
@@ -50,7 +51,6 @@ export interface FeaturedProductData {
   originalPrice?: number
   badge?: string
   stockState: 'in-stock' | 'out-of-stock' | 'low-stock'
-  slug: string
 }
 
 // Filter and search options

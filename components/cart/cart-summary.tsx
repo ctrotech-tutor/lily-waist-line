@@ -5,11 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 export interface CartSummaryProps {
   subtotal: number;
   deliveryFee?: number | null;
   discount?: number;
+  total?: number;
   className?: string;
   onCheckout?: () => void;
   onContinueShopping?: () => void;
@@ -20,6 +22,7 @@ export function CartSummary({
   subtotal,
   deliveryFee = null,
   discount = 0,
+  total,
   className,
   onCheckout,
   onContinueShopping,
@@ -31,7 +34,7 @@ export function CartSummary({
       ? "Free" 
       : `$${deliveryFee.toFixed(2)}`;
 
-  const total = subtotal + (deliveryFee ?? 0) - discount;
+  const calculatedTotal = total ?? (subtotal + (deliveryFee ?? 0) - discount);
 
   const trustItems = [
     { icon: ShieldCheck, label: "Secure Checkout" },
@@ -44,7 +47,7 @@ export function CartSummary({
       <CardContent className="p-6">
         {/* Summary Header */}
         <h2 className="font-heading text-xl md:text-2xl font-semibold text-foreground mb-6">
-          Order Summary
+          Cart Summary
         </h2>
 
         {/* Price Breakdown */}
@@ -92,7 +95,7 @@ export function CartSummary({
               Total
             </span>
             <span className="font-heading text-xl font-semibold text-foreground">
-              ${total.toFixed(2)}
+              ${calculatedTotal.toFixed(2)}
             </span>
           </div>
         </div>
@@ -116,7 +119,7 @@ export function CartSummary({
         <Button
           onClick={onCheckout}
           className={cn(
-            "w-full mt-6",
+            "w-full rounded-full mt-6",
             "h-12",
             "font-sans text-sm font-semibold uppercase tracking-wider",
             "bg-secondary text-secondary-foreground",
@@ -130,11 +133,10 @@ export function CartSummary({
         </Button>
 
         {/* Secondary Action */}
-        <Button
-          onClick={onContinueShopping}
-          variant="ghost"
+        <Link
+          href="/shop"
           className={cn(
-            "w-full mt-3",
+            "inline-flex items-center justify-center w-full mt-3",
             "h-10",
             "font-sans text-sm font-medium",
             "text-muted-foreground",
@@ -144,7 +146,7 @@ export function CartSummary({
         >
           <ShoppingBag className="w-4 h-4 mr-2" />
           Continue Shopping
-        </Button>
+        </Link>
       </CardContent>
     </Card>
   );

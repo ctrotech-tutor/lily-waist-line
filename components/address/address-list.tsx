@@ -9,6 +9,8 @@ interface AddressListProps {
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
   onSetDefault?: (id: string) => void;
+  isDeleting?: string | null;
+  isSettingDefault?: string | null;
 }
 
 export function AddressList({
@@ -17,6 +19,8 @@ export function AddressList({
   onEdit,
   onDelete,
   onSetDefault,
+  isDeleting,
+  isSettingDefault,
 }: AddressListProps) {
   if (addresses.length === 0) {
     return null;
@@ -36,6 +40,8 @@ export function AddressList({
           onEdit={onEdit}
           onDelete={onDelete}
           onSetDefault={onSetDefault}
+          isDeleting={isDeleting === address.id}
+          isSettingDefault={isSettingDefault === address.id}
         />
       ))}
     </div>

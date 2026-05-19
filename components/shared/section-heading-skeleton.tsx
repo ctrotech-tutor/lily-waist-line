@@ -14,33 +14,51 @@ export function SectionHeadingSkeleton({
   align = "center",
 }: SectionHeadingSkeletonProps) {
   const alignClasses = {
-    left: "items-start",
-    center: "items-center",
-    right: "items-end",
+    left: "items-start text-left",
+    center: "items-center text-center",
+    right: "items-end text-right",
   };
 
   return (
     <div
       className={cn(
-        "flex flex-col gap-3",
+        "flex flex-col",
         alignClasses[align],
         className
       )}
     >
-      {/* Eyebrow Label */}
-      <div className="h-3 w-32 bg-muted animate-pulse" />
-
-      {/* Main Heading */}
-      <div className="flex flex-col gap-2 items-center">
-        <div className="h-10 w-64 bg-muted animate-pulse" />
-        <div className="h-10 w-48 bg-muted animate-pulse" />
+      {/* Eyebrow Label Skeleton */}
+      <div className="flex items-center gap-2 mb-6">
+        <div className="w-4 h-4 bg-muted animate-pulse rounded" />
+        <div className="h-4 w-32 bg-muted animate-pulse rounded" />
       </div>
 
-      {/* Supporting Text */}
+      {/* Divider Skeleton */}
+      <div className="w-16 h-px bg-muted animate-pulse mb-8" />
+
+      {/* Main Heading Skeleton */}
+      <div
+        className={cn(
+          "flex flex-col gap-3 mb-6",
+          align !== "left" && "items-center",
+          align === "right" && "items-end"
+        )}
+      >
+        <div className="h-10 w-64 bg-muted animate-pulse rounded" />
+        <div className="h-10 w-48 bg-muted animate-pulse rounded" />
+      </div>
+
+      {/* Supporting Copy Skeleton */}
       {showSupportingText && (
-        <div className="flex flex-col gap-1.5 items-center mt-2">
-          <div className="h-4 w-80 bg-muted animate-pulse" />
-          <div className="h-4 w-64 bg-muted animate-pulse" />
+        <div
+          className={cn(
+            "flex flex-col gap-2",
+            align !== "left" && "items-center",
+            align === "right" && "items-end"
+          )}
+        >
+          <div className="h-4 w-full max-w-xs bg-muted animate-pulse rounded" />
+          <div className="h-4 w-64 bg-muted animate-pulse rounded" />
         </div>
       )}
     </div>

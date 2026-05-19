@@ -107,17 +107,29 @@ export function ProductGrid({
 
   // Transform database products to ProductCardProps
   const transformProducts = (dbProducts: ProductWithDetails[]): ProductCardProps[] => {
-    return dbProducts.map((product) => ({
-      id: product.id,
-      image: product.images[0]?.url || "/placeholder-product.jpg",
-      name: product.name,
-      subtitle: product.shortDescription,
-      price: parseFloat(product.minPrice.toString()),
-      originalPrice: product.compareAtPrice ? parseFloat(product.compareAtPrice.toString()) : undefined,
-      badge: product.totalStock > 10 ? undefined : "Limited",
-      stockState: product.inStock ? "in-stock" : "out-of-stock",
-      isWishlisted: false, // This would come from user-specific data
-    }));
+    return dbProducts.map((product) => {
+      // Calculate stock state consistently with wishlist page
+      let stockState: "in-stock" | "low-stock" | "out-of-stock" = "in-stock";
+      if (!product.inStock) {
+        stockState = "out-of-stock";
+      } else if (product.variants.some(v => v.stockQuantity > 0 && v.stockQuantity <= 5)) {
+        stockState = "low-stock";
+      }
+
+      return {
+        id: product.id,
+        variantId: product.variants[0]?.id || product.id, // Use first variant ID or fallback to product ID
+        slug: product.slug,
+        image: product.images[0]?.url || "/placeholder-product.jpg",
+        name: product.name,
+        subtitle: product.shortDescription,
+        price: parseFloat(product.minPrice.toString()),
+        originalPrice: product.compareAtPrice ? parseFloat(product.compareAtPrice.toString()) : undefined,
+        badge: product.totalStock > 10 ? undefined : "Limited",
+        stockState,
+        isWishlisted: false, // This would come from user-specific data
+      };
+    });
   };
 
   // Load products from server if not provided initially
@@ -223,7 +235,7 @@ export function ProductGrid({
         className={cn(
           "grid grid-cols-2 gap-4",
           "sm:gap-6",
-          "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+          "md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4",
           "lg:gap-8"
         )}
       >

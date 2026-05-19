@@ -279,3 +279,15 @@ model Shipment {
   @@index([orderId, shippedAt(sort: Desc)])
   @@index([trackingNumber])
 }
+
+model PaymentConfiguration {
+  id            String        @id @default(cuid())
+  paymentMethod PaymentMethod @unique
+  enabled       Boolean       @default(true)
+  cashAppHandle String?       // For CASH_APP
+  paypalEmail   String?       // For PAYPAL
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([paymentMethod])
+}

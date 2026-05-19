@@ -9,45 +9,23 @@ import { CheckoutAddressCard, type AddressCardData } from "./address-card";
 export type { AddressCardData };
 import { cn } from "@/lib/utils";
 
-// Mock addresses per Feature Spec 45
-const mockAddresses: AddressCardData[] = [
-  {
-    id: "1",
-    firstName: "Jane",
-    lastName: "Doe",
-    addressLine1: "12 Luxury Street",
-    city: "Lagos",
-    country: "Nigeria",
-    phone: "08012345678",
-    isDefault: true,
-  },
-  {
-    id: "2",
-    firstName: "Jane",
-    lastName: "Doe",
-    addressLine1: "45 Elite Avenue",
-    addressLine2: "Suite 12B",
-    city: "Abuja",
-    state: "FCT",
-    country: "Nigeria",
-    phone: "08098765432",
-    isDefault: false,
-  },
-];
 
 interface AddressSelectorProps {
+  addresses: AddressCardData[];
   onAddressSelect?: (address: AddressCardData | null) => void;
   className?: string;
 }
 
 // Get default address for initial state
-const defaultAddress = mockAddresses.find((addr) => addr.isDefault);
+const getDefaultAddress = (addresses: AddressCardData[]) => addresses.find((addr) => addr.isDefault);
 
 export function AddressSelector({
+  addresses,
   onAddressSelect,
   className,
 }: AddressSelectorProps) {
   const router = useRouter();
+  const defaultAddress = getDefaultAddress(addresses);
   const [selectedId, setSelectedId] = useState<string | null>(defaultAddress?.id || null);
   const [hasSelection, setHasSelection] = useState(!!defaultAddress);
 
@@ -62,7 +40,7 @@ export function AddressSelector({
   const handleSelect = (id: string) => {
     setSelectedId(id);
     setHasSelection(true);
-    const selected = mockAddresses.find((addr) => addr.id === id);
+    const selected = addresses.find((addr) => addr.id === id);
     onAddressSelect?.(selected || null);
   };
 
@@ -71,7 +49,7 @@ export function AddressSelector({
   };
 
   // If no addresses, show empty state
-  if (mockAddresses.length === 0) {
+  if (addresses.length === 0) {
     return (
       <div className={cn("space-y-6", className)}>
         {/* Empty State */}
@@ -107,7 +85,7 @@ export function AddressSelector({
     <div className={cn("space-y-6", className)}>
       {/* Address List */}
       <div className="grid grid-cols-1 gap-4">
-        {mockAddresses.map((address) => (
+        {addresses.map((address) => (
           <CheckoutAddressCard
             key={address.id}
             address={address}

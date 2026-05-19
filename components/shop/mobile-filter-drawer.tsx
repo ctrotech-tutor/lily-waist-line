@@ -3,18 +3,21 @@
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-  SheetClose,
-} from "@/components/ui/sheet";
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerFooter,
+  DrawerClose,
+} from "@/components/ui/drawer";
+
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { SlidersHorizontal, X } from "lucide-react";
 import { useShopURLSync } from "@/lib/shop-url-sync-client";
 import { ShopSearchParams } from "@/lib/shop-url-sync-server";
+
+/* ================= DATA ================= */
 
 interface FilterOption {
   value: string;
@@ -67,52 +70,60 @@ const filterGroups: FilterGroup[] = [
   },
 ];
 
-interface MobileFilterChipProps {
+/* ================= CHIP ================= */
+
+function MobileFilterChip({
+  label,
+  selected,
+  onClick,
+}: {
   label: string;
   selected: boolean;
   onClick: () => void;
-}
-
-function MobileFilterChip({ label, selected, onClick }: MobileFilterChipProps) {
+}) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        "relative px-4 py-3 font-sans text-sm",
-        "border transition-all duration-200 ease-out",
+        "relative px-4 py-3",
+        "rounded-full",
+        "text-sm font-sans",
+        "border transition-all duration-200",
         "active:scale-[0.98]",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "focus-visible:ring-2 focus-visible:ring-ring",
         selected
           ? "bg-primary text-primary-foreground border-primary"
-          : "bg-transparent text-foreground border-border hover:border-[#d4af37]/50"
+          : "bg-transparent border-border hover:border-[#d4af37]/50"
       )}
     >
       {selected && (
-        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#d4af37]" />
+        <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-[#d4af37] rounded-full" />
       )}
       {label}
     </button>
   );
 }
 
-interface MobileFilterSectionProps {
+/* ================= SECTION ================= */
+
+function MobileFilterSection({
+  group,
+  selectedValues,
+  onToggle,
+}: {
   group: FilterGroup;
   selectedValues: string[];
   onToggle: (groupId: string, value: string) => void;
-}
-
-function MobileFilterSection({ group, selectedValues, onToggle }: MobileFilterSectionProps) {
+}) {
   return (
     <div className="space-y-4">
-      {/* Section Header */}
       <div className="flex items-center gap-2">
-        <div className="w-1.5 h-1.5 bg-[#d4af37]" />
-        <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="w-1.5 h-1.5 bg-[#d4af37] rounded-full" />
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {group.title}
         </h3>
       </div>
 
-      {/* Filter Chips - Larger for mobile touch */}
       <div className="flex flex-wrap gap-3">
         {group.options.map((option) => (
           <MobileFilterChip
@@ -126,6 +137,8 @@ function MobileFilterSection({ group, selectedValues, onToggle }: MobileFilterSe
     </div>
   );
 }
+
+/* ================= MAIN ================= */
 
 export interface MobileFilterDrawerProps {
   open: boolean;
@@ -141,31 +154,32 @@ export function MobileFilterDrawer({
   searchParams,
 }: MobileFilterDrawerProps) {
   const { updateParams, clearFilters } = useShopURLSync();
-  
-  const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({
+
+  const [selectedFilters, setSelectedFilters] = useState<
+    Record<string, string[]>
+  >({
     size: searchParams?.size ? [searchParams.size] : [],
     compression: searchParams?.compression ? [searchParams.compression] : [],
     color: [],
     availability: [],
   });
-  
-  // Use ref to track previous searchParams to avoid cascading renders
-  const prevSearchParamsRef = useRef(searchParams);
-  
-  // Update local state when URL params change
+
+  const prevRef = useRef(searchParams);
+
   useEffect(() => {
-    // Check if searchParams actually changed
-    if (prevSearchParamsRef.current?.size === searchParams?.size &&
-        prevSearchParamsRef.current?.compression === searchParams?.compression) {
-      return;
-    }
-    prevSearchParamsRef.current = searchParams;
-    
-    // Use microtask to avoid synchronous setState in effect body
+    if (
+      prevRef.current?.size === searchParams?.size &&
+      prevRef.current?.compression === searchParams?.compression
+    ) return;
+
+    prevRef.current = searchParams;
+
     queueMicrotask(() => {
       setSelectedFilters({
         size: searchParams?.size ? [searchParams.size] : [],
-        compression: searchParams?.compression ? [searchParams.compression] : [],
+        compression: searchParams?.compression
+          ? [searchParams.compression]
+          : [],
         color: [],
         availability: [],
       });
@@ -184,139 +198,129 @@ export function MobileFilterDrawer({
   };
 
   const handleApply = () => {
-    // Apply filters to URL
-    const sizeFilter = selectedFilters.size?.[0];
-    const compressionFilter = selectedFilters.compression?.[0];
-    
     updateParams({
-      size: sizeFilter,
-      compression: compressionFilter,
+      size: selectedFilters.size?.[0],
+      compression: selectedFilters.compression?.[0],
     });
-    
+
     onFiltersChange?.(selectedFilters);
     onOpenChange(false);
   };
 
   const handleReset = () => {
-    const resetFilters = {
+    const reset = {
       size: [],
       compression: [],
       color: [],
       availability: [],
     };
-    setSelectedFilters(resetFilters);
+
+    setSelectedFilters(reset);
     clearFilters();
-    onFiltersChange?.(resetFilters);
+    onFiltersChange?.(reset);
   };
 
-  const activeFilterCount = Object.values(selectedFilters).reduce(
-    (count, values) => count + values.length,
+  const activeCount = Object.values(selectedFilters).reduce(
+    (a, b) => a + b.length,
     0
   );
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="left" className="w-full sm:max-w-sm flex flex-col">
-        {/* Header */}
-        <SheetHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 border border-[#d4af37]/30 flex items-center justify-center">
-                <SlidersHorizontal className="w-4 h-4 text-[#d4af37]" />
-              </div>
-              <div>
-                <SheetTitle className="font-heading text-xl">
-                  Filters
-                </SheetTitle>
-                {activeFilterCount > 0 && (
-                  <p className="font-sans text-xs text-muted-foreground mt-0.5">
-                    {activeFilterCount} selected
-                  </p>
-                )}
-              </div>
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent className="rounded-t-2xl">
+        {/* REQUIRED TITLE (fixes Radix error) */}
+        <DrawerHeader className="flex flex-row items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 border border-[#d4af37]/30 rounded-full flex items-center justify-center">
+              <SlidersHorizontal className="w-4 h-4 text-[#d4af37]" />
             </div>
-            <SheetClose asChild>
-              <Button variant="ghost" size="icon-sm" className="shrink-0">
-                <X className="w-4 h-4" />
-                <span className="sr-only">Close</span>
-              </Button>
-            </SheetClose>
-          </div>
-        </SheetHeader>
 
-        <Separator className="bg-border/50" />
+            <div>
+              <DrawerTitle className="text-xl font-semibold">
+                Filters
+              </DrawerTitle>
 
-        {/* Filter Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto py-4 px-4 -mx-4">
-          <div className="space-y-6">
-            {filterGroups.map((group, index) => (
-              <div key={group.id}>
-                <MobileFilterSection
-                  group={group}
-                  selectedValues={selectedFilters[group.id] || []}
-                  onToggle={handleToggle}
-                />
-                {index < filterGroups.length - 1 && (
-                  <Separator className="mt-6 bg-border/30" />
-                )}
-              </div>
-            ))}
+              {activeCount > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {activeCount} selected
+                </p>
+              )}
+            </div>
           </div>
+
+          <DrawerClose asChild>
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <X className="w-4 h-4" />
+            </Button>
+          </DrawerClose>
+        </DrawerHeader>
+
+        <Separator />
+
+        {/* CONTENT */}
+        <div className="p-4 space-y-6 overflow-y-auto max-h-[70vh]">
+          {filterGroups.map((group) => (
+            <MobileFilterSection
+              key={group.id}
+              group={group}
+              selectedValues={selectedFilters[group.id] || []}
+              onToggle={handleToggle}
+            />
+          ))}
         </div>
 
-        <Separator className="bg-border/50" />
+        <Separator />
 
-        {/* Footer Actions */}
-        <SheetFooter className="flex-row gap-3 pt-4">
+        {/* FOOTER */}
+        <DrawerFooter className="flex-row gap-3">
           <Button
             variant="outline"
             onClick={handleReset}
-            className={cn(
-              "flex-1 font-sans text-sm font-semibold uppercase tracking-wider",
-              "border-border hover:border-[#d4af37]/50"
-            )}
+            className="flex-1 rounded-full uppercase tracking-wider"
           >
             Reset
           </Button>
+
           <Button
             onClick={handleApply}
-            className={cn(
-              "flex-1 font-sans text-sm font-semibold uppercase tracking-wider",
-              "bg-primary text-primary-foreground hover:bg-primary/90"
-            )}
+            className="flex-1 rounded-full uppercase tracking-wider bg-primary"
           >
             Apply
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   );
 }
 
-export interface MobileFilterTriggerProps {
+/* ================= TRIGGER ================= */
+
+export function MobileFilterTrigger({
+  onClick,
+  activeFilterCount = 0,
+}: {
   onClick: () => void;
   activeFilterCount?: number;
-}
-
-export function MobileFilterTrigger({ onClick, activeFilterCount = 0 }: MobileFilterTriggerProps) {
+}) {
   return (
     <button
       onClick={onClick}
       className={cn(
         "flex items-center gap-2 px-6 py-3",
         "bg-foreground text-background",
-        "font-sans text-sm font-semibold uppercase tracking-wider",
-        "shadow-lg transition-all duration-200",
+        "rounded-full",
+        "text-sm font-semibold uppercase tracking-wider",
         "hover:bg-foreground/90 active:scale-[0.98]"
       )}
     >
-      <span>Filters</span>
+      Filters
+
       {activeFilterCount > 0 ? (
-        <span className="w-5 h-5 bg-[#d4af37] text-black text-xs font-semibold flex items-center justify-center">
+        <span className="w-5 h-5 bg-[#d4af37] text-black text-xs flex items-center justify-center rounded-full">
           {activeFilterCount}
         </span>
       ) : (
-        <div className="w-1.5 h-1.5 bg-[#d4af37]" />
+        <span className="w-1.5 h-1.5 bg-[#d4af37] rounded-full" />
       )}
     </button>
   );

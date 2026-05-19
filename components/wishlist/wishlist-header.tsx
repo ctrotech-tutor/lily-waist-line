@@ -1,22 +1,33 @@
 "use client";
 
+import Link from "next/link";
 import { Plus, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { SectionHeadingSkeleton } from "@/components/shared/section-heading-skeleton";
 
 interface WishlistHeaderProps {
   itemCount: number;
   className?: string;
   isLoaded?: boolean;
-  onContinueShopping?: () => void;
 }
 
 export function WishlistHeader({
   itemCount,
   className,
   isLoaded = true,
-  onContinueShopping,
 }: WishlistHeaderProps) {
+  if (!isLoaded) {
+    return (
+      <div className={cn("border-b border-border", className)}>
+        <div className="max-w-360 mx-auto px-4 sm:px-6 lg:px-8 xl:px-20">
+          <div className="py-12 md:py-16 lg:py-20">
+            <SectionHeadingSkeleton align="left" showSupportingText={true} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={cn("border-b border-border", className)}>
       <div className="max-w-360 mx-auto px-4 sm:px-6 lg:px-8 xl:px-20">
@@ -89,13 +100,13 @@ export function WishlistHeader({
             </div>
 
             {itemCount > 0 && (
-              <Button
-                onClick={onContinueShopping}
-                className="w-full sm:w-auto px-6 py-3 text-sm font-button tracking-wide uppercase bg-[#d4af37] text-black hover:bg-[#d4af37]/90 transition-colors"
+              <Link
+                href="/shop"
+                className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 text-sm font-button tracking-wide uppercase bg-[#d4af37] text-black hover:bg-[#d4af37]/90 transition-colors rounded-full"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Continue Shopping
-              </Button>
+              </Link>
             )}
           </div>
         </div>

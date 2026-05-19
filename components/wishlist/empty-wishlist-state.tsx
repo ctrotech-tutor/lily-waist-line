@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Heart } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,10 +6,9 @@ import { cn } from "@/lib/utils";
 
 interface EmptyWishlistProps {
   className?: string;
-  onContinueShopping?: () => void;
 }
 
-export function EmptyWishlistState({ className, onContinueShopping }: EmptyWishlistProps) {
+export function EmptyWishlistState({ className }: EmptyWishlistProps) {
   return (
     <Card className={cn("p-12 md:p-16", className)}>
       <div className="flex flex-col items-center justify-center text-center max-w-md mx-auto">
@@ -30,13 +30,12 @@ export function EmptyWishlistState({ className, onContinueShopping }: EmptyWishl
         </p>
 
         {/* Primary CTA */}
-        <Button
-          size="lg"
-          onClick={onContinueShopping}
-          className="w-full sm:w-auto px-8 py-3 text-sm font-button tracking-wide uppercase bg-[#d4af37] text-black hover:bg-[#d4af37]/90 transition-colors"
+        <Link
+          href="/shop"
+          className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3 text-sm font-button tracking-wide uppercase bg-[#d4af37] text-black hover:bg-[#d4af37]/90 transition-colors"
         >
           Continue Shopping
-        </Button>
+        </Link>
       </div>
     </Card>
   );

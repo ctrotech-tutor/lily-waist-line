@@ -31,7 +31,7 @@ Do NOT connect:
 
 - cart system
 - database
-- Stripe or Cash App logic
+- Paypal or Cash App logic
 - address system
 
 yet.

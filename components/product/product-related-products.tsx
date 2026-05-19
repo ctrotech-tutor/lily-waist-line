@@ -15,6 +15,8 @@ const relatedProducts = [
     price: 129.99,
     badge: "Popular",
     stockState: "in-stock" as const,
+    variantId: "related-1",
+    slug: "core-fit-waist-trainer",
   },
   {
     id: "related-2",
@@ -24,6 +26,8 @@ const relatedProducts = [
     price: 159.99,
     originalPrice: 199.99,
     stockState: "in-stock" as const,
+    variantId: "related-2",
+    slug: "elite-shape-waist-trainer",
   },
   {
     id: "related-3",
@@ -33,6 +37,8 @@ const relatedProducts = [
     price: 179.99,
     badge: "Premium",
     stockState: "in-stock" as const,
+    variantId: "related-3",
+    slug: "power-sculpt-corset",
   },
   {
     id: "related-4",
@@ -42,6 +48,8 @@ const relatedProducts = [
     price: 89.99,
     originalPrice: 119.99,
     stockState: "low-stock" as const,
+    variantId: "related-4",
+    slug: "classic-sculpt-waist-trainer",
   },
 ];
 

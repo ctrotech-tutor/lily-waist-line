@@ -1,4 +1,3 @@
-
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth/guards'
 
@@ -14,18 +13,8 @@ export default async function AccountLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#131313]">
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-        {/* Page Header */}
-        <div className="mb-12">
-          <h1 className="font-['Bodoni_Moda'] text-4xl font-bold text-white">
-            My Account
-          </h1>
-          <p className="font-['Montserrat'] text-sm text-gray-400">
-            Manage your identity, security, and preferences
-          </p>
-        </div>
-
+    <div className="min-h-screen bg-background">
+      <div className="max-w-360 mx-auto px-4 sm:px-6 lg:px-8 xl:px-20 py-8 md:py-12">
         {children}
       </div>
     </div>

@@ -31,24 +31,12 @@ export interface CheckoutSummaryProps {
   onPromoApply?: (code: string) => void;
 }
 
-// Default mock cart data
-const defaultMockItems: MockItem[] = [
-  {
-    id: "1",
-    name: "Elite Sculpt Waist Trainer",
-    image: "/img-1.png",
-    price: 120,
-    quantity: 1,
-    variant: "Size M / High Compression",
-  },
-];
-
 export function CheckoutSummary({
   subtotal: propSubtotal,
   shipping = 10,
   discount = 0,
   total: propTotal,
-  items = defaultMockItems,
+  items = [],
   className,
   onPromoApply,
 }: CheckoutSummaryProps) {

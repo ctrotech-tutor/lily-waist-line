@@ -57,9 +57,7 @@ Use **local UI state only**:
 
 Example:
 
-```ts
-const [step, setStep] = useState(1)
-``` id="lwstate48"
+`const [step, setStep] = useState(1)`
 
 Also track:
 

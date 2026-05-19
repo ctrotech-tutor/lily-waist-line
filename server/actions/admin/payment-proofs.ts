@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { paymentProofStatusUpdateSchema } from '@/lib/validators/payment-proof'
-import type { PaymentProofStatus } from '@prisma/client'
+import type { PaymentProofStatus } from '@/lib/generated/prisma/enums'
 
 // Admin action to get payment proof with signed URL
 export async function getPaymentProofForAdmin(proofId: string) {

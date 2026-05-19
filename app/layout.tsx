@@ -30,7 +30,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("h-full", "antialiased", poppins.variable, montserrat.variable)}
+      className={cn("h-full", "antialiased", "selection:bg-primary selection:text-primary-foreground", poppins.variable, montserrat.variable)}
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >

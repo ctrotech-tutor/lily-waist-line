@@ -143,7 +143,33 @@ export class CartService {
   /**
    * Batch transform cart items - optimized for performance
    */
-  private static transformCartItems(cartItems: any[]): CartItemWithDetails[] {
+  private static transformCartItems(cartItems: Array<{
+    id: string;
+    quantity: number;
+    variant: {
+      id: string;
+      size: string;
+      compressionLevel: string;
+      color: string | null;
+      sku: string;
+      stockQuantity: number;
+      product: {
+        id: string;
+        name: string;
+        slug: string;
+        shortDescription: string;
+        basePrice: { toNumber: () => number };
+        compareAtPrice: { toNumber: () => number } | null;
+        images: Array<{
+          id: string;
+          url: string;
+          altText: string | null;
+          imageType: string;
+          sortOrder: number;
+        }>;
+      };
+    };
+  }>): CartItemWithDetails[] {
     return cartItems.map(item => {
       const basePrice = item.variant.product.basePrice.toNumber()
       const compareAtPrice = item.variant.product.compareAtPrice?.toNumber() || null

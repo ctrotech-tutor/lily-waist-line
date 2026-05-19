@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Lock, MapPin, CreditCard, Shield, Truck, RotateCcw, Loader2, Check, DollarSign, Globe, AlertCircle } from "lucide-react";
@@ -16,36 +16,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { selectPaymentMethod } from "@/server/actions/payment";
+import { getCart } from "@/server/actions/cart";
+import { getUserAddresses } from "@/server/actions/address";
+import { createOrder } from "@/server/actions/order";
+import { validateCheckoutAccess } from "@/server/actions/checkout/validate-checkout-access";
 import { toast } from "sonner";
+import type { CartItemWithDetails } from "@/lib/services/cart-service";
 
-// Mock data for summary preview - per Feature Spec 44
-const mockItems = [
-  {
-    id: "1",
-    name: "Elite Sculpt Waist Trainer",
-    image: "/img-1.png",
-    price: 120,
-    quantity: 1,
-    variant: "Size M / High Compression",
-  },
-  {
-    id: "2",
-    name: "Luxe Core Shaper",
-    image: "/img-p-1.png",
-    price: 85,
-    quantity: 1,
-    variant: "Size S / Medium Compression",
-  },
-  {
-    id: "3",
-    name: "Pro Waist Belt",
-    image: "/auth-1.png",
-    price: 65,
-    quantity: 2,
-    variant: "Size L / Light Compression",
-  },
-];
+interface CartItem {
+  id: string;
+  name: string;
+  image: string;
+  price: number;
+  quantity: number;
+  variant: string;
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -54,55 +39,105 @@ export default function CheckoutPage() {
   const [selectedAddress, setSelectedAddress] = useState<AddressCardData | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const [orderId, setOrderId] = useState<string | null>(null);
-  const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [addresses, setAddresses] = useState<AddressCardData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Handle payment method selection with server action
-  const handlePaymentMethodSelect = async (method: PaymentMethod) => {
-    if (!orderId) {
-      toast.error("Order must be created before selecting payment method");
+  // Fetch cart and addresses on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Validate checkout access
+        const validation = await validateCheckoutAccess();
+        if (!validation.success) {
+          toast.error(validation.error || "Cannot access checkout");
+          if (validation.redirect) {
+            router.push(validation.redirect);
+          }
+          return;
+        }
+
+        // Fetch cart
+        const cartResult = await getCart();
+        if (cartResult.success && cartResult.data) {
+          const items = cartResult.data.items.map((item: CartItemWithDetails) => ({
+            id: item.id,
+            name: item.product.name,
+            image: item.product.image?.url || "/logo.svg",
+            price: item.unitPrice,
+            quantity: item.quantity,
+            variant: `${item.variant.size} / ${item.variant.compressionLevel}`
+          }));
+          setCartItems(items);
+        }
+
+        // Fetch addresses
+        const addressesResult = await getUserAddresses();
+        if (addressesResult.success && addressesResult.data) {
+          const addressData = addressesResult.data.map((addr) => ({
+            id: addr.id,
+            firstName: addr.firstName,
+            lastName: addr.lastName,
+            addressLine1: addr.addressLine1,
+            addressLine2: addr.addressLine2 || undefined,
+            city: addr.city,
+            state: addr.state,
+            postalCode: addr.postalCode,
+            country: addr.country,
+            phone: addr.phone || "",
+            isDefault: addr.isDefault
+          }));
+          setAddresses(addressData);
+        }
+      } catch (error) {
+        console.error("Error fetching checkout data:", error);
+        toast.error("Failed to load checkout data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [router]);
+
+  // Handle payment method selection (UI state only)
+  const handlePaymentMethodSelect = (method: PaymentMethod) => {
+    setSelectedPayment(method);
+  };
+
+  // Handle place order with real order creation
+  const handlePlaceOrder = async () => {
+    if (!selectedAddress || !selectedPayment) {
+      toast.error("Please complete all steps before placing order");
       return;
     }
 
-    setIsUpdatingPayment(true);
-    setSelectedPayment(method); // Update UI immediately for better UX
+    setIsPlacingOrder(true);
 
     try {
-      const result = await selectPaymentMethod({
-        orderId: orderId,
-        paymentMethod: method.toUpperCase() as 'CASH_APP' | 'PAYPAL'
+      const result = await createOrder({
+        addressId: selectedAddress.id,
+        paymentMethod: selectedPayment === 'cashapp' ? 'CASH_APP' : 'PAYPAL'
       });
 
-      if (result.success) {
-        toast.success("Payment method selected successfully");
+      if (result.success && result.data) {
+        toast.success("Order placed successfully!");
+        // Navigate to order confirmation page with order ID
+        router.push(`/order/confirmation/${result.data.orderId}`);
       } else {
-        toast.error(result.error || "Failed to select payment method");
-        // Revert selection on error
-        setSelectedPayment(null);
+        toast.error(result.error || "Failed to place order");
       }
     } catch (error) {
-      console.error("Payment method selection error:", error);
+      console.error("Order creation error:", error);
       toast.error("An unexpected error occurred");
-      setSelectedPayment(null);
     } finally {
-      setIsUpdatingPayment(false);
+      setIsPlacingOrder(false);
     }
   };
 
-  // Handle place order with loading simulation
-  const handlePlaceOrder = () => {
-    setIsPlacingOrder(true);
-    // Simulate order preparation
-    setTimeout(() => {
-      // Navigate to order confirmation page
-      router.push("/order/confirmation");
-    }, 2000);
-  };
-
-  // Mock calculations per Feature Spec 44
-  // Subtotal = sum(mockCart), Shipping = fixed UI placeholder ($10), Total = subtotal + shipping
-  const subtotal = mockItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = 10; // Fixed UI placeholder per spec
+  // Calculate totals from real cart data
+  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const shipping = 10; // Fixed shipping per spec
   const total = subtotal + shipping;
 
   return (
@@ -186,7 +221,7 @@ export default function CheckoutPage() {
             subtotal={subtotal}
             shipping={shipping}
             total={total}
-            items={mockItems}
+            items={cartItems}
             discount={0}
           />
         }
@@ -204,6 +239,7 @@ export default function CheckoutPage() {
             )}
           >
             <AddressSelector
+              addresses={addresses}
               onAddressSelect={setSelectedAddress}
               className="mb-6"
             />
@@ -243,7 +279,6 @@ export default function CheckoutPage() {
               <PaymentMethodSelector
                 selectedMethod={selectedPayment}
                 onSelect={handlePaymentMethodSelect}
-                disabled={isUpdatingPayment}
               />
 
               {/* Payment Instructions Panel */}
@@ -304,13 +339,13 @@ export default function CheckoutPage() {
                       Order Summary
                     </h4>
                     <span className="font-sans text-sm text-muted-foreground">
-                      {mockItems.length} {mockItems.length === 1 ? "item" : "items"}
+                      {cartItems.length} {cartItems.length === 1 ? "item" : "items"}
                     </span>
                   </div>
 
                   {/* Items List */}
                   <div className="space-y-3 mb-4">
-                    {mockItems.map((item) => (
+                    {cartItems.map((item) => (
                       <div key={item.id} className="flex items-start gap-3">
                         <div className="w-12 h-16 bg-muted flex items-center justify-center shrink-0 overflow-hidden relative">
                           <Image

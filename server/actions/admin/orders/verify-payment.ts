@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import type { PaymentStatus, PaymentProofStatus } from '@prisma/client'
+import type { PaymentStatus, PaymentProofStatus } from '@/lib/generated/prisma/enums'
 import { sendPaymentReceivedEmail } from '@/lib/services/email/email-triggers'
 
 // Input validation schema

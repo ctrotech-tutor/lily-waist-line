@@ -26,7 +26,12 @@ export function AccountClient({
   wishlistCount,
 }: AccountClientProps) {
   const handleEditProfile = () => {
-    document.getElementById('profile-management')?.scrollIntoView({ behavior: 'smooth' })
+    document
+      .getElementById('profile-management')
+      ?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
   }
 
   return (
@@ -48,14 +53,17 @@ export function AccountClient({
         />
       </div>
 
-      <div id="profile-management" className="mb-12 border-b border-white/10 pb-12">
+      <div
+        id="profile-management"
+        className="mb-12 border-b border-border pb-12"
+      >
         <ProfileManagement
           initialFullName={fullName}
           initialEmail={email}
         />
       </div>
 
-      <div className="mb-12 border-b border-white/10 pb-12">
+      <div className="mb-12 border-b border-border pb-12">
         <SecurityCenter
           emailVerified={emailVerified}
         />

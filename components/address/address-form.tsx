@@ -6,8 +6,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AddressData } from "./address-card";
-import { Loader2, Check, MapPin, ArrowLeft } from "lucide-react";
+import { Loader2, Check, MapPin, ArrowLeft, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createAddress, updateAddress } from "@/server/actions/address";
 
 interface AddressFormProps {
   mode: "create" | "edit";
@@ -83,6 +84,7 @@ export function AddressForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDefault, setIsDefault] = useState(initialData?.isDefault || false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isEditMode = mode === "edit";
   const pageTitle = isEditMode ? "Edit Address" : "Add New Address";
@@ -93,44 +95,61 @@ export function AddressForm({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
-    // Simulate form submission delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    try {
+      // Build address data from form - use e.target which is the form element
+      const form = e.target as HTMLFormElement;
+      const formData = new FormData(form);
+      
+      const addressData = {
+        id: initialData?.id || "",
+        firstName: formData.get("firstName") as string,
+        lastName: formData.get("lastName") as string,
+        company: (formData.get("company") as string) || undefined,
+        addressLine1: formData.get("addressLine1") as string,
+        addressLine2: (formData.get("addressLine2") as string) || undefined,
+        city: formData.get("city") as string,
+        state: (formData.get("state") as string) || "",
+        postalCode: formData.get("postalCode") as string,
+        country: formData.get("country") as string,
+        phone: (formData.get("phone") as string) || "",
+        isDefault,
+      };
 
-    // Build address data from form - use e.target which is the form element
-    const form = e.target as HTMLFormElement;
-    const formData = new FormData(form);
-    const addressData: AddressData = {
-      id: initialData?.id || "temp-id",
-      firstName: formData.get("firstName") as string,
-      lastName: formData.get("lastName") as string,
-      company: (formData.get("company") as string) || undefined,
-      addressLine1: formData.get("addressLine1") as string,
-      addressLine2: (formData.get("addressLine2") as string) || undefined,
-      city: formData.get("city") as string,
-      state: (formData.get("state") as string) || "",
-      postalCode: formData.get("postalCode") as string,
-      country: formData.get("country") as string,
-      phone: (formData.get("phone") as string) || "",
-      isDefault,
-    };
-
-    // Call onSubmit callback if provided
-    onSubmit?.(addressData);
-
-    // Show success state
-    setIsSubmitting(false);
-    setShowSuccess(true);
-
-    // Hide success after 2 seconds and navigate back
-    setTimeout(() => {
-      setShowSuccess(false);
-      if (onCancel) {
-        onCancel();
+      // Call appropriate backend action
+      let result;
+      if (isEditMode) {
+        result = await updateAddress(addressData);
       } else {
-        router.push("/address");
+        result = await createAddress(addressData);
       }
-    }, 2000);
+
+      if (result.success) {
+        // Call onSubmit callback if provided
+        onSubmit?.(addressData as AddressData);
+
+        // Show success state
+        setShowSuccess(true);
+
+        // Hide success after 2 seconds and navigate back
+        setTimeout(() => {
+          setShowSuccess(false);
+          if (onCancel) {
+            onCancel();
+          } else {
+            router.push("/address");
+          }
+        }, 2000);
+      } else {
+        setError(result.error || "Failed to save address");
+      }
+    } catch (err) {
+      console.error("Form submission error:", err);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
@@ -179,6 +198,15 @@ export function AddressForm({
 
       {/* Form Card */}
       <Card className="border border-border bg-card p-6 sm:p-8 md:p-10">
+        {error && (
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/30 rounded-md flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm text-destructive font-medium">{error}</p>
+            </div>
+          </div>
+        )}
+
         {showSuccess ? (
           /* Success State */
           <div className="flex flex-col items-center justify-center py-12 text-center">
