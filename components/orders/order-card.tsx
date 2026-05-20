@@ -4,11 +4,11 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, Package, CreditCard, Truck, CheckCircle, XCircle } from "lucide-react";
+import { Calendar, DollarSign, Package, CreditCard, Truck, CheckCircle, XCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type PaymentStatus = "pending" | "paid" | "failed";
-export type FulfillmentStatus = "processing" | "shipped" | "delivered" | "cancelled";
+export type FulfillmentStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
 
 export interface OrderData {
   id: string;
@@ -95,6 +95,16 @@ export function OrderCard({ order, className }: OrderCardProps) {
             Cancelled
           </Badge>
         );
+      case "pending":
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-amber-500/10 text-amber-500 border border-amber-500/20 font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1"
+          >
+            <Clock className="w-3 h-3 mr-1" />
+            Awaiting Fulfillment
+          </Badge>
+        );
       default:
         return (
           <Badge
@@ -113,7 +123,7 @@ export function OrderCard({ order, className }: OrderCardProps) {
     if (order.paymentStatus === "pending") {
       return (
         <Button
-          onClick={() => router.push("/order/payment-proof")}
+          onClick={() => router.push(`/order/payment-proof/${order.id}`)}
           className="w-full sm:w-auto px-6 py-2 text-sm font-button tracking-wide uppercase bg-[#d4af37] text-black hover:bg-[#d4af37]/90 transition-colors"
         >
           <CreditCard className="w-4 h-4 mr-2" />

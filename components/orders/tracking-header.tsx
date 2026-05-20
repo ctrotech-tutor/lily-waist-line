@@ -5,6 +5,7 @@ import { ArrowLeft, Package, Truck } from "lucide-react";
 import Link from "next/link";
 
 export interface TrackingHeaderProps {
+  orderId?: string;
   orderNumber: string;
   carrier: string;
   trackingNumber: string;
@@ -12,6 +13,7 @@ export interface TrackingHeaderProps {
 }
 
 export function TrackingHeader({
+  orderId,
   orderNumber,
   carrier,
   trackingNumber,
@@ -21,7 +23,7 @@ export function TrackingHeader({
     <div className={cn("space-y-6", className)}>
       {/* Back Navigation */}
       <Link
-        href={`/orders/${orderNumber}`}
+        href={`/orders/${orderId || orderNumber}`}
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />

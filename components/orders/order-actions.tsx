@@ -35,7 +35,7 @@ export function OrderActions({
         {/* Upload Payment Proof - Only when payment pending */}
         {showUploadPaymentProof && (
           <Button
-            onClick={() => router.push("/order/payment-proof")}
+            onClick={() => router.push(`/order/payment-proof/${orderId}`)}
             className="w-full px-6 py-3 text-sm font-button tracking-wide uppercase bg-[#d4af37] text-black hover:bg-[#d4af37]/90 transition-colors"
           >
             <CreditCard className="w-4 h-4 mr-2" />
