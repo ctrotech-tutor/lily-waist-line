@@ -79,7 +79,12 @@ export function OrderTimeline({
       return 0;
     }
 
-    // Payment verified but processing
+    // Payment verified but pending fulfillment
+    if (fulfillmentStatus === "pending" && paymentStatus === "paid") {
+      return 1;
+    }
+
+    // Payment verified and processing
     if (fulfillmentStatus === "processing") {
       return 2;
     }

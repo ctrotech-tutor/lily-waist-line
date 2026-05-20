@@ -2,7 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, CheckCircle, XCircle, Package, Truck } from "lucide-react";
+import { CreditCard, CheckCircle, XCircle, Package, Truck, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PaymentStatus, FulfillmentStatus } from "./order-card";
 
@@ -82,6 +82,16 @@ export function OrderStatusOverview({
           >
             <XCircle className="w-3 h-3 mr-1" />
             Cancelled
+          </Badge>
+        );
+      case "pending":
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-amber-500/10 text-amber-500 border border-amber-500/20 font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1"
+          >
+            <Clock className="w-3 h-3 mr-1" />
+            Awaiting Fulfillment
           </Badge>
         );
       default:
