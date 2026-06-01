@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { getAppUrl } from '@/lib/utils/app-url'
 
 // Allowed MIME types for payment proof images
 const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp']
@@ -8,8 +9,28 @@ const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 // Maximum file size: 10MB
 const MAX_FILE_SIZE = 10 * 1024 * 1024
 
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  getAppUrl(),
+]
+
+function validateOrigin(request: NextRequest): boolean {
+  const origin = request.headers.get('origin')
+  const referer = request.headers.get('referer')
+  const source = origin || referer
+  if (!source) return false
+  return ALLOWED_ORIGINS.some((o) => source.startsWith(o))
+}
+
 export async function POST(request: NextRequest) {
   try {
+    if (!validateOrigin(request)) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      )
+    }
+
     // Create Supabase server client
     const supabase = await createClient()
     
@@ -115,7 +136,7 @@ export async function POST(request: NextRequest) {
     const storagePath = `orders/${orderId}/payment-proof/${fileName}`
 
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('payment-proofs')
       .upload(storagePath, buffer, {
         contentType: file.type,
@@ -229,19 +250,19 @@ export async function GET(request: NextRequest) {
       orderBy: { uploadedAt: 'desc' },
       select: {
         id: true,
+        imageUrl: true,
         status: true,
         uploadedAt: true
-        // Note: imageUrl is storage path, not returned to customers for security
       }
     })
 
     // For admins, generate signed URLs for each proof
     if (isAdmin) {
       const proofsWithUrls = await Promise.all(
-        paymentProofs.map(async (proof: { status: string; id: string; uploadedAt: Date }) => {
+        paymentProofs.map(async (proof: { imageUrl: string; status: string; id: string; uploadedAt: Date }) => {
           const { data: signedUrlData } = await supabase.storage
             .from('payment-proofs')
-            .createSignedUrl(proof.id, 60 * 60) // 1 hour expiry
+            .createSignedUrl(proof.imageUrl, 60 * 60) // 1 hour expiry
           
           return {
             ...proof,

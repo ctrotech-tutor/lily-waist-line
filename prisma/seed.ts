@@ -3,6 +3,15 @@ import { PrismaPg } from "@prisma/adapter-pg"
 import { PrismaClient } from '../lib/generated/prisma/client'
 import { Role, ProductStatus, PaymentMethod, PaymentStatus, FulfillmentStatus, PaymentProofStatus } from '../lib/generated/prisma/client'
 
+// Helper to generate UUID v4 for seeding
+function generateUuid(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = Math.random() * 16 | 0
+    const v = c === 'x' ? r : (r & 0x3 | 0x8)
+    return v.toString(16)
+  })
+}
+
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
 })
@@ -29,10 +38,11 @@ async function main() {
 
   // 1. Seed Admin User
   console.log('👤 Creating admin user...')
-  const adminUser = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'admin@lilywaistline.com' },
     update: {},
     create: {
+      id: generateUuid(), // Required: User.id no longer has default
       email: 'admin@lilywaistline.com',
       fullName: 'Lily Waist Line Admin',
       role: Role.ADMIN,
@@ -46,6 +56,7 @@ async function main() {
     where: { email: 'sophia.chen@email.com' },
     update: {},
     create: {
+      id: generateUuid(), // Required: User.id no longer has default
       email: 'sophia.chen@email.com',
       fullName: 'Sophia Chen',
       role: Role.CUSTOMER,
@@ -57,6 +68,7 @@ async function main() {
     where: { email: 'maria.garcia@email.com' },
     update: {},
     create: {
+      id: generateUuid(), // Required: User.id no longer has default
       email: 'maria.garcia@email.com',
       fullName: 'Maria Garcia',
       role: Role.CUSTOMER,
@@ -68,6 +80,7 @@ async function main() {
     where: { email: 'emma.wilson@email.com' },
     update: {},
     create: {
+      id: generateUuid(), // Required: User.id no longer has default
       email: 'emma.wilson@email.com',
       fullName: 'Emma Wilson',
       role: Role.CUSTOMER,
@@ -215,7 +228,7 @@ async function main() {
   console.log('📏 Creating product variants...')
   const sizes = ['XS', 'S', 'M', 'L', 'XL']
   const compressionLevels = ['LIGHT', 'MEDIUM', 'HIGH']
-  
+
   const variants = []
   for (const product of createdProducts) {
     const productCode = product.slug.split('-').slice(0, 2).join('').toUpperCase()
@@ -225,7 +238,7 @@ async function main() {
         const timestamp = Date.now().toString().slice(-6)
         const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
         const sku = `LWL-${productCode}-${timestamp}-${random}`
-        
+
         const variant = await prisma.productVariant.upsert({
           where: { sku },
           update: {
@@ -253,7 +266,7 @@ async function main() {
   console.log('📸 Creating product images...')
   for (const product of createdProducts) {
     const productVariants = variants.filter(v => v.productId === product.id)
-    
+
     // Main product image
     await prisma.productImage.create({
       data: {

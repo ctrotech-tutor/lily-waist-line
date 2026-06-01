@@ -1,16 +1,7 @@
 import { supabaseAdmin } from '../supabase/admin'
+import type { UploadResult, StorageError } from '@/types/media'
 
-export interface UploadResult {
-  success: boolean
-  url: string
-  path: string
-  error?: string
-}
-
-export interface StorageError {
-  message: string
-  code?: string
-}
+export type { UploadResult, StorageError }
 
 export class StorageService {
   private bucketName = 'product-images'

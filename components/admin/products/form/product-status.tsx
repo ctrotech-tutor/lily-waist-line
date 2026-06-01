@@ -2,6 +2,8 @@
 
 import { cn } from "@/lib/utils";
 import { Eye, EyeOff, Archive } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { ProductFormData } from "./admin-product-form-shell";
 
 interface ProductStatusProps {
@@ -24,18 +26,18 @@ const STATUS_OPTIONS = [
     label: "Active",
     description: "Product is visible and available for purchase",
     icon: Eye,
-    color: "text-green-500",
-    borderColor: "border-green-500/50",
-    bgColor: "bg-green-500/10",
+    color: "text-success",
+    borderColor: "border-success/50",
+    bgColor: "bg-success/10",
   },
   {
     value: "archived",
     label: "Archived",
     description: "Product is hidden and not available for purchase",
     icon: Archive,
-    color: "text-amber-500",
-    borderColor: "border-amber-500/50",
-    bgColor: "bg-amber-500/10",
+    color: "text-warning",
+    borderColor: "border-warning/50",
+    bgColor: "bg-warning/10",
   },
 ];
 
@@ -44,25 +46,29 @@ export function ProductStatus({ data, onChange }: ProductStatusProps) {
     <div className="space-y-6">
       {/* Section Header */}
       <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-        <div className="w-1.5 h-1.5 bg-[#d4af37]" />
+        <div className="w-1.5 h-1.5 bg-secondary" />
         <h2 className="font-sans text-xs uppercase tracking-[0.15em] text-muted-foreground font-semibold">
           Product Status
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <RadioGroup
+        value={data.status}
+        onValueChange={(value) => onChange("status", value)}
+        className="grid grid-cols-1 sm:grid-cols-3 gap-3"
+      >
         {STATUS_OPTIONS.map((status) => {
           const Icon = status.icon;
           const isSelected = data.status === status.value;
 
           return (
-            <label
+            <Label
               key={status.value}
               className={cn(
                 "flex flex-col gap-3 p-4 border cursor-pointer transition-all duration-200",
                 isSelected
-                  ? `border-[#d4af37] ${status.bgColor}`
-                  : "border-border hover:border-[#d4af37]/50 hover:bg-muted/30"
+                  ? `border-secondary ${status.bgColor}`
+                  : "border-border hover:border-secondary/50 hover:bg-muted/30"
               )}
             >
               <div className="flex items-center gap-3">
@@ -70,7 +76,7 @@ export function ProductStatus({ data, onChange }: ProductStatusProps) {
                   className={cn(
                     "w-10 h-10 flex items-center justify-center border",
                     isSelected
-                      ? `border-[#d4af37] ${status.bgColor}`
+                      ? `border-secondary ${status.bgColor}`
                       : "border-border bg-muted/50"
                   )}
                 >
@@ -83,12 +89,9 @@ export function ProductStatus({ data, onChange }: ProductStatusProps) {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="productStatus"
+                    <RadioGroupItem
                       value={status.value}
-                      checked={isSelected}
-                      onChange={() => onChange("status", status.value)}
+                      id={`status-${status.value}`}
                       className="sr-only"
                     />
                     <span
@@ -100,7 +103,7 @@ export function ProductStatus({ data, onChange }: ProductStatusProps) {
                       {status.label}
                     </span>
                     {isSelected && (
-                      <span className="w-2 h-2 bg-[#d4af37]" />
+                      <span className="w-2 h-2 bg-secondary" />
                     )}
                   </div>
                 </div>
@@ -108,10 +111,10 @@ export function ProductStatus({ data, onChange }: ProductStatusProps) {
               <p className="font-sans text-xs text-muted-foreground leading-relaxed">
                 {status.description}
               </p>
-            </label>
+            </Label>
           );
         })}
-      </div>
+      </RadioGroup>
     </div>
   );
 }

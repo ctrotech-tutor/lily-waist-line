@@ -1,7 +1,8 @@
 "use client";
-
+export const dynamic = "force-dynamic"
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { AddressHeader } from "@/components/address/address-header";
 import { AddressList } from "@/components/address/address-list";
 import { EmptyAddressState } from "@/components/address/empty-address-state";
@@ -9,6 +10,7 @@ import { AddressData } from "@/components/address/address-card";
 import { AddressHeaderSkeleton } from "@/components/address/address-header-skeleton";
 import { AddressListSkeleton } from "@/components/address/address-list-skeleton";
 import { getUserAddresses, deleteAddress, setDefaultAddress } from "@/server/actions/address";
+import { ROUTES } from "@/lib/constants/routes";
 
 export default function AddressPage() {
   const router = useRouter();
@@ -67,7 +69,7 @@ export default function AddressPage() {
   }, []);
 
   const handleAddAddress = () => {
-    router.push("/address/new");
+    router.push(ROUTES.ADDRESS_NEW);
   };
 
   const handleEditAddress = (id: string) => {
@@ -80,9 +82,12 @@ export default function AddressPage() {
       const result = await deleteAddress(id);
       if (result.success) {
         setAddresses((prev) => prev.filter((addr) => addr.id !== id));
+        toast.success("Address deleted");
+      } else {
+        toast.error(result.error || "Failed to delete address");
       }
-    } catch (error) {
-      console.error("Failed to delete address:", error);
+    } catch {
+      toast.error("Failed to delete address");
     } finally {
       setIsDeleting(null);
     }
@@ -99,9 +104,12 @@ export default function AddressPage() {
             isDefault: addr.id === id,
           }))
         );
+        toast.success("Default address updated");
+      } else {
+        toast.error(result.error || "Failed to set default address");
       }
-    } catch (error) {
-      console.error("Failed to set default address:", error);
+    } catch {
+      toast.error("Failed to set default address");
     } finally {
       setIsSettingDefault(null);
     }

@@ -3,9 +3,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { tryAction } from '@/lib/security/error-handling'
 
 export async function logout() {
-  try {
+  await tryAction(async () => {
     // Create Supabase client
     const supabase = await createClient()
 
@@ -19,13 +20,8 @@ export async function logout() {
 
     // Clear all cached data
     revalidatePath('/', 'layout')
-    
-    // Redirect to login page
-    redirect('/login')
+  })()
 
-  } catch (error) {
-    console.error('Logout error:', error)
-    // Still redirect to login page even on error
-    redirect('/login')
-  }
+  // Redirect to login page
+  redirect('/login')
 }

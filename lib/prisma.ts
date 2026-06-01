@@ -5,7 +5,9 @@ const prismaClientSingleton = () => {
   const adapter = new PrismaPg({
     connectionString: process.env.DATABASE_URL!,
   });
-  return new PrismaClient({ adapter });
+  return new PrismaClient({
+    adapter,
+  });
 };
 
 type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;

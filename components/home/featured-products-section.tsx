@@ -1,62 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/store/product-card";
 import { ProductCardSkeleton } from "@/components/shared/product-card-skeleton";
+import { ROUTES } from "@/lib/constants/routes";
 import { SectionHeadingSkeleton } from "@/components/shared/section-heading-skeleton";
-import { getFeaturedProducts } from "@/server/actions/products";
-import type { FeaturedProductData, ProductWithDetails } from "@/types/product";
+import { useFeaturedProducts } from "@/hooks/use-featured-products";
+import { transformProductsToCardProps } from "@/lib/utils/product-transformers";
 import Link from "next/link";
 
 export function FeaturedProductsSection() {
   const [isLoaded] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
-  const [products, setProducts] = useState<FeaturedProductData[]>([]);
+  
+  // Use TanStack Query for featured products
+  const { data: products = [], isLoading } = useFeaturedProducts(8);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const featuredProducts = await getFeaturedProducts(8);
-
-        const transformedProducts = featuredProducts.map(
-          (product: ProductWithDetails): FeaturedProductData => {
-            // Calculate stock state consistently with wishlist page
-            let stockState: "in-stock" | "low-stock" | "out-of-stock" = "in-stock";
-            if (!product.inStock) {
-              stockState = "out-of-stock";
-            } else if (product.variants.some(v => v.stockQuantity > 0 && v.stockQuantity <= 5)) {
-              stockState = "low-stock";
-            }
-
-            return {
-              id: product.id,
-              variantId: product.variants[0]?.id || product.id,
-              slug: product.slug,
-              image: product.images[0]?.url || "/img-p-1.png",
-              name: product.name,
-              subtitle: product.shortDescription,
-              price: parseFloat(product.minPrice.toString()),
-              originalPrice: product.compareAtPrice
-                ? parseFloat(product.compareAtPrice.toString())
-                : undefined,
-              badge: product.totalStock > 10 ? undefined : "Limited",
-              stockState,
-            };
-          }
-        );
-
-        setProducts(transformedProducts);
-      } catch (error) {
-        console.error("Error fetching featured products:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []);
+  // Transform products using shared utility
+  const transformedProducts = transformProductsToCardProps(products);
 
   return (
     <section
@@ -153,7 +116,7 @@ export function FeaturedProductsSection() {
                 <ProductCardSkeleton />
               </div>
             ))
-            : products.map((product, index) => (
+            : transformedProducts.map((product, index) => (
               <div
                 key={product.id}
                 className={cn(
@@ -180,23 +143,12 @@ export function FeaturedProductsSection() {
                 : "opacity-0 translate-y-4"
             )}
           >
-            <Link
-              href="/shop"
-              className={cn(
-                "group inline-flex items-center gap-3",
-                "px-8 py-4",
-                "rounded-full", // rounded upgrade
-                "border border-primary",
-                "font-sans text-sm font-semibold uppercase tracking-wider",
-                "text-foreground",
-                "transition-all duration-300 ease-out",
-                "hover:bg-primary/10 hover:border-primary/70",
-                "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
-              )}
-            >
-              View All Products
-              <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
+            <Button asChild variant="outline" size="lg" className="px-8 border-primary font-sans text-sm font-semibold uppercase tracking-wider hover:bg-primary/10 hover:border-primary/70">
+              <Link href={ROUTES.SHOP}>
+                View All Products
+                <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
+            </Button>
           </div>
         )}
       </div>

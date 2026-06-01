@@ -16,7 +16,7 @@ export function CheckoutShell({
   return (
     <div className={cn("min-h-full", className)}>
       {/* Main Layout Container */}
-      <div className="container mx-auto px-4 py-8 md:py-12">
+      <div className="mx-auto max-w-360 px-4 sm:px-6 lg:px-8 xl:px-20 py-8 md:py-12">
         {/* Desktop: 2-Column | Mobile: Stacked */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
           {/* Left Column - Checkout Steps Area */}

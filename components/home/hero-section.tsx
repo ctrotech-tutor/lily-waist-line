@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { ROUTES } from "@/lib/constants/routes";
 
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export function HeroSection() {
   return (
@@ -85,24 +87,18 @@ export function HeroSection() {
         {/* CTA */}
         <div className="flex flex-col gap-4 sm:flex-row">
           {/* Primary */}
-          <Link
-            href="/shop"
-            className={cn(
-              "group inline-flex items-center justify-center gap-3",
-              "rounded-full px-8 py-4",
-              "bg-primary text-primary-foreground",
-              "font-sans text-sm font-semibold uppercase tracking-[0.15em]",
-              "transition-all duration-300",
-              "hover:scale-[1.03]"
-            )}
-          >
-            Shop Now
-
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </Link>
+          <Button asChild size="lg" className="px-8 h-12 font-sans text-sm font-semibold uppercase tracking-[0.15em] hover:scale-[1.03]">
+            <Link href={ROUTES.SHOP}>
+              Shop Now
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+            </Link>
+          </Button>
 
           {/* Secondary */}
-          <button
+          <Button
+            variant="outline"
+            size="lg"
+            className="px-8 h-12 border-primary/30 bg-white/5 backdrop-blur-md font-sans text-sm font-semibold uppercase tracking-[0.15em] text-foreground hover:bg-white/10 hover:border-primary/50"
             onClick={() => {
               const el = document.getElementById("featured");
               el?.scrollIntoView({
@@ -110,19 +106,9 @@ export function HeroSection() {
                 block: "start",
               });
             }}
-            className={cn(
-              "inline-flex items-center justify-center",
-              "rounded-full px-8 py-4",
-              "border border-primary/30",
-              "bg-white/5 backdrop-blur-md",
-              "font-sans text-sm font-semibold uppercase tracking-[0.15em]",
-              "text-foreground",
-              "transition-all duration-300",
-              "hover:bg-white/10 hover:border-primary/50"
-            )}
           >
             Explore Collection
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -132,4 +118,3 @@ export function HeroSection() {
   );
 }
 
-export default HeroSection;

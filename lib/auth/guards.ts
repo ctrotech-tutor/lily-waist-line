@@ -6,6 +6,9 @@ export interface AuthUser {
   id: string
   email: string
   fullName: string
+  phone: string | null
+  avatarUrl: string | null
+  avatarStoragePath: string | null
   role: 'CUSTOMER' | 'ADMIN'
   emailVerified: boolean
   createdAt: Date
@@ -17,37 +20,44 @@ export interface AuthUser {
 export async function getCurrentUser(): Promise<AuthUser | null> {
   try {
     const supabase = await createClient()
-    // Use getClaims() for secure server-side validation (per Supabase best practices)
-    const { data: claims, error } = await supabase.auth.getClaims()
 
-    if (error || !claims?.claims?.email) {
+    const { data: userData, error } = await supabase.auth.getUser()
+
+    if (error || !userData.user) {
       return null
     }
 
-    // Get user role from Prisma
+    const authUser = userData.user
+
+    // Get profile ONLY from DB (source of truth for all user data)
+    // User.id matches Supabase Auth ID — direct lookup, not email-based
     const dbUser = await prisma.user.findUnique({
-      where: { email: claims.claims.email },
+      where: { id: authUser.id },
       select: {
         id: true,
         email: true,
         fullName: true,
+        phone: true,
+        avatarUrl: true,
+        avatarStoragePath: true,
         role: true,
         emailVerified: true,
-        createdAt: true
-      }
+        createdAt: true,
+      },
     })
 
-    if (!dbUser) {
-      return null
-    }
+    if (!dbUser) return null
 
     return {
       id: dbUser.id,
       email: dbUser.email,
       fullName: dbUser.fullName,
+      phone: dbUser.phone,
+      avatarUrl: dbUser.avatarUrl,
+      avatarStoragePath: dbUser.avatarStoragePath,
       role: dbUser.role,
+      createdAt: dbUser.createdAt,
       emailVerified: dbUser.emailVerified,
-      createdAt: dbUser.createdAt
     }
   } catch (error) {
     console.error('Error getting current user:', error)

@@ -21,7 +21,6 @@ export function OrdersHeader({
     <div className={cn("border-b border-border", className)}>
       <div className="max-w-360 mx-auto px-4 sm:px-6 lg:px-8 xl:px-20">
         <div className="py-12 md:py-16 lg:py-20">
-          {/* Eyebrow Label */}
           <div
             className={cn(
               "flex items-center gap-2 mb-6",
@@ -29,23 +28,21 @@ export function OrdersHeader({
               isLoaded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
             )}
           >
-            <Package className="w-4 h-4 text-[#d4af37]" />
-            <span className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-[#d4af37]">
+            <Package className="w-4 h-4 text-primary" />
+            <span className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               Order History
             </span>
           </div>
 
-          {/* Gold Divider */}
           <div
             className={cn(
-              "w-16 h-px bg-[#d4af37] mb-8",
+              "w-16 h-px bg-primary mb-8",
               "transition-all duration-700 delay-100 ease-out",
               isLoaded ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
             )}
             style={{ transformOrigin: "left" }}
           />
 
-          {/* Main Heading */}
           <h1
             className={cn(
               "font-heading text-3xl sm:text-4xl md:text-5xl lg:text-6xl",
@@ -58,7 +55,6 @@ export function OrdersHeader({
             My Orders
           </h1>
 
-          {/* Supporting Copy */}
           <p
             className={cn(
               "font-sans text-base sm:text-lg",
@@ -71,7 +67,6 @@ export function OrdersHeader({
             Track your purchases, payments, and deliveries.
           </p>
 
-          {/* Order Count */}
           <div
             className={cn(
               "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4",
@@ -80,7 +75,7 @@ export function OrdersHeader({
             )}
           >
             <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-[#d4af37]" />
+              <div className="w-2 h-2 bg-primary" />
               <span className="font-sans text-sm text-muted-foreground">
                 {orderCount === 0
                   ? "No orders yet"
@@ -92,7 +87,7 @@ export function OrdersHeader({
               <Button
                 onClick={onBack}
                 variant="outline"
-                className="w-full sm:w-auto px-6 py-3 text-sm font-button tracking-wide uppercase border-[#d4af37]/30 text-foreground hover:bg-[#d4af37]/10 hover:border-[#d4af37]/50 transition-colors"
+                className="w-full sm:w-auto px-6 py-3 text-sm font-button tracking-wide uppercase border-primary/30 text-foreground hover:bg-primary/10 rounded-lg transition-colors"
               >
                 <ChevronLeft className="w-4 h-4 mr-2" />
                 Back

@@ -27,10 +27,10 @@ export function EmptyProductsState({
         className={cn(
           "flex items-center justify-center",
           "w-16 h-16 mb-6",
-          "border border-[#d4af37]/20"
+          "border border-primary/20"
         )}
       >
-        <SlidersHorizontal className="w-6 h-6 text-[#d4af37]" />
+        <SlidersHorizontal className="w-6 h-6 text-primary" />
       </div>
 
       {/* Heading */}
@@ -61,13 +61,13 @@ export function EmptyProductsState({
         onClick={onReset}
         className={cn(
           "h-12 px-8",
-          "bg-black text-[#d4af37]",
+          "bg-primary text-primary-foreground",
           "font-sans text-sm font-semibold uppercase tracking-wider",
-          "border border-[#d4af37]",
+          "border border-primary",
           "rounded-none",
           "transition-all duration-300 ease-out",
-          "hover:bg-[#d4af37] hover:text-black",
-          "focus-visible:ring-2 focus-visible:ring-[#d4af37] focus-visible:ring-offset-2"
+          "hover:bg-primary hover:text-primary-foreground",
+          "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         )}
       >
         Reset Filters

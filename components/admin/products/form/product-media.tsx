@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { ImagePlus, X, GripVertical, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { OptimizedImage } from "@/components/shared/optimized-image";
 import type { ProductFormData } from "./admin-product-form-shell";
 
 interface ProductMediaProps {
@@ -78,7 +79,7 @@ export function ProductMedia({ data, onChange }: ProductMediaProps) {
     <div className="space-y-6">
       {/* Section Header */}
       <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-        <div className="w-1.5 h-1.5 bg-[#d4af37]" />
+        <div className="w-1.5 h-1.5 bg-secondary" />
         <h2 className="font-sans text-xs uppercase tracking-[0.15em] text-muted-foreground font-semibold">
           Product Media
         </h2>
@@ -91,22 +92,22 @@ export function ProductMedia({ data, onChange }: ProductMediaProps) {
         onDragLeave={handleDropZoneDragLeave}
         onDrop={handleDrop}
         className={cn(
-          "border-2 border-dashed rounded-none p-8 text-center cursor-pointer transition-all duration-200",
+          "border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-200",
           isDragging
-            ? "border-[#d4af37] bg-[#d4af37]/5"
-            : "border-border hover:border-[#d4af37]/50 hover:bg-muted/30"
+            ? "border-secondary bg-secondary/5"
+            : "border-border hover:border-secondary/50 hover:bg-muted/30"
         )}
       >
         <div className="flex flex-col items-center gap-3">
           <div className={cn(
             "w-12 h-12 flex items-center justify-center border transition-colors",
             isDragging
-              ? "border-[#d4af37] bg-[#d4af37]/10"
+              ? "border-secondary bg-secondary/10"
               : "border-border bg-muted/50"
           )}>
             <Upload className={cn(
               "w-5 h-5 transition-colors",
-              isDragging ? "text-[#d4af37]" : "text-muted-foreground"
+              isDragging ? "text-secondary" : "text-muted-foreground"
             )} />
           </div>
           <div>
@@ -121,7 +122,7 @@ export function ProductMedia({ data, onChange }: ProductMediaProps) {
             type="button"
             variant="outline"
             size="sm"
-            className="mt-2 rounded-none border-[#d4af37]/50 text-[#d4af37] hover:bg-[#d4af37]/10"
+            className="mt-2 border-secondary/50 text-secondary hover:bg-secondary/10"
           >
             <ImagePlus className="w-4 h-4 mr-2" />
             Select Images
@@ -151,37 +152,39 @@ export function ProductMedia({ data, onChange }: ProductMediaProps) {
                 onDragEnd={handleDragEnd}
                 className={cn(
                   "relative group aspect-square border border-border bg-muted/30 cursor-move overflow-hidden",
-                  draggedIndex === index && "opacity-50 border-[#d4af37]"
+                  draggedIndex === index && "opacity-50 border-secondary"
                 )}
               >
                 {/* Drag Handle */}
                 <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="w-6 h-6 flex items-center justify-center bg-black/60 text-white">
+                  <div className="w-6 h-6 flex items-center justify-center bg-background/60 text-foreground">
                     <GripVertical className="w-3 h-3" />
                   </div>
                 </div>
 
                 {/* Remove Button */}
                 <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeImage(index);
-                  }}
-                  className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <div className="w-6 h-6 flex items-center justify-center bg-destructive/90 text-white hover:bg-destructive">
-                    <X className="w-3 h-3" />
-                  </div>
-                </button>
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeImage(index);
+                    }}
+                    className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <div className="w-6 h-6 flex items-center justify-center bg-destructive/90 text-destructive-foreground hover:bg-destructive">
+                      <X className="w-3 h-3" />
+                    </div>
+                  </button>
 
                 {/* Image */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   {image.startsWith("/") ? (
-                    <img
+                    <OptimizedImage
                       src={image}
                       alt={`Product ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 50vw, 160px"
                     />
                   ) : (
                     <div className="w-full h-full bg-muted flex items-center justify-center">
@@ -192,7 +195,7 @@ export function ProductMedia({ data, onChange }: ProductMediaProps) {
 
                 {/* First Image Badge */}
                 {index === 0 && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-[#d4af37] text-black text-[10px] font-semibold uppercase tracking-wider py-1 text-center">
+                  <div className="absolute bottom-0 left-0 right-0 bg-secondary text-foreground text-[10px] font-semibold uppercase tracking-wider py-1 text-center">
                     Main Image
                   </div>
                 )}

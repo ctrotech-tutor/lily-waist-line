@@ -23,7 +23,7 @@ export function ProductFormActions({
       <Button
         type="submit"
         disabled={isSubmitting}
-        className="flex-1 sm:flex-none sm:min-w-[200px] bg-[#d4af37] text-black hover:bg-[#d4af37]/90 text-xs uppercase tracking-wider py-3 h-auto rounded-none transition-all duration-300 flex justify-center items-center gap-2 font-semibold"
+        className="flex-1 sm:flex-none sm:min-w-[200px] bg-secondary text-foreground hover:bg-secondary/90 text-xs uppercase tracking-wider py-3 h-auto transition-all duration-300 flex justify-center items-center gap-2 font-semibold"
       >
         {isSubmitting ? (
           <>
@@ -44,17 +44,12 @@ export function ProductFormActions({
         variant="outline"
         onClick={onCancel}
         disabled={isSubmitting}
-        className="flex-1 sm:flex-none sm:min-w-[140px] text-xs uppercase tracking-wider py-3 h-auto rounded-none border-border hover:border-[#d4af37] hover:text-[#d4af37] transition-colors font-semibold"
+        className="flex-1 sm:flex-none sm:min-w-[140px] text-xs uppercase tracking-wider py-3 h-auto border-border hover:border-secondary hover:text-secondary transition-colors font-semibold"
       >
         <X className="w-4 h-4 mr-2" />
         Cancel
       </Button>
 
-      {/* Status indicator */}
-      <div className="hidden sm:flex items-center gap-2 ml-auto text-xs text-muted-foreground">
-        <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full" />
-        UI Demo Mode - No data persistence
-      </div>
     </div>
   );
 }

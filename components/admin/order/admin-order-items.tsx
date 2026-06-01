@@ -3,18 +3,19 @@
 import { ShoppingBag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import type { OrderDetails } from "./data";
+import { OptimizedImage } from "@/components/shared/optimized-image";
+import type { AdminOrderDetail } from "./data";
 
 interface AdminOrderItemsProps {
-  order: OrderDetails;
+  order: AdminOrderDetail;
 }
 
 export function AdminOrderItems({ order }: AdminOrderItemsProps) {
   return (
-    <Card className="rounded-none border-border/50">
+    <Card className="border-border/50">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <ShoppingBag className="h-5 w-5 text-[#d4af37]" />
+          <ShoppingBag className="h-5 w-5 text-secondary" />
           <CardTitle className="font-[family-name:var(--font-bodoni-moda)] text-lg font-semibold">
             Order Items ({order.items.length})
           </CardTitle>
@@ -22,14 +23,22 @@ export function AdminOrderItems({ order }: AdminOrderItemsProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {order.items.map((item, index) => (
-          <div key={item.id}>
+          <div key={item.id || index}>
             <div className="flex gap-4">
-              <div className="h-20 w-16 flex-shrink-0 overflow-hidden border border-border/50 bg-muted/30">
-                <img
-                  src={item.productImage}
-                  alt={item.productName}
-                  className="h-full w-full object-cover"
-                />
+              <div className="relative h-20 w-16 flex-shrink-0 overflow-hidden border border-border/50 bg-muted/30">
+                {item.productImage ? (
+                  <OptimizedImage
+                    src={item.productImage}
+                    alt={item.productName}
+                    fill
+                    className="object-cover"
+                    sizes="64px"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-muted">
+                    <ShoppingBag className="h-6 w-6 text-muted-foreground/40" />
+                  </div>
+                )}
               </div>
               <div className="flex flex-1 flex-col justify-between">
                 <div>
@@ -69,7 +78,7 @@ export function AdminOrderItems({ order }: AdminOrderItemsProps) {
           </div>
           <div className="flex items-center justify-between border-t border-border/50 pt-2">
             <span className="font-[family-name:var(--font-montserrat)] text-sm font-semibold">Total</span>
-            <span className="font-[family-name:var(--font-bodoni-moda)] text-lg font-semibold text-[#d4af37]">
+            <span className="font-[family-name:var(--font-bodoni-moda)] text-lg font-semibold text-secondary">
               ${order.total.toFixed(2)}
             </span>
           </div>

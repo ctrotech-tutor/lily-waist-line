@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Mail } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { Button } from "@/components/ui/button";
 
 export function NewsletterSection() {
@@ -13,8 +17,6 @@ export function NewsletterSection() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    console.log("Newsletter signup:", email);
   };
 
   return (
@@ -26,7 +28,7 @@ export function NewsletterSection() {
         {/* Main container */}
         <div
           className={cn(
-            "mx-auto max-w-4xl overflow-hidden rounded-[40px]",
+            "mx-auto max-w-4xl overflow-hidden",
             "bg-card/30 backdrop-blur-xl",
             "px-6 py-14 sm:px-10 md:px-16 md:py-20",
             "transition-all duration-1000",
@@ -90,31 +92,23 @@ export function NewsletterSection() {
           >
             <div className="mx-auto flex max-w-2xl flex-col gap-4 sm:flex-row">
               {/* Input */}
-              <Input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                className={cn(
-                  "h-14 flex-1 rounded-full border-border/30",
-                  "bg-background/60 px-6 backdrop-blur-md",
-                  "font-sans",
-                  "placeholder:text-muted-foreground/60",
-                  "focus-visible:ring-primary"
-                )}
-              />
+              <InputGroup className="flex-1">
+                <InputGroupAddon align="inline-start">
+                  <Mail className="h-4 w-4" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                />
+              </InputGroup>
 
               {/* Button */}
               <Button
                 type="submit"
-                className={cn(
-                  "h-14 rounded-full px-8",
-                  "bg-primary text-primary-foreground",
-                  "font-sans text-sm font-semibold uppercase tracking-[0.15em]",
-                  "transition-all duration-300",
-                  "hover:scale-[1.03] hover:bg-primary"
-                )}
+                className="px-8 font-sans text-sm font-semibold uppercase tracking-[0.15em] hover:scale-[1.03]"
               >
                 Join Now
               </Button>

@@ -1,4 +1,7 @@
-import { Metadata } from "next";
+"use client";
+
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   AdminOverviewHeader,
   AdminKPICards,
@@ -6,33 +9,57 @@ import {
   AdminQuickActions,
   AdminAlerts,
 } from "@/components/admin";
-
-export const metadata: Metadata = {
-  title: "Admin Dashboard | Lily Waist Line",
-  description: "Administrative dashboard for Lily Waist Line",
-};
+import { KpiCardsSkeleton } from "@/components/admin/overview/kpi-cards-skeleton";
+import { RecentOrdersSkeleton } from "@/components/admin/overview/recent-orders-skeleton";
+import { useAdminDashboard } from "@/hooks/admin/use-admin-dashboard";
 
 export default function AdminDashboardPage() {
+  const { data: metrics, isLoading, error, refetch } = useAdminDashboard();
+
   return (
     <div className="space-y-8">
       <AdminOverviewHeader />
 
-      {/* KPI Cards */}
-      <AdminKPICards />
-
-      {/* Main Content Grid */}
-      <div className="grid gap-8 lg:grid-cols-3">
-        {/* Recent Orders - takes up 2 columns */}
-        <div className="lg:col-span-2">
-          <RecentOrders />
+      {isLoading ? (
+        <>
+          <KpiCardsSkeleton />
+          <div className="grid gap-8 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <RecentOrdersSkeleton />
+            </div>
+          </div>
+        </>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-12 gap-4">
+          <p className="text-muted-foreground">Failed to load dashboard data. Please try again.</p>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="mr-2 h-4 w-4" /> Retry
+          </Button>
         </div>
+      ) : metrics ? (
+        <>
+          <AdminKPICards
+            totalOrders={metrics.totalOrders}
+            totalRevenue={metrics.totalRevenue}
+            pendingOrders={metrics.pendingOrders}
+            shippedOrders={metrics.shippedOrders}
+          />
 
-        {/* Sidebar - Quick Actions + Alerts */}
-        <div className="space-y-6">
-          <AdminQuickActions />
-          <AdminAlerts />
-        </div>
-      </div>
+          <div className="grid gap-8 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <RecentOrders orders={metrics.recentOrders} />
+            </div>
+            <div className="space-y-6">
+              <AdminQuickActions />
+              <AdminAlerts
+                paymentConfirmations={metrics.alerts.paymentConfirmations}
+                lowStock={metrics.alerts.lowStock}
+                unshippedOrders={metrics.alerts.unshippedOrders}
+              />
+            </div>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

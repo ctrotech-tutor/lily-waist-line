@@ -1,62 +1,11 @@
 import prisma from '@/lib/prisma'
 import { unstable_cache } from 'next/cache'
 import { revalidatePath } from 'next/cache'
+import type { CartItemData, CartItemWithDetails, CartData } from '@/types/cart'
+import { ROUTES } from '@/lib/constants/routes'
 
-// Types for cart operations
-export interface CartItemData {
-  variantId: string
-  quantity: number
-}
-
-export interface CartItemWithDetails {
-  id: string
-  quantity: number
-  variant: {
-    id: string
-    size: string
-    compressionLevel: string
-    color: string | null
-    sku: string
-    stockQuantity: number
-    price: number
-    compareAtPrice: number | null
-    inStock: boolean
-    lowStock: boolean
-  }
-  product: {
-    id: string
-    name: string
-    slug: string
-    shortDescription: string
-    image: {
-      id: string
-      url: string
-      altText: string | null
-      imageType: string
-      sortOrder: number
-    } | null
-  }
-  unitPrice: number
-  totalPrice: number
-  canUpdateQuantity: boolean
-  maxQuantity: number
-}
-
-export interface CartData {
-  items: CartItemWithDetails[]
-  summary: {
-    subtotal: number
-    shippingFee: number
-    total: number
-    totalItems: number
-    itemCount: number
-  }
-  meta: {
-    isEmpty: boolean
-    hasLowStockItems: boolean
-    hasOutOfStockItems: boolean
-  }
-}
+// Re-export cart types for backward compatibility
+export type { CartItemData, CartItemWithDetails, CartData }
 
 /**
  * Optimized Cart Service with batch queries and caching
@@ -267,9 +216,9 @@ export class CartService {
     })
 
     // Revalidate cart pages
-    revalidatePath('/cart')
-    revalidatePath('/shop')
-    revalidatePath('/')
+    revalidatePath(ROUTES.CART)
+    revalidatePath(ROUTES.SHOP)
+    revalidatePath(ROUTES.HOME)
 
     return cartItem
   }
@@ -316,8 +265,8 @@ export class CartService {
     })
 
     // Revalidate cart pages
-    revalidatePath('/cart')
-    revalidatePath('/shop')
+    revalidatePath(ROUTES.CART)
+    revalidatePath(ROUTES.SHOP)
 
     return updatedItem
   }
@@ -343,8 +292,8 @@ export class CartService {
     })
 
     // Revalidate cart pages
-    revalidatePath('/cart')
-    revalidatePath('/shop')
+    revalidatePath(ROUTES.CART)
+    revalidatePath(ROUTES.SHOP)
   }
 
   /**
@@ -356,8 +305,8 @@ export class CartService {
     })
 
     // Revalidate cart pages
-    revalidatePath('/cart')
-    revalidatePath('/shop')
+    revalidatePath(ROUTES.CART)
+    revalidatePath(ROUTES.SHOP)
   }
 
   /**

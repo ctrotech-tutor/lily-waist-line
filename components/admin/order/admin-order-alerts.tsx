@@ -2,27 +2,32 @@
 
 import { AlertTriangle, AlertCircle, DollarSign, FileX } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import type { OrderDetails } from "./data";
+import type { AdminOrderDetail } from "./data";
 
 interface AdminOrderAlertsProps {
-  order: OrderDetails;
+  order: AdminOrderDetail;
 }
 
 export function AdminOrderAlerts({ order }: AdminOrderAlertsProps) {
-  const alerts = [];
+  const alerts: Array<{
+    type: "warning" | "error" | "info";
+    icon: typeof AlertTriangle;
+    title: string;
+    description: string;
+  }> = [];
 
-  if (order.paymentStatus === "pending") {
+  if (order.paymentStatus === "PENDING") {
     alerts.push({
-      type: "warning" as const,
+      type: "warning",
       icon: AlertTriangle,
       title: "Payment Pending",
       description: "This order requires payment verification before fulfillment can begin.",
     });
   }
 
-  if (order.paymentStatus === "pending" && !order.paymentProof) {
+  if (order.paymentStatus === "PENDING" && !order.paymentProof) {
     alerts.push({
-      type: "error" as const,
+      type: "error",
       icon: FileX,
       title: "Missing Payment Proof",
       description: "Customer has not uploaded payment proof yet. Consider following up.",
@@ -31,16 +36,16 @@ export function AdminOrderAlerts({ order }: AdminOrderAlertsProps) {
 
   if (order.total > 200) {
     alerts.push({
-      type: "info" as const,
+      type: "info",
       icon: DollarSign,
       title: "High Value Order",
       description: `Order total of $${order.total.toFixed(2)} exceeds $200. Consider additional verification steps.`,
     });
   }
 
-  if (order.paymentStatus === "rejected") {
+  if (order.paymentStatus === "REJECTED") {
     alerts.push({
-      type: "error" as const,
+      type: "error",
       icon: AlertCircle,
       title: "Payment Rejected",
       description: "Payment verification was rejected. Customer needs to resubmit proof or use alternative payment.",
@@ -57,29 +62,29 @@ export function AdminOrderAlerts({ order }: AdminOrderAlertsProps) {
         <Alert
           key={index}
           variant={alert.type === "error" ? "destructive" : "default"}
-          className={`rounded-none ${
+          className={`${
             alert.type === "warning"
-              ? "border-amber-500/20 bg-amber-500/10 text-amber-600"
+              ? "border-warning/20 bg-warning/10 text-warning"
               : alert.type === "info"
-                ? "border-blue-500/20 bg-blue-500/10 text-blue-600"
-                : "border-red-500/20 bg-red-500/10"
+                ? "border-info/20 bg-info/10 text-info"
+                : "border-destructive/20 bg-destructive/10"
           }`}
         >
           <alert.icon
             className={`h-4 w-4 ${
-              alert.type === "warning" ? "text-amber-600" : alert.type === "info" ? "text-blue-600" : ""
+              alert.type === "warning" ? "text-warning" : alert.type === "info" ? "text-info" : ""
             }`}
           />
           <AlertTitle
             className={`font-[family-name:var(--font-montserrat)] text-sm font-semibold ${
-              alert.type === "warning" ? "text-amber-700" : alert.type === "info" ? "text-blue-700" : ""
+              alert.type === "warning" ? "text-warning" : alert.type === "info" ? "text-info" : ""
             }`}
           >
             {alert.title}
           </AlertTitle>
           <AlertDescription
             className={`font-[family-name:var(--font-montserrat)] text-xs ${
-              alert.type === "warning" ? "text-amber-600" : alert.type === "info" ? "text-blue-600" : ""
+              alert.type === "warning" ? "text-warning" : alert.type === "info" ? "text-info" : ""
             }`}
           >
             {alert.description}

@@ -11,27 +11,27 @@ interface AdminCustomerActivityProps {
 const activityConfig = {
   account_created: {
     icon: UserPlus,
-    className: "bg-blue-500/10 text-blue-600",
+    className: "bg-info/10 text-info",
   },
   first_purchase: {
     icon: ShoppingCart,
-    className: "bg-green-500/10 text-green-600",
+    className: "bg-success/10 text-success",
   },
   payment_completed: {
     icon: CreditCard,
-    className: "bg-[#d4af37]/10 text-[#b8952e]",
+    className: "bg-secondary/10 text-primary/80",
   },
   order_shipped: {
     icon: Truck,
-    className: "bg-purple-500/10 text-purple-600",
+    className: "bg-accent/10 text-accent-foreground",
   },
 };
 
 export function AdminCustomerActivity({ activities }: AdminCustomerActivityProps) {
   return (
-    <Card className="rounded-none border-border/50">
+    <Card className="border-border/50">
       <CardHeader className="flex flex-row items-center gap-2">
-        <Activity className="h-5 w-5 text-[#d4af37]" />
+        <Activity className="h-5 w-5 text-secondary" />
         <CardTitle className="font-[family-name:var(--font-bodoni-moda)] text-lg font-semibold">
           Activity Timeline
         </CardTitle>
@@ -54,7 +54,7 @@ export function AdminCustomerActivity({ activities }: AdminCustomerActivityProps
                 <div key={activity.id} className="flex gap-4">
                   <div className="flex flex-col items-center">
                     <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-none ${config.className}`}
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center ${config.className}`}
                     >
                       <Icon className="h-5 w-5" />
                     </div>

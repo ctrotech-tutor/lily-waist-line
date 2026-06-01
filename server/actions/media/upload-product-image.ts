@@ -1,16 +1,9 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import prisma from '@/lib/prisma'
 import { storageService } from '@/lib/services/storage-service'
-import { redirect } from 'next/navigation'
-
-export interface UploadProductImageResult {
-  success: boolean
-  url?: string
-  path?: string
-  error?: string
-}
+import type { UploadProductImageResult } from '@/types/media'
 
 export async function uploadProductImage(formData: FormData): Promise<UploadProductImageResult> {
   try {
@@ -25,11 +18,13 @@ export async function uploadProductImage(formData: FormData): Promise<UploadProd
       }
     }
 
-    // Check if user has admin role using admin client
-    const { data: adminData } = await supabaseAdmin.auth.admin.getUserById(user.id)
-    const isAdmin = adminData.user?.app_metadata?.role === 'admin'
+    // Check if user has admin role
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true }
+    })
 
-    if (!isAdmin) {
+    if (!dbUser || dbUser.role !== 'ADMIN') {
       return {
         success: false,
         error: 'Admin access required'
@@ -117,11 +112,13 @@ export async function deleteProductImage(path: string): Promise<{ success: boole
       }
     }
 
-    // Check if user has admin role using admin client
-    const { data: adminData } = await supabaseAdmin.auth.admin.getUserById(user.id)
-    const isAdmin = adminData.user?.app_metadata?.role === 'admin'
+    // Check if user has admin role
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true }
+    })
 
-    if (!isAdmin) {
+    if (!dbUser || dbUser.role !== 'ADMIN') {
       return {
         success: false,
         error: 'Admin access required'
@@ -155,11 +152,13 @@ export async function createStorageBucket(): Promise<{ success: boolean; error?:
       }
     }
 
-    // Check if user has admin role using admin client
-    const { data: adminData } = await supabaseAdmin.auth.admin.getUserById(user.id)
-    const isAdmin = adminData.user?.app_metadata?.role === 'admin'
+    // Check if user has admin role
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true }
+    })
 
-    if (!isAdmin) {
+    if (!dbUser || dbUser.role !== 'ADMIN') {
       return {
         success: false,
         error: 'Admin access required'

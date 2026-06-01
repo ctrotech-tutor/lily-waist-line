@@ -1,5 +1,6 @@
 import { revalidatePath } from 'next/cache'
 import { CachedProductService } from './product-cache'
+import { ROUTES } from '@/lib/constants/routes'
 
 /**
  * Simplified cache revalidation system
@@ -17,7 +18,7 @@ export class CacheRevalidator {
     const { slug, isFeatured } = options || {}
     
     // Revalidate shop pages
-    revalidatePath('/shop')
+    revalidatePath(ROUTES.SHOP)
     
     // Revalidate specific product if slug provided
     if (slug) {
@@ -26,7 +27,7 @@ export class CacheRevalidator {
     
     // Revalidate homepage if this affects featured products
     if (isFeatured) {
-      revalidatePath('/')
+      revalidatePath(ROUTES.HOME)
     }
     
     // Use the product cache revalidator for comprehensive invalidation
@@ -37,10 +38,10 @@ export class CacheRevalidator {
    * Revalidate cart caches for a specific user
    */
   static revalidateCart() {
-    revalidatePath('/cart')
+    revalidatePath(ROUTES.CART)
     // Also revalidate pages that show cart count
-    revalidatePath('/')
-    revalidatePath('/shop')
+    revalidatePath(ROUTES.HOME)
+    revalidatePath(ROUTES.SHOP)
   }
 
   /**
@@ -53,7 +54,7 @@ export class CacheRevalidator {
     const { orderId, isAdmin } = options || {}
     
     // Revalidate orders page
-    revalidatePath('/orders')
+    revalidatePath(ROUTES.ORDERS)
     
     // Revalidate specific order if provided
     if (orderId) {
@@ -62,8 +63,8 @@ export class CacheRevalidator {
     
     // Revalidate admin orders if this is an admin operation
     if (isAdmin) {
-      revalidatePath('/admin/orders')
-      revalidatePath('/admin')
+      revalidatePath(ROUTES.ADMIN_ORDERS)
+      revalidatePath(ROUTES.ADMIN)
     }
   }
 
@@ -71,24 +72,24 @@ export class CacheRevalidator {
    * Revalidate wishlist caches
    */
   static revalidateWishlist() {
-    revalidatePath('/wishlist')
+    revalidatePath(ROUTES.WISHLIST)
   }
 
   /**
    * Revalidate user address caches
    */
   static revalidateUserAddresses() {
-    revalidatePath('/address')
+    revalidatePath(ROUTES.ADDRESS)
   }
 
   /**
    * Revalidate admin dashboard caches
    */
   static revalidateAdminDashboard() {
-    revalidatePath('/admin')
-    revalidatePath('/admin/orders')
-    revalidatePath('/admin/customers')
-    revalidatePath('/admin/products')
+    revalidatePath(ROUTES.ADMIN)
+    revalidatePath(ROUTES.ADMIN_ORDERS)
+    revalidatePath(ROUTES.ADMIN_CUSTOMERS)
+    revalidatePath(ROUTES.ADMIN_PRODUCTS)
   }
 
   /**
@@ -111,7 +112,7 @@ export class CacheRevalidator {
     
     // If product became active/inactive, revalidate homepage
     if (status === 'ACTIVE' || status === 'ARCHIVED') {
-      revalidatePath('/')
+      revalidatePath(ROUTES.HOME)
     }
   }
 
@@ -161,13 +162,13 @@ export class CacheRevalidator {
    */
   static revalidateAll() {
     // Revalidate all major paths
-    revalidatePath('/')
-    revalidatePath('/shop')
-    revalidatePath('/cart')
-    revalidatePath('/orders')
-    revalidatePath('/wishlist')
-    revalidatePath('/address')
-    revalidatePath('/admin')
+    revalidatePath(ROUTES.HOME)
+    revalidatePath(ROUTES.SHOP)
+    revalidatePath(ROUTES.CART)
+    revalidatePath(ROUTES.ORDERS)
+    revalidatePath(ROUTES.WISHLIST)
+    revalidatePath(ROUTES.ADDRESS)
+    revalidatePath(ROUTES.ADMIN)
     
     // Use product cache revalidator as well
     CachedProductService.revalidate.revalidateAll()

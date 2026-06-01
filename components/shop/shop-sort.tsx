@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -57,7 +57,7 @@ export interface ShopSortProps {
   searchParams?: ShopSearchParams;
 }
 
-export function ShopSort({
+export const ShopSort = memo(function ShopSort({
   defaultValue = "featured",
   onSortChange,
   className,
@@ -65,37 +65,15 @@ export function ShopSort({
 }: ShopSortProps) {
   const { updateParams } = useShopURLSync();
 
-  const [selectedSort, setSelectedSort] = useState<SortOption>(() => {
-    if (searchParams?.sort) {
-      return urlToSortMap[searchParams.sort] || defaultValue;
-    }
-    return defaultValue;
-  });
-
-  const [open, setOpen] = useState(false);
-  const prevSortRef = useRef(searchParams?.sort);
-
-  useEffect(() => {
-    if (prevSortRef.current === searchParams?.sort) return;
-    prevSortRef.current = searchParams?.sort;
-
-    queueMicrotask(() => {
-      if (searchParams?.sort) {
-        const sortValue = urlToSortMap[searchParams.sort];
-        if (sortValue) setSelectedSort(sortValue);
-      } else {
-        setSelectedSort(defaultValue);
-      }
-    });
-  }, [searchParams?.sort, defaultValue]);
+  // Derive selected sort directly from URL params
+  const selectedSort: SortOption = searchParams?.sort
+    ? urlToSortMap[searchParams.sort] || defaultValue
+    : defaultValue;
 
   const handleChange = (value: string) => {
     const sortValue = value as SortOption;
-    setSelectedSort(sortValue);
-
     const urlSortValue = sortToUrlMap[sortValue];
     updateParams({ sort: urlSortValue });
-
     onSortChange?.(sortValue);
   };
 
@@ -106,7 +84,7 @@ export function ShopSort({
     <div className={cn("flex items-center gap-3", className)}>
       {/* Label */}
       <div className="hidden sm:flex items-center gap-2">
-        <div className="w-1.5 h-1.5 bg-[#d4af37] rounded-full" />
+        <div className="w-1.5 h-1.5 bg-primary rounded-full" />
         <span className="font-sans text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Sort by
         </span>
@@ -116,18 +94,16 @@ export function ShopSort({
       <Select
         value={selectedSort}
         onValueChange={handleChange}
-        open={open}
-        onOpenChange={setOpen}
       >
         <SelectTrigger
           className={cn(
             "w-fit min-w-40 px-4 py-2",
             "bg-transparent border border-border",
             "font-sans text-sm text-foreground",
-            "hover:border-[#d4af37]/50 transition-colors duration-200",
+            "hover:border-primary/50 transition-colors duration-200",
             "focus:ring-2 focus:ring-ring focus:ring-offset-0",
-            "data-[state=open]:border-[#d4af37]/50",
-            "[&>svg]:text-[#d4af37]",
+            "data-[state=open]:border-primary/50",
+            "[&>svg]:text-primary",
             "rounded-full"
           )}
         >
@@ -177,7 +153,7 @@ export function ShopSort({
                 <div className="flex items-center justify-between w-full gap-4">
                   <span>{option.label}</span>
                   {selectedSort === option.value && (
-                    <Check className="w-4 h-4 text-[#d4af37] shrink-0" />
+                    <Check className="w-4 h-4 text-primary shrink-0" />
                   )}
                 </div>
               </SelectItem>
@@ -187,7 +163,7 @@ export function ShopSort({
       </Select>
     </div>
   );
-}
+});
 
 /* ================= INLINE VERSION ================= */
 

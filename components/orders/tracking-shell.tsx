@@ -1,5 +1,3 @@
-"use client";
-
 import { cn } from "@/lib/utils";
 
 export interface TrackingShellProps {
@@ -10,7 +8,7 @@ export interface TrackingShellProps {
 export function TrackingShell({ children, className }: TrackingShellProps) {
   return (
     <div className={cn("min-h-screen bg-background", className)}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-20 py-8 md:py-12">
+      <div className="max-w-360 mx-auto px-4 sm:px-6 lg:px-8 xl:px-20 py-8 md:py-12">
         {children}
       </div>
     </div>

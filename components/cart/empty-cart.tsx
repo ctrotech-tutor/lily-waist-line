@@ -1,19 +1,23 @@
+import { useRouter } from "next/navigation";
 import { ShoppingBag } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ROUTES } from "@/lib/constants/routes";
 
 interface EmptyCartProps {
   className?: string;
 }
 
 export function EmptyCart({ className }: EmptyCartProps) {
+  const router = useRouter();
+
   return (
     <Card className={cn("p-12 md:p-16", className)}>
       <div className="flex flex-col items-center justify-center text-center max-w-md mx-auto">
         {/* Icon / Visual Element */}
         <div className="mb-8">
-          <div className="w-20 h-20 rounded-full border-2 border-secondary/20 flex items-center justify-center">
+          <div className="w-20 h-20 border-2 border-primary/20 flex items-center justify-center">
             <ShoppingBag className="w-10 h-10 text-muted-foreground" />
           </div>
         </div>
@@ -29,18 +33,20 @@ export function EmptyCart({ className }: EmptyCartProps) {
         </p>
 
         {/* Primary CTA */}
-        <Button 
-          size="lg" 
-          className="w-full sm:w-auto px-8 py-3 text-sm font-button tracking-wide uppercase bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors"
+        <Button
+          size="lg"
+          onClick={() => router.push(ROUTES.SHOP)}
+          className="w-full sm:w-auto px-8 text-sm font-button tracking-wide uppercase"
         >
           Start Shopping
         </Button>
 
         {/* Secondary Action */}
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="lg"
-          className="w-full sm:w-auto px-8 py-3 text-sm font-button tracking-wide uppercase mt-4 border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground transition-colors"
+          onClick={() => router.push(ROUTES.SHOP)}
+          className="w-full sm:w-auto px-8 text-sm font-button tracking-wide uppercase mt-4"
         >
           Browse Collections
         </Button>

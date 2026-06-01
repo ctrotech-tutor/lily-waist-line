@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { OptimizedImage } from "@/components/shared/optimized-image";
 import { cn } from "@/lib/utils";
 import {
   MapPin,
@@ -84,7 +84,7 @@ export function OrderReview({
   return (
     <div className={cn("space-y-6", className)}>
       {/* 1. Order Summary Recap */}
-      <Card className="border border-border bg-card overflow-hidden">
+      <Card className="border border-border bg-card overflow-hidden rounded-2xl">
         <div className="px-5 py-4 border-b border-border/50">
           <h3 className="font-heading text-base font-semibold text-foreground">
             Order Summary
@@ -100,9 +100,9 @@ export function OrderReview({
             {items.map((item) => (
               <div key={item.id} className="flex items-start gap-3">
                 {/* Item Image */}
-                <div className="w-14 h-18 bg-muted flex items-center justify-center shrink-0 overflow-hidden relative">
+                <div className="w-14 h-18 bg-muted flex items-center justify-center shrink-0 overflow-hidden relative rounded-md">
                   {item.image ? (
-                    <Image
+                    <OptimizedImage
                       src={item.image}
                       alt={item.name}
                       fill
@@ -167,7 +167,7 @@ export function OrderReview({
       </Card>
 
       {/* 2. Shipping Address Recap */}
-      <Card className="border border-border bg-card overflow-hidden">
+      <Card className="border border-border bg-card overflow-hidden rounded-2xl">
         <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
           <div>
             <h3 className="font-heading text-base font-semibold text-foreground">
@@ -188,7 +188,7 @@ export function OrderReview({
           {selectedAddress ? (
             <div className="flex items-start gap-4">
               <div className="shrink-0">
-                <div className="w-10 h-10 flex items-center justify-center border border-secondary/30 bg-secondary/10">
+                <div className="w-10 h-10 flex items-center justify-center border border-secondary/30 bg-secondary/10 rounded-lg">
                   <MapPin className="w-5 h-5 text-secondary" />
                 </div>
               </div>
@@ -229,7 +229,7 @@ export function OrderReview({
       </Card>
 
       {/* 3. Payment Method Recap */}
-      <Card className="border border-border bg-card overflow-hidden">
+      <Card className="border border-border bg-card overflow-hidden rounded-2xl">
         <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
           <div>
             <h3 className="font-heading text-base font-semibold text-foreground">
@@ -250,7 +250,7 @@ export function OrderReview({
           {selectedPayment ? (
             <div className="flex items-start gap-4">
               <div className="shrink-0">
-                <div className="w-10 h-10 flex items-center justify-center border border-secondary/30 bg-secondary/10">
+                <div className="w-10 h-10 flex items-center justify-center border border-secondary/30 bg-secondary/10 rounded-lg">
                   <CreditCard className="w-5 h-5 text-secondary" />
                 </div>
               </div>
@@ -280,7 +280,7 @@ export function OrderReview({
       </Card>
 
       {/* 4. Trust & Assurance Section */}
-      <Alert className="border-secondary/30 bg-secondary/5">
+      <Alert className="border-secondary/30 bg-secondary/5 rounded-lg">
         <Shield className="w-5 h-5 text-secondary shrink-0" />
         <AlertDescription className="font-sans text-sm text-foreground ml-2">
           Your order is protected and will be processed securely after confirmation.
@@ -289,24 +289,24 @@ export function OrderReview({
 
       {/* Trust Indicators Grid */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="flex flex-col items-center gap-2 p-4 border border-border bg-muted/30">
-          <div className="w-10 h-10 flex items-center justify-center border border-secondary/20 bg-secondary/10">
+        <div className="flex flex-col items-center gap-2 p-4 border border-border bg-muted/30 rounded-lg">
+          <div className="w-10 h-10 flex items-center justify-center border border-secondary/20 bg-secondary/10 rounded-lg">
             <Shield className="w-5 h-5 text-secondary" />
           </div>
           <span className="font-sans text-[10px] text-muted-foreground uppercase tracking-wide text-center">
             Secure Checkout
           </span>
         </div>
-        <div className="flex flex-col items-center gap-2 p-4 border border-border bg-muted/30">
-          <div className="w-10 h-10 flex items-center justify-center border border-secondary/20 bg-secondary/10">
+        <div className="flex flex-col items-center gap-2 p-4 border border-border bg-muted/30 rounded-lg">
+          <div className="w-10 h-10 flex items-center justify-center border border-secondary/20 bg-secondary/10 rounded-lg">
             <Clock className="w-5 h-5 text-secondary" />
           </div>
           <span className="font-sans text-[10px] text-muted-foreground uppercase tracking-wide text-center">
             Manual Verification
           </span>
         </div>
-        <div className="flex flex-col items-center gap-2 p-4 border border-border bg-muted/30">
-          <div className="w-10 h-10 flex items-center justify-center border border-secondary/20 bg-secondary/10">
+        <div className="flex flex-col items-center gap-2 p-4 border border-border bg-muted/30 rounded-lg">
+          <div className="w-10 h-10 flex items-center justify-center border border-secondary/20 bg-secondary/10 rounded-lg">
             <Zap className="w-5 h-5 text-secondary" />
           </div>
           <span className="font-sans text-[10px] text-muted-foreground uppercase tracking-wide text-center">

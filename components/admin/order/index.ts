@@ -4,13 +4,11 @@ export { AdminOrderItems } from "./admin-order-items";
 export { AdminCustomerInfo } from "./admin-customer-info";
 export { AdminFulfillmentPanel } from "./admin-fulfillment-panel";
 export { AdminOrderAlerts } from "./admin-order-alerts";
-export { getOrderById, mockOrderDetails } from "./data";
+export { AdminOrderDetailSkeleton } from "./admin-order-detail-skeleton";
 export type {
-  OrderDetails,
-  OrderItem,
-  ShippingAddress,
-  PaymentProof,
-  PaymentStatus,
-  PaymentMethod,
-  FulfillmentStatus,
+  AdminOrderDetail,
+  AdminOrderDetailItem,
+  AdminOrderShippingAddress,
+  AdminOrderPaymentProof,
 } from "./data";
+export { formatOrderDate } from "./data";

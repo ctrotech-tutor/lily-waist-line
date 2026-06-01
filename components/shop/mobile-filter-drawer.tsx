@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { cn } from "@/lib/utils";
 import {
   Drawer,
@@ -53,19 +53,12 @@ const filterGroups: FilterGroup[] = [
     ],
   },
   {
-    id: "color",
-    title: "Color",
-    options: [
-      { value: "black", label: "Black" },
-      { value: "nude", label: "Nude" },
-    ],
-  },
-  {
     id: "availability",
     title: "Availability",
     options: [
       { value: "in-stock", label: "In Stock" },
-      { value: "sold-out", label: "Sold Out" },
+      { value: "low-stock", label: "Low Stock" },
+      { value: "out-of-stock", label: "Out of Stock" },
     ],
   },
 ];
@@ -93,11 +86,11 @@ function MobileFilterChip({
         "focus-visible:ring-2 focus-visible:ring-ring",
         selected
           ? "bg-primary text-primary-foreground border-primary"
-          : "bg-transparent border-border hover:border-[#d4af37]/50"
+          : "bg-transparent border-border hover:border-primary/50"
       )}
     >
       {selected && (
-        <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-[#d4af37] rounded-full" />
+        <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-primary rounded-full" />
       )}
       {label}
     </button>
@@ -118,7 +111,7 @@ function MobileFilterSection({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <div className="w-1.5 h-1.5 bg-[#d4af37] rounded-full" />
+        <div className="w-1.5 h-1.5 bg-primary rounded-full" />
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {group.title}
         </h3>
@@ -147,7 +140,7 @@ export interface MobileFilterDrawerProps {
   searchParams?: ShopSearchParams;
 }
 
-export function MobileFilterDrawer({
+export const MobileFilterDrawer = memo(function MobileFilterDrawer({
   open,
   onOpenChange,
   onFiltersChange,
@@ -155,55 +148,45 @@ export function MobileFilterDrawer({
 }: MobileFilterDrawerProps) {
   const { updateParams, clearFilters } = useShopURLSync();
 
-  const [selectedFilters, setSelectedFilters] = useState<
-    Record<string, string[]>
-  >({
+  // Temporary state for drawer (applied on "Apply" button)
+  const [tempFilters, setTempFilters] = useState<Record<string, string[]>>({
     size: searchParams?.size ? [searchParams.size] : [],
     compression: searchParams?.compression ? [searchParams.compression] : [],
-    color: [],
-    availability: [],
+    availability: searchParams?.availability ? [searchParams.availability] : [],
   });
 
-  const prevRef = useRef(searchParams);
-
+  // Reset temp filters when drawer opens
   useEffect(() => {
-    if (
-      prevRef.current?.size === searchParams?.size &&
-      prevRef.current?.compression === searchParams?.compression
-    ) return;
-
-    prevRef.current = searchParams;
-
-    queueMicrotask(() => {
-      setSelectedFilters({
-        size: searchParams?.size ? [searchParams.size] : [],
-        compression: searchParams?.compression
-          ? [searchParams.compression]
-          : [],
-        color: [],
-        availability: [],
-      });
-    });
-  }, [searchParams]);
+    if (open) {
+      const id = setTimeout(() => {
+        setTempFilters({
+          size: searchParams?.size ? [searchParams.size] : [],
+          compression: searchParams?.compression ? [searchParams.compression] : [],
+          availability: searchParams?.availability ? [searchParams.availability] : [],
+        });
+      }, 0);
+      return () => clearTimeout(id);
+    }
+  }, [open, searchParams]);
 
   const handleToggle = (groupId: string, value: string) => {
-    setSelectedFilters((prev) => {
+    setTempFilters((prev: Record<string, string[]>) => {
       const current = prev[groupId] || [];
       const updated = current.includes(value)
-        ? current.filter((v) => v !== value)
+        ? current.filter((v: string) => v !== value)
         : [...current, value];
-
       return { ...prev, [groupId]: updated };
     });
   };
 
   const handleApply = () => {
     updateParams({
-      size: selectedFilters.size?.[0],
-      compression: selectedFilters.compression?.[0],
+      size: tempFilters.size?.[0],
+      compression: tempFilters.compression?.[0],
+      availability: tempFilters.availability?.[0],
     });
 
-    onFiltersChange?.(selectedFilters);
+    onFiltersChange?.(tempFilters);
     onOpenChange(false);
   };
 
@@ -211,17 +194,16 @@ export function MobileFilterDrawer({
     const reset = {
       size: [],
       compression: [],
-      color: [],
       availability: [],
     };
 
-    setSelectedFilters(reset);
+    setTempFilters(reset);
     clearFilters();
     onFiltersChange?.(reset);
   };
 
-  const activeCount = Object.values(selectedFilters).reduce(
-    (a, b) => a + b.length,
+  const activeCount = Object.values(tempFilters).reduce(
+    (a: number, b: string[]) => a + b.length,
     0
   );
 
@@ -231,8 +213,8 @@ export function MobileFilterDrawer({
         {/* REQUIRED TITLE (fixes Radix error) */}
         <DrawerHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 border border-[#d4af37]/30 rounded-full flex items-center justify-center">
-              <SlidersHorizontal className="w-4 h-4 text-[#d4af37]" />
+            <div className="w-9 h-9 border border-primary/30 rounded-full flex items-center justify-center">
+              <SlidersHorizontal className="w-4 h-4 text-primary" />
             </div>
 
             <div>
@@ -263,7 +245,7 @@ export function MobileFilterDrawer({
             <MobileFilterSection
               key={group.id}
               group={group}
-              selectedValues={selectedFilters[group.id] || []}
+              selectedValues={tempFilters[group.id] || []}
               onToggle={handleToggle}
             />
           ))}
@@ -291,7 +273,7 @@ export function MobileFilterDrawer({
       </DrawerContent>
     </Drawer>
   );
-}
+});
 
 /* ================= TRIGGER ================= */
 
@@ -316,11 +298,11 @@ export function MobileFilterTrigger({
       Filters
 
       {activeFilterCount > 0 ? (
-        <span className="w-5 h-5 bg-[#d4af37] text-black text-xs flex items-center justify-center rounded-full">
+        <span className="w-5 h-5 bg-primary text-primary-foreground text-xs flex items-center justify-center rounded-full">
           {activeFilterCount}
         </span>
       ) : (
-        <span className="w-1.5 h-1.5 bg-[#d4af37] rounded-full" />
+        <span className="w-1.5 h-1.5 bg-primary rounded-full" />
       )}
     </button>
   );

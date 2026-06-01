@@ -3,17 +3,10 @@
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
+import { OptimizedImage } from "@/components/shared/optimized-image";
+import type { OrderItemData } from "@/types/order";
 
-export interface OrderItemData {
-  id: string;
-  productName: string;
-  productImage: string;
-  size: string;
-  compression: string;
-  quantity: number;
-  unitPrice: number;
-}
+export type { OrderItemData };
 
 export interface OrderItemsListProps {
   items: OrderItemData[];
@@ -21,10 +14,10 @@ export interface OrderItemsListProps {
 }
 
 export function OrderItemsList({ items, className }: OrderItemsListProps) {
-  const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
 
   return (
-    <Card className={cn("p-6 md:p-8 border border-border bg-card", className)}>
+    <Card className={cn("p-6 md:p-8 border border-border bg-card rounded-lg", className)}>
       <h2 className="font-heading text-xl md:text-2xl text-foreground mb-6">
         Items Ordered
       </h2>
@@ -33,25 +26,27 @@ export function OrderItemsList({ items, className }: OrderItemsListProps) {
         {items.map((item, index) => (
           <div key={item.id}>
             <div className="flex flex-col sm:flex-row gap-4">
-              {/* Product Image */}
-              <div className="relative w-full sm:w-24 h-32 sm:h-32 bg-muted shrink-0">
-                <Image
-                  src={item.productImage}
-                  alt={item.productName}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 640px) 100vw, 96px"
-                />
+              <div className="relative w-full sm:w-24 h-32 sm:h-32 bg-muted rounded-lg overflow-hidden shrink-0">
+                {item.productImage ? (
+                  <OptimizedImage
+                    src={item.productImage}
+                    alt={item.productName}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 100vw, 96px"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                    No Image
+                  </div>
+                )}
               </div>
 
-              {/* Product Info */}
               <div className="flex-1 flex flex-col justify-between">
                 <div>
                   <h3 className="font-heading text-lg text-foreground mb-2">
                     {item.productName}
                   </h3>
-
-                  {/* Variants */}
                   <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                     <span className="font-sans">
                       Size: <span className="text-foreground">{item.size}</span>
@@ -62,15 +57,12 @@ export function OrderItemsList({ items, className }: OrderItemsListProps) {
                     </span>
                   </div>
                 </div>
-
-                {/* Quantity and Price */}
                 <div className="flex items-center justify-between mt-4 sm:mt-0">
                   <div className="flex items-center gap-4">
                     <span className="font-sans text-sm text-muted-foreground">
                       Qty: <span className="text-foreground font-medium">{item.quantity}</span>
                     </span>
                   </div>
-
                   <div className="text-right">
                     <p className="font-heading text-lg text-foreground">
                       ${(item.unitPrice * item.quantity).toFixed(2)}
@@ -82,7 +74,6 @@ export function OrderItemsList({ items, className }: OrderItemsListProps) {
                 </div>
               </div>
             </div>
-
             {index < items.length - 1 && (
               <Separator className="mt-6 bg-border/50" />
             )}
@@ -90,7 +81,6 @@ export function OrderItemsList({ items, className }: OrderItemsListProps) {
         ))}
       </div>
 
-      {/* Subtotal */}
       <div className="mt-8 pt-6 border-t border-border">
         <div className="flex items-center justify-between">
           <span className="font-sans text-sm uppercase tracking-wider text-muted-foreground">

@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import type { Prisma, PrismaClient } from '@/lib/generated/prisma/client'
+import type { PrismaClient } from '@/lib/generated/prisma/client'
 
 const updateCartQuantitySchema = z.object({
   cartItemId: z.string().min(1, 'Cart item ID is required'),

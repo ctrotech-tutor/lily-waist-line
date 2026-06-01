@@ -31,8 +31,8 @@ export function ShopHeader({
               isLoaded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
             )}
           >
-            <Sparkles className="w-4 h-4 text-[#d4af37]" />
-            <span className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-[#d4af37]">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               {eyebrow}
             </span>
           </div>
@@ -40,7 +40,7 @@ export function ShopHeader({
           {/* Gold Divider */}
           <div
             className={cn(
-              "w-16 h-px bg-[#d4af37] mb-8",
+              "w-16 h-px bg-primary mb-8",
               "transition-all duration-700 delay-100 ease-out",
               isLoaded ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
             )}
@@ -81,7 +81,7 @@ export function ShopHeader({
               isLoaded ? "opacity-100" : "opacity-0"
             )}
           >
-            <div className="w-2 h-2 bg-[#d4af37]" />
+            <div className="w-2 h-2 bg-primary" />
             <span className="font-sans text-sm text-muted-foreground">
               Showing {productCount} products
             </span>

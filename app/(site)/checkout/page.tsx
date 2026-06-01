@@ -1,29 +1,29 @@
 "use client";
-
+export const dynamic = "force-dynamic"
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { Lock, MapPin, CreditCard, Shield, Truck, RotateCcw, Loader2, Check, DollarSign, Globe, AlertCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CheckoutShell } from "@/components/checkout/checkout-shell";
 import { CheckoutStep } from "@/components/checkout/checkout-step";
 import { CheckoutProgress } from "@/components/checkout/checkout-progress";
 import { CheckoutSummary } from "@/components/checkout/checkout-summary";
-import { AddressSelector, AddressCardData } from "@/components/checkout/address-selector";
+import { CheckoutSummarySkeleton } from "@/components/checkout/checkout-summary-skeleton";
+import { CheckoutStepSkeleton } from "@/components/checkout/checkout-step-skeleton";
+import { AddressSelector } from "@/components/checkout/address-selector";
+import type { AddressCardData } from "@/types/address";
 import { PaymentMethodSelector, PaymentMethod } from "@/components/checkout/payment-method-selector";
 import { PaymentInstructions } from "@/components/checkout/payment-instructions";
+import { OrderReview } from "@/components/checkout/order-review";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { getCart } from "@/server/actions/cart";
-import { getUserAddresses } from "@/server/actions/address";
+import { useCart } from "@/hooks/use-cart";
+import { useAddresses } from "@/hooks/use-addresses";
 import { createOrder } from "@/server/actions/order";
 import { validateCheckoutAccess } from "@/server/actions/checkout/validate-checkout-access";
 import { toast } from "sonner";
-import type { CartItemWithDetails } from "@/lib/services/cart-service";
 
-interface CartItem {
+interface CheckoutCartItem {
   id: string;
   name: string;
   image: string;
@@ -39,73 +39,65 @@ export default function CheckoutPage() {
   const [selectedAddress, setSelectedAddress] = useState<AddressCardData | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [addresses, setAddresses] = useState<AddressCardData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch cart and addresses on mount
+  // Validate checkout access
+  const validationQuery = useQuery({
+    queryKey: ['checkout-access'],
+    queryFn: async () => {
+      const result = await validateCheckoutAccess();
+      return result;
+    },
+    retry: false,
+  });
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Validate checkout access
-        const validation = await validateCheckoutAccess();
-        if (!validation.success) {
-          toast.error(validation.error || "Cannot access checkout");
-          if (validation.redirect) {
-            router.push(validation.redirect);
-          }
-          return;
-        }
-
-        // Fetch cart
-        const cartResult = await getCart();
-        if (cartResult.success && cartResult.data) {
-          const items = cartResult.data.items.map((item: CartItemWithDetails) => ({
-            id: item.id,
-            name: item.product.name,
-            image: item.product.image?.url || "/logo.svg",
-            price: item.unitPrice,
-            quantity: item.quantity,
-            variant: `${item.variant.size} / ${item.variant.compressionLevel}`
-          }));
-          setCartItems(items);
-        }
-
-        // Fetch addresses
-        const addressesResult = await getUserAddresses();
-        if (addressesResult.success && addressesResult.data) {
-          const addressData = addressesResult.data.map((addr) => ({
-            id: addr.id,
-            firstName: addr.firstName,
-            lastName: addr.lastName,
-            addressLine1: addr.addressLine1,
-            addressLine2: addr.addressLine2 || undefined,
-            city: addr.city,
-            state: addr.state,
-            postalCode: addr.postalCode,
-            country: addr.country,
-            phone: addr.phone || "",
-            isDefault: addr.isDefault
-          }));
-          setAddresses(addressData);
-        }
-      } catch (error) {
-        console.error("Error fetching checkout data:", error);
-        toast.error("Failed to load checkout data");
-      } finally {
-        setIsLoading(false);
+    if (validationQuery.data && !validationQuery.data.success) {
+      toast.error(validationQuery.data.error || "Cannot access checkout");
+      if (validationQuery.data.redirect) {
+        router.push(validationQuery.data.redirect);
       }
-    };
+    }
+  }, [validationQuery.data, router]);
 
-    fetchData();
-  }, [router]);
+  // Fetch cart
+  const { data: cartData, isLoading: isCartLoading } = useCart();
 
-  // Handle payment method selection (UI state only)
+  // Fetch addresses
+  const { data: addresses, isLoading: isAddressesLoading } = useAddresses();
+
+  const isLoading = isCartLoading || isAddressesLoading || validationQuery.isLoading;
+
+  // Map cart items
+  const cartItems: CheckoutCartItem[] = (cartData?.items ?? []).map((item) => ({
+    id: item.id,
+    name: item.product.name,
+    image: item.product.image?.url || "/logo.svg",
+    price: item.unitPrice,
+    quantity: item.quantity,
+    variant: `${item.variant.size} / ${item.variant.compressionLevel}`
+  }));
+
+  // Map addresses to AddressCardData
+  const addressCardData: AddressCardData[] = (addresses ?? []).map((addr) => ({
+    id: addr.id,
+    firstName: addr.firstName,
+    lastName: addr.lastName,
+    addressLine1: addr.addressLine1,
+    addressLine2: addr.addressLine2 ?? undefined,
+    city: addr.city,
+    state: addr.state ?? undefined,
+    postalCode: addr.postalCode ?? undefined,
+    country: addr.country,
+    phone: addr.phone ?? undefined,
+    isDefault: addr.isDefault,
+  }));
+
+  // Handle payment method selection
   const handlePaymentMethodSelect = (method: PaymentMethod) => {
     setSelectedPayment(method);
   };
 
-  // Handle place order with real order creation
+  // Handle place order
   const handlePlaceOrder = async () => {
     if (!selectedAddress || !selectedPayment) {
       toast.error("Please complete all steps before placing order");
@@ -122,7 +114,6 @@ export default function CheckoutPage() {
 
       if (result.success && result.data) {
         toast.success("Order placed successfully!");
-        // Navigate to order confirmation page with order ID
         router.push(`/order/confirmation/${result.data.orderId}`);
       } else {
         toast.error(result.error || "Failed to place order");
@@ -135,9 +126,9 @@ export default function CheckoutPage() {
     }
   };
 
-  // Calculate totals from real cart data
+  // Calculate totals
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = 10; // Fixed shipping per spec
+  const shipping = 10;
   const total = subtotal + shipping;
 
   return (
@@ -217,17 +208,26 @@ export default function CheckoutPage() {
       {/* Main Checkout Layout */}
       <CheckoutShell
         summary={
-          <CheckoutSummary
-            subtotal={subtotal}
-            shipping={shipping}
-            total={total}
-            items={cartItems}
-            discount={0}
-          />
+          isLoading ? (
+            <CheckoutSummarySkeleton />
+          ) : (
+            <CheckoutSummary
+              subtotal={subtotal}
+              shipping={shipping}
+              total={total}
+              items={cartItems}
+              discount={0}
+            />
+          )
         }
       >
+        {/* Loading State */}
+        {isLoading && (
+          <CheckoutStepSkeleton />
+        )}
+
         {/* Step 1: Address */}
-        {currentStep === 1 && (
+        {!isLoading && currentStep === 1 && (
           <CheckoutStep
             title="Shipping Address"
             subtitle="Select where your order will be delivered"
@@ -239,12 +239,11 @@ export default function CheckoutPage() {
             )}
           >
             <AddressSelector
-              addresses={addresses}
+              addresses={addressCardData}
               onAddressSelect={setSelectedAddress}
               className="mb-6"
             />
 
-            {/* Continue Button */}
             <Button
               onClick={() => setCurrentStep(2)}
               disabled={!selectedAddress}
@@ -263,7 +262,7 @@ export default function CheckoutPage() {
         )}
 
         {/* Step 2: Payment */}
-        {currentStep === 2 && (
+        {!isLoading && currentStep === 2 && (
           <CheckoutStep
             title="Payment Method"
             subtitle="Choose how you would like to pay"
@@ -275,16 +274,13 @@ export default function CheckoutPage() {
             )}
           >
             <div className="space-y-6">
-              {/* Payment Method Selector */}
               <PaymentMethodSelector
                 selectedMethod={selectedPayment}
                 onSelect={handlePaymentMethodSelect}
               />
 
-              {/* Payment Instructions Panel */}
               <PaymentInstructions method={selectedPayment} />
 
-              {/* Navigation Buttons */}
               <div className="flex gap-4 pt-2">
                 <Button
                   onClick={() => setCurrentStep(1)}
@@ -319,7 +315,7 @@ export default function CheckoutPage() {
         )}
 
         {/* Step 3: Review */}
-        {currentStep === 3 && (
+        {!isLoading && currentStep === 3 && (
           <CheckoutStep
             title="Review Your Order"
             subtitle="Confirm your details before placing order"
@@ -330,294 +326,18 @@ export default function CheckoutPage() {
               isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             )}
           >
-            <div className="space-y-6">
-              {/* Order Summary Recap */}
-              <Card className="border-border">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-heading text-base font-semibold text-foreground">
-                      Order Summary
-                    </h4>
-                    <span className="font-sans text-sm text-muted-foreground">
-                      {cartItems.length} {cartItems.length === 1 ? "item" : "items"}
-                    </span>
-                  </div>
-
-                  {/* Items List */}
-                  <div className="space-y-3 mb-4">
-                    {cartItems.map((item) => (
-                      <div key={item.id} className="flex items-start gap-3">
-                        <div className="w-12 h-16 bg-muted flex items-center justify-center shrink-0 overflow-hidden relative">
-                          <Image
-                            src={item.image}
-                            alt={item.name}
-                            fill
-                            className="object-cover"
-                            sizes="48px"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-heading text-sm font-medium text-foreground leading-tight">
-                            {item.name}
-                          </p>
-                          {item.variant && (
-                            <p className="font-sans text-xs text-muted-foreground">
-                              {item.variant}
-                            </p>
-                          )}
-                          <p className="font-sans text-xs text-muted-foreground">
-                            Qty: {item.quantity}
-                          </p>
-                        </div>
-                        <span className="font-sans text-sm font-medium text-foreground">
-                          ${(item.price * item.quantity).toFixed(2)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Separator className="my-4" />
-
-                  {/* Price Breakdown */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-sans text-sm text-muted-foreground">Subtotal</span>
-                      <span className="font-sans text-sm text-foreground">${subtotal.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-sans text-sm text-muted-foreground">Shipping</span>
-                      <span className="font-sans text-sm text-foreground">${shipping.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-secondary/10 border border-secondary/20 -mx-5 mt-3">
-                      <span className="font-heading text-base font-semibold text-foreground">Total</span>
-                      <span className="font-heading text-xl font-semibold text-secondary">${total.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Shipping Address Recap */}
-              <Card className="border-border">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-secondary" />
-                      <h4 className="font-heading text-base font-semibold text-foreground">
-                        Shipping Address
-                      </h4>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setCurrentStep(1)}
-                      className="h-8 text-sm text-muted-foreground hover:text-foreground"
-                    >
-                      Change
-                    </Button>
-                  </div>
-
-                  {selectedAddress ? (
-                    <div className="space-y-1">
-                      <p className="font-heading text-sm font-medium text-foreground">
-                        {selectedAddress.firstName} {selectedAddress.lastName}
-                      </p>
-                      <p className="font-sans text-sm text-foreground">
-                        {selectedAddress.addressLine1}
-                      </p>
-                      {selectedAddress.addressLine2 && (
-                        <p className="font-sans text-sm text-foreground">
-                          {selectedAddress.addressLine2}
-                        </p>
-                      )}
-                      <p className="font-sans text-sm text-muted-foreground">
-                        {[selectedAddress.city, selectedAddress.state, selectedAddress.country]
-                          .filter(Boolean)
-                          .join(" / ")}
-                      </p>
-                      {selectedAddress.phone && (
-                        <p className="font-sans text-sm text-muted-foreground">
-                          {selectedAddress.phone}
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="font-sans text-sm text-muted-foreground">
-                      No address selected
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Payment Method Recap */}
-              <Card className="border-border">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="w-4 h-4 text-secondary" />
-                      <h4 className="font-heading text-base font-semibold text-foreground">
-                        Payment Method
-                      </h4>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setCurrentStep(2)}
-                      className="h-8 text-sm text-muted-foreground hover:text-foreground"
-                    >
-                      Change
-                    </Button>
-                  </div>
-
-                  {selectedPayment ? (
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={cn(
-                          "w-10 h-10 flex items-center justify-center border shrink-0",
-                          "border-secondary bg-secondary/10"
-                        )}
-                      >
-                        {selectedPayment === "cashapp" ? (
-                          <DollarSign className="w-5 h-5 text-secondary" />
-                        ) : (
-                          <Globe className="w-5 h-5 text-secondary" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-heading text-sm font-medium text-foreground">
-                          {selectedPayment === "cashapp" ? "Cash App" : "PayPal"}
-                        </p>
-                        <p className="font-sans text-sm text-muted-foreground">
-                          {selectedPayment === "cashapp"
-                            ? "US Orders - Manual payment verification"
-                            : "International Orders - Secure redirect"}
-                        </p>
-                        <Badge
-                          variant="secondary"
-                          className="mt-2 bg-secondary/10 text-secondary font-sans text-[10px] uppercase tracking-wider"
-                        >
-                          {selectedPayment === "cashapp" ? "Recommended for US" : "Global Payments"}
-                        </Badge>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="font-sans text-sm text-muted-foreground">
-                      No payment method selected
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Payment Routing Message */}
-              <div className="p-4 bg-muted/30 border border-border/50">
-                <div className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-secondary shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-sans text-sm text-foreground">
-                      {selectedPayment === "cashapp" && (
-                        <>
-                          <span className="font-medium">You will complete payment via Cash App</span>{" "}
-                          <span className="text-muted-foreground">
-                            after order confirmation. Payment instructions will be provided.
-                          </span>
-                        </>
-                      )}
-                      {selectedPayment === "paypal" && (
-                        <>
-                          <span className="font-medium">You will be redirected to PayPal</span>{" "}
-                          <span className="text-muted-foreground">
-                            to complete payment securely after placing your order.
-                          </span>
-                        </>
-                      )}
-                      {!selectedPayment && (
-                        <span className="text-muted-foreground">
-                          Please select a payment method to continue.
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Trust & Assurance Section */}
-              <Card className="border-secondary/20 bg-secondary/5">
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Shield className="w-4 h-4 text-secondary" />
-                    <h4 className="font-heading text-sm font-semibold text-foreground">
-                      Secure Checkout Guaranteed
-                    </h4>
-                  </div>
-                  <p className="font-sans text-sm text-muted-foreground mb-4">
-                    Your order is protected and will be processed securely after confirmation.
-                    All payments are manually verified for your safety.
-                  </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="flex flex-col items-center gap-1.5 text-center">
-                      <Shield className="w-4 h-4 text-secondary" />
-                      <span className="font-sans text-[10px] text-muted-foreground uppercase tracking-wide">
-                        Secure
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-center gap-1.5 text-center">
-                      <Truck className="w-4 h-4 text-secondary" />
-                      <span className="font-sans text-[10px] text-muted-foreground uppercase tracking-wide">
-                        Fast Delivery
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-center gap-1.5 text-center">
-                      <RotateCcw className="w-4 h-4 text-secondary" />
-                      <span className="font-sans text-[10px] text-muted-foreground uppercase tracking-wide">
-                        Easy Returns
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Place Order CTA */}
-              <div className="pt-4">
-                <Button
-                  onClick={handlePlaceOrder}
-                  disabled={isPlacingOrder || !selectedAddress || !selectedPayment}
-                  className={cn(
-                    "w-full h-14",
-                    "font-sans text-sm font-semibold uppercase tracking-wider",
-                    "bg-secondary text-secondary-foreground",
-                    "hover:bg-secondary/90",
-                    "disabled:opacity-50 disabled:cursor-not-allowed",
-                    "transition-all duration-200"
-                  )}
-                >
-                  {isPlacingOrder ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Preparing your order...
-                    </>
-                  ) : (
-                    "Place Order"
-                  )}
-                </Button>
-                <p className="text-center font-sans text-xs text-muted-foreground mt-3">
-                  By placing your order, you agree to our terms and privacy policy
-                </p>
-              </div>
-
-              {/* Back Button */}
-              <Button
-                onClick={() => setCurrentStep(2)}
-                variant="outline"
-                className={cn(
-                  "w-full h-12",
-                  "font-sans text-sm font-medium",
-                  "border-border text-foreground",
-                  "hover:bg-muted",
-                  "transition-colors duration-200"
-                )}
-              >
-                Back to Payment
-              </Button>
-            </div>
+            <OrderReview
+              items={cartItems}
+              subtotal={subtotal}
+              shipping={shipping}
+              total={total}
+              selectedAddress={selectedAddress}
+              selectedPayment={selectedPayment}
+              onEditAddress={() => setCurrentStep(1)}
+              onEditPayment={() => setCurrentStep(2)}
+              onPlaceOrder={handlePlaceOrder}
+              isLoading={isPlacingOrder}
+            />
           </CheckoutStep>
         )}
       </CheckoutShell>

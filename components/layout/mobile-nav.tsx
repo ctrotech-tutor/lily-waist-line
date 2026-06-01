@@ -26,12 +26,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 import { OptimizedImage } from "../shared/optimized-image";
+import { ROUTES } from "@/lib/constants/routes";
 
 const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/shop", label: "Shop" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
+  { href: ROUTES.HOME, label: "Home" },
+  { href: ROUTES.SHOP, label: "Shop" },
+  { href: ROUTES.ABOUT, label: "About" },
+  { href: ROUTES.CONTACT, label: "Contact" },
 ];
 
 interface MobileNavProps {
@@ -65,7 +66,7 @@ export function MobileNav({ className }: MobileNavProps) {
         {/* Header */}
         <div className="px-6 pt-6 pb-4">
           <Link
-            href="/"
+            href={ROUTES.HOME}
             onClick={() => setOpen(false)}
             className="flex items-center gap-3"
           >
@@ -114,7 +115,7 @@ export function MobileNav({ className }: MobileNavProps) {
         <div className="flex flex-col py-6">
           <DrawerClose asChild>
             <Link
-              href="/wishlist"
+              href={ROUTES.WISHLIST}
               className="flex items-center gap-4 px-6 py-4 font-sans text-sm font-medium uppercase tracking-wide transition-colors hover:bg-muted hover:text-primary"
             >
               <Heart className="h-5 w-5" />
@@ -124,7 +125,7 @@ export function MobileNav({ className }: MobileNavProps) {
 
           <DrawerClose asChild>
             <Link
-              href="/cart"
+              href={ROUTES.CART}
               className="flex items-center gap-4 px-6 py-4 font-sans text-sm font-medium uppercase tracking-wide transition-colors hover:bg-muted hover:text-primary"
             >
               <ShoppingBag className="h-5 w-5" />
@@ -134,7 +135,7 @@ export function MobileNav({ className }: MobileNavProps) {
 
           <DrawerClose asChild>
             <Link
-              href="/account"
+              href={ROUTES.ACCOUNT}
               className="flex items-center gap-4 px-6 py-4 font-sans text-sm font-medium uppercase tracking-wide transition-colors hover:bg-muted hover:text-primary"
             >
               <User className="h-5 w-5" />

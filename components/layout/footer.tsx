@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 import { OptimizedImage } from "@/components/shared/optimized-image";
+import { ROUTES } from "@/lib/constants/routes";
 
 function InstagramIcon({
   className,
@@ -40,16 +41,17 @@ function InstagramIcon({
 }
 
 const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/shop", label: "Shop" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
+  { href: ROUTES.HOME, label: "Home" },
+  { href: ROUTES.SHOP, label: "Shop" },
+  { href: ROUTES.ABOUT, label: "About" },
+  { href: ROUTES.CONTACT, label: "Contact" },
 ];
 
 const policyLinks = [
-  { href: "/shipping", label: "Shipping Policy" },
-  { href: "/returns", label: "Returns Policy" },
-  { href: "/privacy", label: "Privacy Policy" },
+  { href: ROUTES.SHIPPING, label: "Shipping Policy" },
+  { href: ROUTES.RETURNS, label: "Returns Policy" },
+  { href: ROUTES.PRIVACY, label: "Privacy Policy" },
+  { href: ROUTES.TERMS, label: "Terms & Conditions" },
 ];
 
 const socialLinks = [
@@ -93,7 +95,7 @@ export function Footer() {
           <div className="max-w-md">
 
             <Link
-              href="/"
+              href={ROUTES.HOME}
               className="inline-flex items-center gap-3"
             >
               <div
@@ -241,7 +243,7 @@ export function Footer() {
               </p>
 
               <Link
-                href="/shop"
+                href={ROUTES.SHOP}
                 className={cn(
                   "group inline-flex items-center gap-2",
                   "rounded-full",
@@ -298,4 +300,3 @@ export function Footer() {
   );
 }
 
-export default Footer;

@@ -29,8 +29,8 @@ export function AddressHeader({
               isLoaded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
             )}
           >
-            <Sparkles className="w-4 h-4 text-[#d4af37]" />
-            <span className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-[#d4af37]">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               Delivery Locations
             </span>
           </div>
@@ -38,7 +38,7 @@ export function AddressHeader({
           {/* Gold Divider */}
           <div
             className={cn(
-              "w-16 h-px bg-[#d4af37] mb-8",
+              "w-16 h-px bg-primary mb-8",
               "transition-all duration-700 delay-100 ease-out",
               isLoaded ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
             )}
@@ -80,7 +80,7 @@ export function AddressHeader({
             )}
           >
             <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-[#d4af37]" />
+              <div className="w-2 h-2 bg-primary" />
               <span className="font-sans text-sm text-muted-foreground">
                 {addressCount === 0
                   ? "No saved addresses"
@@ -91,7 +91,7 @@ export function AddressHeader({
             {addressCount > 0 && (
               <Button
                 onClick={onAddAddress}
-                className="w-full sm:w-auto px-6 py-3 text-sm font-button tracking-wide uppercase bg-[#d4af37] text-black hover:bg-[#d4af37]/90 transition-colors"
+                className="w-full sm:w-auto px-6 py-3 text-sm font-button tracking-wide uppercase bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Address

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { useShopURLSync } from "@/lib/shop-url-sync-client";
@@ -40,19 +40,12 @@ const filterGroups: FilterGroup[] = [
     ],
   },
   {
-    id: "color",
-    title: "Color",
-    options: [
-      { value: "black", label: "Black" },
-      { value: "nude", label: "Nude" },
-    ],
-  },
-  {
     id: "availability",
     title: "Availability",
     options: [
       { value: "in-stock", label: "In Stock" },
-      { value: "sold-out", label: "Sold Out" },
+      { value: "low-stock", label: "Low Stock" },
+      { value: "out-of-stock", label: "Out of Stock" },
     ],
   },
 ];
@@ -135,130 +128,60 @@ export interface ShopFiltersProps {
   searchParams?: ShopSearchParams;
 }
 
-export function ShopFilters({
+export const ShopFilters = memo(function ShopFilters({
   onFiltersChange,
   className,
   searchParams,
 }: ShopFiltersProps) {
-  const { updateParams, clearFilters } =
-    useShopURLSync();
+  const { updateParams, clearFilters } = useShopURLSync();
 
-  const [selectedFilters, setSelectedFilters] =
-    useState<Record<string, string[]>>({
-      size: searchParams?.size
-        ? [searchParams.size]
-        : [],
-      compression: searchParams?.compression
-        ? [searchParams.compression]
-        : [],
-      color: [],
-      availability: [],
-    });
-
-  const prevSearchParamsRef =
-    useRef(searchParams);
-
-  useEffect(() => {
-    if (
-      prevSearchParamsRef.current?.size ===
-        searchParams?.size &&
-      prevSearchParamsRef.current
-        ?.compression ===
-        searchParams?.compression
-    ) {
-      return;
-    }
-
-    prevSearchParamsRef.current =
-      searchParams;
-
-    queueMicrotask(() => {
-      setSelectedFilters({
-        size: searchParams?.size
-          ? [searchParams.size]
-          : [],
-        compression:
-          searchParams?.compression
-            ? [searchParams.compression]
-            : [],
-        color: [],
-        availability: [],
-      });
-    });
-  }, [searchParams]);
+  // Derive selected filters directly from URL params
+  const selectedFilters = {
+    size: searchParams?.size ? [searchParams.size] : [],
+    compression: searchParams?.compression ? [searchParams.compression] : [],
+    availability: searchParams?.availability ? [searchParams.availability] : [],
+  };
 
   const handleToggle = (
     groupId: string,
     value: string
   ) => {
     if (groupId === "size") {
-      const current =
-        selectedFilters.size?.[0];
-
+      const current = selectedFilters.size?.[0];
       updateParams({
-        size:
-          current === value
-            ? undefined
-            : value,
+        size: current === value ? undefined : value,
       });
-
       return;
     }
 
     if (groupId === "compression") {
-      const current =
-        selectedFilters.compression?.[0];
-
+      const current = selectedFilters.compression?.[0];
       updateParams({
-        compression:
-          current === value
-            ? undefined
-            : value,
+        compression: current === value ? undefined : value,
       });
-
       return;
     }
 
-    setSelectedFilters((prev) => {
-      const current =
-        prev[groupId] || [];
-
-      const updated =
-        current.includes(value)
-          ? current.filter(
-              (v) => v !== value
-            )
-          : [...current, value];
-
-      const next = {
-        ...prev,
-        [groupId]: updated,
-      };
-
-      onFiltersChange?.(next);
-
-      return next;
-    });
+    if (groupId === "availability") {
+      const current = selectedFilters.availability?.[0];
+      updateParams({
+        availability: current === value ? undefined : value,
+      });
+      return;
+    }
   };
 
   const handleReset = () => {
     clearFilters();
-
-    const resetFilters = {
+    onFiltersChange?.({
       size: [],
       compression: [],
-      color: [],
       availability: [],
-    };
-
-    setSelectedFilters(resetFilters);
-
-    onFiltersChange?.(resetFilters);
+    });
   };
 
   const activeFilterCount =
-    Object.values(selectedFilters)
-      .flat().length;
+    Object.values(selectedFilters).flat().length;
 
   const hasActiveFilters =
     activeFilterCount > 0;
@@ -312,9 +235,7 @@ export function ShopFilters({
               <FilterSection
                 group={group}
                 selectedValues={
-                  selectedFilters[
-                    group.id
-                  ] || []
+                  (selectedFilters as Record<string, string[]>)[group.id] || []
                 }
                 onToggle={
                   handleToggle
@@ -332,6 +253,5 @@ export function ShopFilters({
       </div>
     </div>
   );
-}
+});
 
-export default ShopFilters;

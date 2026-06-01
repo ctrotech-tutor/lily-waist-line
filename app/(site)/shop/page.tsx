@@ -1,3 +1,4 @@
+export const revalidate = 60
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
@@ -10,11 +11,36 @@ import {
 } from "@/lib/shop-url-sync-server";
 
 import { ProductService } from "@/lib/services/product-service";
+import { ROUTES } from "@/lib/constants/routes";
 
 export const metadata: Metadata = {
   title: "Shop | Lily Waist Line",
   description:
     "Discover premium waist trainers designed for confidence, sculpting, and transformation.",
+  alternates: {
+    canonical: ROUTES.SHOP,
+  },
+  openGraph: {
+    title: "Shop | Lily Waist Line",
+    description:
+      "Discover premium waist trainers designed for confidence, sculpting, and transformation.",
+    url: ROUTES.SHOP,
+    images: [
+      {
+        url: "/og-img.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Lily Waist Line Shop",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Shop | Lily Waist Line",
+    description:
+      "Discover premium waist trainers designed for confidence, sculpting, and transformation.",
+    images: ["/og-img.jpg"],
+  },
 };
 
 interface ShopPageProps {
@@ -34,23 +60,16 @@ export default async function ShopPage({
 
   const shopParams = parseShopSearchParams(params);
 
-  // Convert URL params to product service options
   const productOptions = {
     search: shopParams.q,
     size: shopParams.size,
     compression: shopParams.compression,
-    sort:
-      (shopParams.sort as
-        | "FEATURED"
-        | "NEWEST"
-        | "PRICE_ASC"
-        | "PRICE_DESC") || "FEATURED",
-    limit: 12,
+    availability: shopParams.availability as 'in-stock' | 'low-stock' | 'out-of-stock' | undefined,
+    sort: (shopParams.sort as "FEATURED" | "NEWEST" | "PRICE_ASC" | "PRICE_DESC") || "FEATURED",
+    limit: 0,
     offset: 0,
-    inStock: true,
   };
 
-  // Fetch products
   const productResult =
     await ProductService.getProducts(productOptions);
 
@@ -71,9 +90,6 @@ export default async function ShopPage({
         showFilters={true}
         showSort={true}
         searchParams={shopParams}
-        initialProducts={productResult.products}
-        initialTotalCount={productResult.total}
-        initialHasMore={productResult.hasMore}
       />
     </div>
   );

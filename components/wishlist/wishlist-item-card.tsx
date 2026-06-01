@@ -6,23 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ProductImage } from "@/components/shared/optimized-image";
+import type { WishlistItemCardProps } from "@/types/wishlist";
+import { ROUTES } from "@/lib/constants/routes";
 
-export type StockState = "in-stock" | "low-stock" | "out-of-stock";
-
-export interface WishlistItemCardProps {
-  id: string;
-  slug: string;
-  image: string;
-  name: string;
-  tagline?: string;
-  price: number;
-  originalPrice?: number;
-  stockState?: StockState;
-  variantId?: string;
-  className?: string;
-  onAddToCart?: (variantId: string) => void;
-  onRemove?: (id: string) => void;
-}
+export type { WishlistItemCardProps };
 
 export function WishlistItemCard({
   id,
@@ -34,6 +21,7 @@ export function WishlistItemCard({
   originalPrice,
   stockState = "in-stock",
   variantId,
+  inCart = false,
   className,
   onAddToCart,
   onRemove,
@@ -50,21 +38,25 @@ export function WishlistItemCard({
     "in-stock": {
       label: "In Stock",
       color:
-        "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+        "bg-success/10 text-success border-success/20",
     },
     "low-stock": {
       label: "Low Stock",
       color:
-        "bg-amber-500/10 text-amber-500 border-amber-500/20",
+        "bg-warning/10 text-warning border-warning/20",
     },
     "out-of-stock": {
       label: "Out of Stock",
-      color: "bg-red-500/10 text-red-500 border-red-500/20",
+      color: "bg-destructive/10 text-destructive border-destructive/20",
     },
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (inCart) {
+      router.push(ROUTES.CART);
+      return;
+    }
     if (variantId) onAddToCart?.(variantId);
   };
 
@@ -79,13 +71,21 @@ export function WishlistItemCard({
 
   return (
     <div
+      role="link"
+      tabIndex={0}
       onClick={handleCardClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleCardClick();
+        }
+      }}
       className={cn(
         "group relative flex flex-col cursor-pointer",
         "bg-card border border-border",
         "rounded-2xl overflow-hidden",
         "transition-all duration-500 ease-out",
-        "hover:border-[#d4af37]/30 hover:shadow-[0_0_35px_rgba(212,175,55,0.10)]",
+        "hover:border-primary/30 hover:shadow-primary/10",
         className
       )}
     >
@@ -101,24 +101,19 @@ export function WishlistItemCard({
         />
 
         {/* REMOVE */}
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={handleRemove}
-          className={cn(
-            "absolute top-3 right-3 z-10",
-            "w-9 h-9 rounded-full",
-            "flex items-center justify-center",
-            "bg-black/60 backdrop-blur-md text-white",
-            "transition-all duration-300",
-            "hover:bg-red-500/80"
-          )}
+          className="absolute top-3 right-3 z-10 bg-foreground/10 backdrop-blur-md text-foreground hover:bg-destructive/80 hover:text-white"
         >
           <X className="w-4 h-4" />
-        </button>
+        </Button>
 
         {/* DISCOUNT */}
         {discountPercentage && (
           <div className="absolute top-3 left-3 z-10">
-            <Badge className="rounded-full bg-[#d4af37] text-black font-semibold text-[10px] uppercase tracking-widest px-2 py-1">
+            <Badge className="bg-primary text-primary-foreground font-semibold text-[10px] uppercase tracking-widest px-2 py-1">
               -{discountPercentage}%
             </Badge>
           </div>
@@ -140,7 +135,7 @@ export function WishlistItemCard({
         <Badge
           variant="outline"
           className={cn(
-            "w-fit rounded-full",
+            "w-fit",
             "text-[10px] font-semibold uppercase tracking-wider px-2 py-1",
             stockConfig[stockState].color
           )}
@@ -179,8 +174,9 @@ export function WishlistItemCard({
           disabled={stockState === "out-of-stock" || !variantId}
           className={cn(
             "w-full mt-2 h-11",
-            "rounded-full",
-            "bg-[#d4af37] text-black hover:bg-[#d4af37]/90",
+            inCart
+              ? "bg-primary text-primary-foreground hover:bg-black/90"
+              : "bg-primary text-primary-foreground hover:bg-primary/90",
             "font-semibold uppercase tracking-wide",
             "transition-all duration-300",
             "disabled:opacity-50 disabled:cursor-not-allowed"
@@ -189,7 +185,9 @@ export function WishlistItemCard({
           <ShoppingBag className="w-4 h-4 mr-2" />
           {stockState === "out-of-stock" || !variantId
             ? "Sold Out"
-            : "Add to Cart"}
+            : inCart
+              ? "In Cart"
+              : "Add to Cart"}
         </Button>
       </div>
     </div>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Plus, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SectionHeadingSkeleton } from "@/components/shared/section-heading-skeleton";
+import { ROUTES } from "@/lib/constants/routes";
 
 interface WishlistHeaderProps {
   itemCount: number;
@@ -40,8 +41,8 @@ export function WishlistHeader({
               isLoaded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
             )}
           >
-            <Sparkles className="w-4 h-4 text-[#d4af37]" />
-            <span className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-[#d4af37]">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               Saved Favorites
             </span>
           </div>
@@ -49,7 +50,7 @@ export function WishlistHeader({
           {/* Gold Divider */}
           <div
             className={cn(
-              "w-16 h-px bg-[#d4af37] mb-8",
+              "w-16 h-px bg-primary mb-8",
               "transition-all duration-700 delay-100 ease-out",
               isLoaded ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
             )}
@@ -91,7 +92,7 @@ export function WishlistHeader({
             )}
           >
             <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-[#d4af37]" />
+              <div className="w-2 h-2 bg-primary" />
               <span className="font-sans text-sm text-muted-foreground">
                 {itemCount === 0
                   ? "No saved items"
@@ -101,8 +102,8 @@ export function WishlistHeader({
 
             {itemCount > 0 && (
               <Link
-                href="/shop"
-                className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 text-sm font-button tracking-wide uppercase bg-[#d4af37] text-black hover:bg-[#d4af37]/90 transition-colors rounded-full"
+                href={ROUTES.SHOP}
+                className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 text-sm font-button tracking-wide uppercase bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Continue Shopping

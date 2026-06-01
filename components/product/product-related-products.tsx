@@ -1,60 +1,80 @@
 "use client";
 
-import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/store/product-card";
+import { ROUTES } from "@/lib/constants/routes";
 import { Separator } from "@/components/ui/separator";
+import { getRelatedProducts } from "@/server/actions/products";
+import type { ProductWithDetails } from "@/lib/services";
+import type { StockState } from "@/types/common";
 
-const relatedProducts = [
-  {
-    id: "related-1",
-    image: "/img-p-2.png",
-    name: "Core Fit Waist Trainer",
-    subtitle: "Advanced compression technology",
-    price: 129.99,
-    badge: "Popular",
-    stockState: "in-stock" as const,
-    variantId: "related-1",
-    slug: "core-fit-waist-trainer",
-  },
-  {
-    id: "related-2",
-    image: "/img-p-3.png",
-    name: "Elite Shape Waist Trainer",
-    subtitle: "Premium latex construction",
-    price: 159.99,
-    originalPrice: 199.99,
-    stockState: "in-stock" as const,
-    variantId: "related-2",
-    slug: "elite-shape-waist-trainer",
-  },
-  {
-    id: "related-3",
-    image: "/img-p-4.png",
-    name: "Power Sculpt Corset",
-    subtitle: "Maximum compression support",
-    price: 179.99,
-    badge: "Premium",
-    stockState: "in-stock" as const,
-    variantId: "related-3",
-    slug: "power-sculpt-corset",
-  },
-  {
-    id: "related-4",
-    image: "/img-p-1.png",
-    name: "Classic Sculpt Waist Trainer",
-    subtitle: "Everyday transformation essential",
-    price: 89.99,
-    originalPrice: 119.99,
-    stockState: "low-stock" as const,
-    variantId: "related-4",
-    slug: "classic-sculpt-waist-trainer",
-  },
-];
+interface ProductRelatedProductsProps {
+  productId: string;
+}
 
-export function ProductRelatedProducts() {
-  const [isLoaded] = useState(true);
+export function ProductRelatedProducts({ productId }: ProductRelatedProductsProps) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [products, setProducts] = useState<ProductWithDetails[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchRelatedProducts() {
+      try {
+        setIsLoading(true);
+        const result = await getRelatedProducts(productId, 4);
+        if (!result.success) throw new Error(result.error)
+        setProducts(result.data);
+        setIsLoaded(true);
+      } catch (err) {
+        console.error("Failed to fetch related products:", err);
+        setError("Failed to load related products");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchRelatedProducts();
+  }, [productId]);
+
+  // Transform backend product data to ProductCard props
+  const transformProductToCard = (product: ProductWithDetails) => {
+    const firstVariant = product.variants[0];
+    const firstImage = product.images[0];
+
+    return {
+      id: product.id,
+      variantId: firstVariant?.id || product.id,
+      slug: product.slug,
+      image: firstImage?.url || "/img-p-1.png",
+      name: product.name,
+      subtitle: product.shortDescription || "Premium waist trainer",
+      price: product.basePrice,
+      originalPrice: product.compareAtPrice || undefined,
+      badge: product.compareAtPrice && product.compareAtPrice > product.basePrice ? "Sale" : undefined,
+      stockState: (product.inStock ? "in-stock" : "out-of-stock") as StockState,
+    };
+  };
+
+  const transformedProducts = products.map(transformProductToCard);
+
+  if (isLoading) {
+    return (
+      <section className="relative py-16 md:py-20">
+        <div className="flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-secondary" />
+        </div>
+      </section>
+    );
+  }
+
+  if (error || transformedProducts.length === 0) {
+    return null;
+  }
 
   return (
     <section className="relative py-16 md:py-20">
@@ -104,7 +124,7 @@ export function ProductRelatedProducts() {
 
         {/* Product Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-          {relatedProducts.map((product, index) => (
+          {transformedProducts.map((product, index) => (
             <div
               key={product.id}
               className={cn(
@@ -126,22 +146,12 @@ export function ProductRelatedProducts() {
             isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           )}
         >
-          <button
-            disabled
-            className={cn(
-              "group flex items-center gap-3",
-              "px-8 py-4",
-              "border border-secondary/30",
-              "font-sans text-sm font-semibold uppercase tracking-wider",
-              "text-muted-foreground",
-              "transition-all duration-300 ease-out",
-              "hover:border-secondary/50",
-              "disabled:opacity-50 disabled:cursor-not-allowed"
-            )}
-          >
-            View All Products
-            <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
-          </button>
+          <Button asChild variant="outline" size="lg" className="group border-secondary/30 text-muted-foreground hover:border-secondary/50">
+            <Link href={ROUTES.SHOP}>
+              View All Products
+              <span className="ml-2 transition-transform duration-300 group-hover:translate-x-1">→</span>
+            </Link>
+          </Button>
         </div>
       </div>
     </section>

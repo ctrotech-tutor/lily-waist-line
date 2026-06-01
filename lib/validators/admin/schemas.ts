@@ -2,7 +2,6 @@ import { z } from 'zod'
 import { 
   strictObject, 
   baseIdSchema, 
-  baseStringSchema,
   basePositiveNumberSchema,
   baseCurrencySchema,
   baseStatusSchema,
@@ -11,7 +10,6 @@ import {
   baseEmailSchema,
   basePhoneSchema,
   baseNameSchema,
-  VALIDATION_ERRORS 
 } from '../base'
 
 /**

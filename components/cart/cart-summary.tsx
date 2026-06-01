@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { ROUTES } from "@/lib/constants/routes";
 
 export interface CartSummaryProps {
   subtotal: number;
@@ -25,7 +26,6 @@ export function CartSummary({
   total,
   className,
   onCheckout,
-  onContinueShopping,
   itemCount = 0,
 }: CartSummaryProps) {
   const deliveryDisplay = deliveryFee === null 
@@ -69,7 +69,7 @@ export function CartSummary({
             </span>
             <span className={cn(
               "font-sans text-sm font-medium",
-              deliveryFee === 0 ? "text-green-500" : "text-foreground"
+              deliveryFee === 0 ? "text-success" : "text-foreground"
             )}>
               {deliveryDisplay}
             </span>
@@ -81,7 +81,7 @@ export function CartSummary({
               <span className="font-sans text-sm text-muted-foreground">
                 Discount
               </span>
-              <span className="font-sans text-sm font-medium text-green-500">
+              <span className="font-sans text-sm font-medium text-success">
                 -${discount.toFixed(2)}
               </span>
             </div>
@@ -119,7 +119,7 @@ export function CartSummary({
         <Button
           onClick={onCheckout}
           className={cn(
-            "w-full rounded-full mt-6",
+            "w-full mt-6",
             "h-12",
             "font-sans text-sm font-semibold uppercase tracking-wider",
             "bg-secondary text-secondary-foreground",
@@ -133,20 +133,12 @@ export function CartSummary({
         </Button>
 
         {/* Secondary Action */}
-        <Link
-          href="/shop"
-          className={cn(
-            "inline-flex items-center justify-center w-full mt-3",
-            "h-10",
-            "font-sans text-sm font-medium",
-            "text-muted-foreground",
-            "hover:text-foreground hover:bg-transparent",
-            "transition-colors duration-200"
-          )}
-        >
-          <ShoppingBag className="w-4 h-4 mr-2" />
-          Continue Shopping
-        </Link>
+        <Button asChild variant="ghost" className="w-full mt-3 text-muted-foreground hover:text-foreground">
+          <Link href={ROUTES.SHOP}>
+            <ShoppingBag className="w-4 h-4 mr-2" />
+            Continue Shopping
+          </Link>
+        </Button>
       </CardContent>
     </Card>
   );

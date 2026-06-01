@@ -1,105 +1,54 @@
 "use client";
-
-import { useState, useEffect } from "react";
+export const dynamic = "force-dynamic"
 import { Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { CartItem } from "@/components/cart/cart-item";
 import { CartSummary } from "@/components/cart/cart-summary";
 import { EmptyCart } from "@/components/cart/empty-cart";
 import { CartHeaderSkeleton } from "@/components/cart/cart-header-skeleton";
 import { CartItemSkeleton } from "@/components/cart/cart-item-skeleton";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { getCart } from "@/server/actions/cart";
-import type { CartData } from "@/lib/services/cart-service";
+import { useCart } from "@/hooks/use-cart";
+import { useUpdateQuantity } from "@/hooks/use-cart-mutations";
+import { useRemoveFromCart } from "@/hooks/use-cart-mutations";
+import { useAddToWishlist } from "@/hooks/use-wishlist-mutations";
+import { ROUTES } from "@/lib/constants/routes";
 
 export default function CartPage() {
   const router = useRouter();
-  const [cartData, setCartData] = useState<CartData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Fetch cart data from backend
-  useEffect(() => {
-    const fetchCart = async () => {
-      try {
-        const result = await getCart();
-        if (result.success && result.data) {
-          setCartData(result.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch cart:", error);
-      } finally {
-        setIsLoading(false);
-        setIsLoaded(true);
-      }
-    };
-
-    fetchCart();
-  }, []);
+  const { data: cartData, isLoading } = useCart();
+  const updateQuantity = useUpdateQuantity();
+  const removeFromCart = useRemoveFromCart();
+  const addToWishlist = useAddToWishlist();
 
   // Handle quantity changes with backend
   const handleQuantityChange = async (cartItemId: string, newQuantity: number) => {
-    try {
-      const { updateCartQuantity } = await import("@/server/actions/cart");
-      const result = await updateCartQuantity({ cartItemId, quantity: newQuantity });
-      
-      if (result.success) {
-        // Refresh cart data
-        const cartResult = await getCart();
-        if (cartResult.success && cartResult.data) {
-          setCartData(cartResult.data);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to update quantity:", error);
-    }
+    updateQuantity.mutate({ cartItemId, quantity: newQuantity });
   };
 
   // Handle item removal with backend
   const handleRemoveItem = async (cartItemId: string) => {
-    try {
-      const { removeFromCart } = await import("@/server/actions/cart");
-      const result = await removeFromCart({ cartItemId });
-      
-      if (result.success) {
-        // Refresh cart data
-        const cartResult = await getCart();
-        if (cartResult.success && cartResult.data) {
-          setCartData(cartResult.data);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to remove item:", error);
-    }
+    removeFromCart.mutate({ cartItemId });
   };
 
   // Handle save for later (move to wishlist)
-  const handleSaveForLater = async (productId: string) => {
-    try {
-      const { addToWishlist } = await import("@/server/actions/wishlist");
-      const result = await addToWishlist(productId);
-      
-      if (result.success) {
+  const handleSaveForLater = async (productId: string, cartItemId: string) => {
+    addToWishlist.mutate(productId, {
+      onSuccess: () => {
         // Remove from cart after adding to wishlist
-        // Find the cart item with this product
-        const cartItem = cartData?.items.find(item => item.product.id === productId);
-        if (cartItem) {
-          await handleRemoveItem(cartItem.id);
-        }
+        removeFromCart.mutate({ cartItemId });
       }
-    } catch (error) {
-      console.error("Failed to save for later:", error);
-    }
+    });
   };
 
   // Handle checkout
   const handleCheckout = () => {
-    router.push("/checkout");
+    router.push(ROUTES.CHECKOUT);
   };
 
   // Handle continue shopping
   const handleContinueShopping = () => {
-    router.push("/shop");
+    router.push(ROUTES.SHOP);
   };
 
   const itemCount = cartData?.summary.totalItems || 0;
@@ -124,7 +73,7 @@ export default function CartPage() {
                     className={cn(
                       "flex items-center gap-2 mb-6",
                       "transition-all duration-700 ease-out",
-                      isLoaded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
+                      !isLoading ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
                     )}
                   >
                     <Sparkles className="w-4 h-4 text-primary" />
@@ -138,7 +87,7 @@ export default function CartPage() {
                     className={cn(
                       "w-16 h-px bg-primary mb-8",
                       "transition-all duration-700 delay-100 ease-out",
-                      isLoaded ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
+                      !isLoading ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
                     )}
                     style={{ transformOrigin: "left" }}
                   />
@@ -150,7 +99,7 @@ export default function CartPage() {
                       "leading-[1.1] tracking-tight text-foreground",
                       "mb-6 max-w-2xl",
                       "transition-all duration-1000 delay-200 ease-out",
-                      isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                      !isLoading ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
                     )}
                   >
                     Your Cart
@@ -163,7 +112,7 @@ export default function CartPage() {
                       "text-muted-foreground leading-relaxed",
                       "max-w-xl mb-8",
                       "transition-all duration-1000 delay-300 ease-out",
-                      isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                      !isLoading ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
                     )}
                   >
                     Review your selected pieces and begin your transformation journey
@@ -174,7 +123,7 @@ export default function CartPage() {
                     className={cn(
                       "flex items-center gap-3",
                       "transition-all duration-1000 delay-400 ease-out",
-                      isLoaded ? "opacity-100" : "opacity-0"
+                      !isLoading ? "opacity-100" : "opacity-0"
                     )}
                   >
                     <div className="w-2 h-2 bg-primary" />
@@ -210,7 +159,7 @@ export default function CartPage() {
                       cartItem={item}
                       onQuantityChange={handleQuantityChange}
                       onRemove={handleRemoveItem}
-                      onSaveForLater={handleSaveForLater}
+                      onSaveForLater={(productId) => handleSaveForLater(productId, item.id)}
                     />
                   ))}
                 </div>

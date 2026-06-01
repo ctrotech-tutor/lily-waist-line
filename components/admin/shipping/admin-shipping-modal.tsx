@@ -19,62 +19,47 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { ShippingOrder, Carrier } from "./data";
+import type { AdminShippingRow } from "./data";
 
 interface AdminShippingModalProps {
-  order: ShippingOrder | null;
+  order: AdminShippingRow | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (orderId: string, carrier: Carrier, trackingNumber: string, shippingDate: string) => void;
+  onSave: (orderId: string, carrier: string, trackingNumber: string) => void;
+  isSaving?: boolean;
 }
 
-const carriers: { value: Carrier; label: string }[] = [
+const carriers = [
   { value: "USPS", label: "USPS" },
   { value: "UPS", label: "UPS" },
   { value: "FedEx", label: "FedEx" },
   { value: "DHL", label: "DHL" },
 ];
 
-export function AdminShippingModal({ order, open, onOpenChange, onSave }: AdminShippingModalProps) {
-  const [carrier, setCarrier] = useState<Carrier>(null);
+export function AdminShippingModal({ order, open, onOpenChange, onSave, isSaving }: AdminShippingModalProps) {
+  const [carrier, setCarrier] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
-  const [shippingDate, setShippingDate] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Reset form when order changes
-  useState(() => {
-    if (order) {
-      setCarrier(order.carrier);
-      setTrackingNumber(order.trackingNumber || "");
-      setShippingDate(order.shippedDate || new Date().toISOString().split("T")[0]);
-    }
-  });
 
   const handleSave = () => {
     if (!order || !carrier || !trackingNumber.trim()) return;
-
-    setIsSaving(true);
-    setTimeout(() => {
-      onSave(order.id, carrier, trackingNumber, shippingDate || new Date().toISOString().split("T")[0]);
-      setIsSaving(false);
-      onOpenChange(false);
-    }, 500);
+    onSave(order.id, carrier, trackingNumber.trim());
   };
 
-  const handleClose = () => {
-    onOpenChange(false);
-    setCarrier(null);
-    setTrackingNumber("");
-    setShippingDate("");
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setCarrier("");
+      setTrackingNumber("");
+    }
+    onOpenChange(open);
   };
 
   if (!order) return null;
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px] rounded-none">
+    <Dialog key={order.id} open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="font-[family-name:var(--font-bodoni)] text-xl">
+          <DialogTitle className="font-[family-name:var(--font-bodoni-moda)] text-xl">
             Add Tracking Information
           </DialogTitle>
           <DialogDescription className="font-[family-name:var(--font-montserrat)] text-sm">
@@ -90,21 +75,18 @@ export function AdminShippingModal({ order, open, onOpenChange, onSave }: AdminS
             >
               Carrier Name
             </Label>
-            <Select
-              value={carrier || ""}
-              onValueChange={(value) => setCarrier(value as Carrier)}
-            >
+            <Select value={carrier} onValueChange={setCarrier}>
               <SelectTrigger
                 id="carrier"
-                className="font-[family-name:var(--font-montserrat)] rounded-none"
+                className="font-[family-name:var(--font-montserrat)]"
               >
                 <SelectValue placeholder="Select a carrier" />
               </SelectTrigger>
-              <SelectContent className="rounded-none">
+              <SelectContent>
                 {carriers.map((c) => (
                   <SelectItem
                     key={c.value}
-                    value={c.value || ""}
+                    value={c.value}
                     className="font-[family-name:var(--font-montserrat)]"
                   >
                     {c.label}
@@ -126,23 +108,7 @@ export function AdminShippingModal({ order, open, onOpenChange, onSave }: AdminS
               value={trackingNumber}
               onChange={(e) => setTrackingNumber(e.target.value)}
               placeholder="Enter tracking number"
-              className="font-[family-name:var(--font-montserrat)] rounded-none"
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label
-              htmlFor="shippingDate"
-              className="font-[family-name:var(--font-montserrat)] text-sm font-medium"
-            >
-              Shipping Date
-            </Label>
-            <Input
-              id="shippingDate"
-              type="date"
-              value={shippingDate}
-              onChange={(e) => setShippingDate(e.target.value)}
-              className="font-[family-name:var(--font-montserrat)] rounded-none"
+              className="font-[family-name:var(--font-montserrat)]"
             />
           </div>
         </div>
@@ -150,15 +116,15 @@ export function AdminShippingModal({ order, open, onOpenChange, onSave }: AdminS
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={handleClose}
-            className="font-[family-name:var(--font-montserrat)] rounded-none"
+            onClick={() => handleOpenChange(false)}
+            className="font-[family-name:var(--font-montserrat)]"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSave}
             disabled={!carrier || !trackingNumber.trim() || isSaving}
-            className="font-[family-name:var(--font-montserrat)] bg-[#d4af37] text-black hover:bg-[#d4af37]/90 rounded-none"
+            className="font-[family-name:var(--font-montserrat)] bg-secondary text-foreground hover:bg-secondary/90"
           >
             {isSaving ? "Saving..." : "Save Tracking Info"}
           </Button>

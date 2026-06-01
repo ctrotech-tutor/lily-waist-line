@@ -7,7 +7,6 @@ import {
   Heart,
   ShoppingBag,
   User,
-  Menu,
   Sun,
   Moon,
 } from "lucide-react";
@@ -24,12 +23,13 @@ import { cn } from "@/lib/utils";
 // import { Separator } from "@/components/ui/separator";
 import { OptimizedImage } from "../shared/optimized-image";
 import { MobileNav } from "./mobile-nav";
+import { ROUTES } from "@/lib/constants/routes";
 
 const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/shop", label: "Shop" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
+  { href: ROUTES.HOME, label: "Home" },
+  { href: ROUTES.SHOP, label: "Shop" },
+  { href: ROUTES.ABOUT, label: "About" },
+  { href: ROUTES.CONTACT, label: "Contact" },
 ];
 
 /* ---------------- THEME TOGGLE ---------------- */
@@ -64,7 +64,7 @@ export function Navbar() {
           <MobileNav className="lg:hidden" />
 
           <Link
-            href="/"
+            href={ROUTES.HOME}
             className="flex items-center gap-3"
           >
             <OptimizedImage
@@ -101,22 +101,25 @@ export function Navbar() {
           <ThemeToggle className="hidden lg:flex" />
 
           <Link
-            href="/wishlist"
+            href={ROUTES.WISHLIST}
             className="hidden lg:flex h-10 w-10 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+            aria-label="Wishlist"
           >
             <Heart className="h-4 w-4" />
           </Link>
 
           <Link
-            href="/cart"
+            href={ROUTES.CART}
             className="hidden lg:flex h-10 w-10 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+            aria-label="Shopping Cart"
           >
             <ShoppingBag className="h-4 w-4" />
           </Link>
 
           <Link
-            href="/account"
+            href={ROUTES.ACCOUNT}
             className="hidden lg:flex h-10 w-10 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+            aria-label="Account"
           >
             <User className="h-4 w-4" />
           </Link>

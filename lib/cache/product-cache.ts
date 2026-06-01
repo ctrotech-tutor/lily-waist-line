@@ -1,6 +1,8 @@
 import { unstable_cache } from 'next/cache'
-import { ProductService, ProductQueryOptions, ProductResult } from '@/lib/services/product-service'
+import { ProductService, ProductResult } from '@/lib/services/product-service'
+import type { ProductQueryOptions } from '@/types/product'
 import { revalidatePath, revalidateTag } from 'next/cache'
+import { ROUTES } from '@/lib/constants/routes'
 
 // Export types for use in other modules
 export type { ProductQueryOptions, ProductResult }
@@ -128,8 +130,8 @@ export const ProductCacheRevalidator = {
     revalidateTag(PRODUCT_CACHE_TAGS.ALL, 'force')
     revalidateTag(PRODUCT_CACHE_TAGS.ACTIVE, 'force')
     revalidateTag(PRODUCT_CACHE_TAGS.FEATURED, 'force')
-    revalidatePath('/shop')
-    revalidatePath('/')
+    revalidatePath(ROUTES.SHOP)
+    revalidatePath(ROUTES.HOME)
   },
 
   /**
@@ -148,8 +150,8 @@ export const ProductCacheRevalidator = {
   revalidateFeatured: () => {
     revalidateTag(PRODUCT_CACHE_TAGS.FEATURED, 'force')
     revalidateTag(PRODUCT_CACHE_TAGS.ACTIVE, 'force')
-    revalidatePath('/')
-    revalidatePath('/shop')
+    revalidatePath(ROUTES.HOME)
+    revalidatePath(ROUTES.SHOP)
   },
 
   /**
@@ -158,7 +160,7 @@ export const ProductCacheRevalidator = {
   revalidateFilters: () => {
     revalidateTag(PRODUCT_CACHE_TAGS.AVAILABLE_SIZES, 'force')
     revalidateTag(PRODUCT_CACHE_TAGS.AVAILABLE_COMPRESSIONS, 'force')
-    revalidatePath('/shop')
+    revalidatePath(ROUTES.SHOP)
   },
 
   /**
@@ -167,7 +169,7 @@ export const ProductCacheRevalidator = {
   revalidateSearch: (query: string) => {
     revalidateTag(PRODUCT_CACHE_TAGS.SEARCH(query), 'force')
     revalidateTag(PRODUCT_CACHE_TAGS.ACTIVE, 'force')
-    revalidatePath('/shop')
+    revalidatePath(ROUTES.SHOP)
   },
 
   /**
@@ -176,7 +178,7 @@ export const ProductCacheRevalidator = {
   revalidateBySize: (size: string) => {
     revalidateTag(PRODUCT_CACHE_TAGS.BY_SIZE(size), 'force')
     revalidateTag(PRODUCT_CACHE_TAGS.ACTIVE, 'force')
-    revalidatePath('/shop')
+    revalidatePath(ROUTES.SHOP)
   },
 
   /**
@@ -185,7 +187,7 @@ export const ProductCacheRevalidator = {
   revalidateByCompression: (compression: string) => {
     revalidateTag(PRODUCT_CACHE_TAGS.BY_COMPRESSION(compression), 'force')
     revalidateTag(PRODUCT_CACHE_TAGS.ACTIVE, 'force')
-    revalidatePath('/shop')
+    revalidatePath(ROUTES.SHOP)
   },
 }
 

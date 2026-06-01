@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -13,16 +12,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Customer, CustomerStatus } from "./data";
+import type { AdminCustomerRow, CustomerStatus } from "./data";
 
 interface AdminCustomersTableProps {
-  customers: Customer[];
+  customers: AdminCustomerRow[];
 }
 
 const statusConfig: Record<CustomerStatus, { label: string; className: string }> = {
-  new: { label: "New", className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  returning: { label: "Returning", className: "bg-green-500/10 text-green-600 border-green-500/20" },
-  vip: { label: "VIP", className: "bg-[#d4af37]/10 text-[#b8952e] border-[#d4af37]/20" },
+  NEW: { label: "New", className: "bg-info/10 text-info border-info/20" },
+  RETURNING: { label: "Returning", className: "bg-success/10 text-success border-success/20" },
+  VIP: { label: "VIP", className: "bg-secondary/10 text-primary/80 border-secondary/20" },
 };
 
 function formatCurrency(amount: number): string {
@@ -32,16 +31,26 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+function formatDate(date: Date | null): string {
+  if (!date) return "N/A";
+  try {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'short', day: 'numeric'
+    })
+  } catch {
+    return "N/A"
+  }
+}
+
 export function AdminCustomersTable({ customers }: AdminCustomersTableProps) {
   const router = useRouter();
-  const [hoveredRow, setHoveredRow] = useState<string | null>(null);
 
   if (customers.length === 0) {
     return null;
   }
 
   return (
-    <div className="overflow-x-auto border border-border/50">
+    <div className="overflow-x-auto border border-border/50 rounded-lg">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -70,20 +79,15 @@ export function AdminCustomersTable({ customers }: AdminCustomersTableProps) {
         </TableHeader>
         <TableBody>
           {customers.map((customer) => (
-            <TableRow
-              key={customer.id}
-              className="hover:bg-muted/30"
-              onMouseEnter={() => setHoveredRow(customer.id)}
-              onMouseLeave={() => setHoveredRow(null)}
-            >
+            <TableRow key={customer.id} className="hover:bg-muted/30">
               <TableCell className="font-[family-name:var(--font-montserrat)] text-sm font-medium">
-                {customer.name}
+                {customer.fullName}
               </TableCell>
               <TableCell className="font-[family-name:var(--font-montserrat)] text-sm text-muted-foreground">
                 {customer.email}
               </TableCell>
               <TableCell className="font-[family-name:var(--font-montserrat)] text-sm">
-                {customer.totalOrders} {customer.totalOrders === 1 ? "order" : "orders"}
+                {customer.orderCount} {customer.orderCount === 1 ? "order" : "orders"}
               </TableCell>
               <TableCell className="font-[family-name:var(--font-montserrat)] text-sm font-medium">
                 {formatCurrency(customer.totalSpent)}
@@ -97,14 +101,14 @@ export function AdminCustomersTable({ customers }: AdminCustomersTableProps) {
                 </Badge>
               </TableCell>
               <TableCell className="font-[family-name:var(--font-montserrat)] text-sm text-muted-foreground">
-                {customer.lastOrderDate}
+                {formatDate(customer.lastOrderDate)}
               </TableCell>
               <TableCell className="text-right">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => router.push(`/admin/customers/${customer.id}`)}
-                  className="h-8 px-3 font-[family-name:var(--font-montserrat)] text-xs hover:text-[#d4af37]"
+                  className="h-8 px-3 font-[family-name:var(--font-montserrat)] text-xs hover:text-secondary"
                 >
                   <Eye className="mr-1.5 h-3.5 w-3.5" />
                   View Profile

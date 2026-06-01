@@ -1,5 +1,3 @@
-"use client";
-
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Hash, CreditCard } from "lucide-react";
@@ -27,28 +25,19 @@ export function OrderDetailsCard({
     switch (paymentStatus) {
       case PaymentStatus.PAID:
         return (
-          <Badge
-            variant="secondary"
-            className="bg-emerald-500/20 text-emerald-500 font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1"
-          >
+          <Badge variant="secondary" className="bg-success/10 text-success border-success/20 font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-lg">
             Paid
           </Badge>
         );
       case PaymentStatus.REJECTED:
         return (
-          <Badge
-            variant="secondary"
-            className="bg-destructive/20 text-destructive font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1"
-          >
+          <Badge variant="secondary" className="bg-destructive/10 text-destructive border-destructive/20 font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-lg">
             Failed
           </Badge>
         );
       default:
         return (
-          <Badge
-            variant="secondary"
-            className="bg-[#d4af37]/20 text-[#d4af37] font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1"
-          >
+          <Badge variant="secondary" className="bg-warning/10 text-warning border-warning/20 font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-lg">
             Pending Payment
           </Badge>
         );
@@ -56,31 +45,22 @@ export function OrderDetailsCard({
   };
 
   return (
-    <Card
-      className={cn(
-        "p-6 md:p-8 border border-border bg-card",
-        className
-      )}
-    >
-      {/* Header */}
+    <Card className={cn("p-6 md:p-8 border border-border bg-card rounded-lg", className)}>
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 flex items-center justify-center border border-[#d4af37]/30 bg-[#d4af37]/10">
-          <Hash className="w-5 h-5 text-[#d4af37]" />
+        <div className="w-10 h-10 flex items-center justify-center border border-primary/30 bg-primary/10 rounded-lg">
+          <Hash className="w-5 h-5 text-primary" />
         </div>
         <h2 className="font-heading text-lg md:text-xl font-semibold text-foreground">
           Order Details
         </h2>
       </div>
 
-      {/* Divider */}
       <div className="w-full h-px bg-border/50 mb-6" />
 
-      {/* Details Grid */}
       <div className="space-y-5">
-        {/* Order Number */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Hash className="w-4 h-4 text-muted-foreground" />
+            <Hash className="w-4 h-4 text-muted-foreground shrink-0" />
             <span className="font-sans text-sm text-muted-foreground">
               Order Number
             </span>
@@ -90,10 +70,9 @@ export function OrderDetailsCard({
           </span>
         </div>
 
-        {/* Order Date */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Calendar className="w-4 h-4 text-muted-foreground" />
+            <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
             <span className="font-sans text-sm text-muted-foreground">
               Order Date
             </span>
@@ -103,10 +82,9 @@ export function OrderDetailsCard({
           </span>
         </div>
 
-        {/* Payment Status */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <CreditCard className="w-4 h-4 text-muted-foreground" />
+            <CreditCard className="w-4 h-4 text-muted-foreground shrink-0" />
             <span className="font-sans text-sm text-muted-foreground">
               Payment Status
             </span>

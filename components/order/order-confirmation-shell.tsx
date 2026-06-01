@@ -1,5 +1,3 @@
-"use client";
-
 import { cn } from "@/lib/utils";
 
 export interface OrderConfirmationShellProps {
@@ -12,12 +10,9 @@ export function OrderConfirmationShell({
   className,
 }: OrderConfirmationShellProps) {
   return (
-    <div className={cn("min-h-full", className)}>
-      {/* Centered Success Experience */}
-      <div className="container mx-auto px-4 py-12 md:py-16 lg:py-20">
-        <div className="max-w-2xl mx-auto">
-          {children}
-        </div>
+    <div className={cn("min-h-full bg-background", className)}>
+      <div className="max-w-360 mx-auto px-4 sm:px-6 lg:px-8 xl:px-20 py-8 md:py-12 lg:py-16">
+        {children}
       </div>
     </div>
   );

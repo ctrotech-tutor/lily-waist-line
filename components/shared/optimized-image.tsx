@@ -1,27 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image, { ImageProps } from "next/image";
 import { cn } from "@/lib/utils";
 
 interface OptimizedImageProps
   extends Omit<ImageProps, "onLoad" | "onError" | "src"> {
-  src: string;
+  src?: string | null;
+  alt: string;
   fallbackSrc?: string;
   wrapperClassName?: string;
   enableLazyLoad?: boolean;
+  quality?: number;
 }
 
 /**
- * Production-ready optimized image component
- *
- * Features:
- * - Skeleton loading state
- * - Broken image fallback
- * - Fade-in animation
- * - Lazy loading
- * - Supports both fill + fixed dimensions
+ * Valid sources:
+ * - /images/photo.jpg
+ * - https://...
+ * - http://...
+ * - data:image/...
+ * - blob:...
  */
+function isValidImageSrc(
+  value?: string | null
+): value is string {
+  if (!value || typeof value !== "string") {
+    return false;
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return false;
+  }
+
+  return (
+    trimmed.startsWith("/") ||
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("data:image/") ||
+    trimmed.startsWith("blob:")
+  );
+}
+
 export function OptimizedImage({
   src,
   alt,
@@ -30,99 +52,112 @@ export function OptimizedImage({
   wrapperClassName,
   enableLazyLoad = true,
   priority = false,
-  sizes = "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw",
+  quality = 80,
+  sizes = "(max-width: 768px) 100vw, 50vw",
   width,
   height,
   fill,
   ...props
 }: OptimizedImageProps) {
-  const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
   const useFill = fill || (!width && !height);
 
-  const imageSrc = hasError ? fallbackSrc : src;
+  const safeSrc = useMemo(() => {
+    if (hasError) {
+      return fallbackSrc;
+    }
 
-  const handleLoad = () => {
-    setIsLoading(false);
-  };
-
-  const handleError = () => {
-    setIsLoading(false);
-    setHasError(true);
-  };
+    return isValidImageSrc(src)
+      ? src
+      : fallbackSrc;
+  }, [src, hasError, fallbackSrc]);
 
   return (
     <div
       className={cn(
-        "relative overflow-hidden",
-        useFill && "w-full h-full",
+        "relative",
+        useFill && "h-full w-full",
         wrapperClassName
       )}
     >
-      {/* Loading Skeleton */}
-      {isLoading && !hasError && (
-        <div className="absolute inset-0 animate-pulse bg-muted" />
-      )}
-
-      {/* Actual Image */}
       <Image
-        src={imageSrc}
+        src={safeSrc}
         alt={alt}
+        quality={quality}
         fill={useFill}
         width={!useFill ? width : undefined}
         height={!useFill ? height : undefined}
         priority={priority}
         sizes={sizes}
-        loading={enableLazyLoad && !priority ? "lazy" : "eager"}
-        onLoad={handleLoad}
-        onError={handleError}
+        loading={
+          enableLazyLoad && !priority
+            ? "lazy"
+            : "eager"
+        }
+        onError={() => {
+          if (!hasError) {
+            setHasError(true);
+          }
+        }}
         className={cn(
-          "transition-opacity duration-500",
-          isLoading ? "opacity-0" : "opacity-100",
+          "object-cover",
+          "transform-gpu",
+          "backface-hidden",
+          "transform-[translateZ(0)]",
           className
         )}
         {...props}
       />
 
-      {/* Error Overlay */}
       {hasError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-card border border-border">
-
-          <div className="flex flex-col items-center gap-3">
-
-            {/* LWL Brand Mark */}
-            <div className="flex items-center justify-center size-20 border border-primary/20 rounded-full bg-background">
-              <span className="font-heading text-2xl tracking-[0.25em] text-primary ml-1">
+        <div className="absolute inset-0 flex items-center justify-center border border-border bg-card">
+          <div className="flex flex-col items-center justify-center gap-1.5 px-2 text-center">
+            <div
+              className={cn(
+                "flex items-center justify-center rounded-full",
+                "border border-primary/20 bg-background",
+                "size-10 sm:size-14"
+              )}
+            >
+              <span
+                className={cn(
+                  "ml-0.5 font-semibold text-primary",
+                  "text-[10px] sm:text-sm",
+                  "tracking-[0.18em]"
+                )}
+              >
                 LWL
               </span>
             </div>
 
-            {/* Brand Label */}
-            <div className="text-center">
-              <p className="font-sans text-[10px] font-medium uppercase tracking-[0.3em] text-muted-foreground">
-                Product Image
-              </p>
-            </div>
-
+            <p
+              className={cn(
+                "hidden max-w-full truncate",
+                "text-[8px] sm:text-[10px]",
+                "font-medium uppercase",
+                "tracking-[0.18em]",
+                "text-muted-foreground"
+              )}
+            >
+              Image Unavailable
+            </p>
           </div>
-
         </div>
       )}
     </div>
   );
 }
 
-/**
- * Product images
- */
+/* PRODUCT IMAGE */
+
 export function ProductImage({
   src,
   alt,
   className,
   priority = false,
 }: {
-  src: string;
+  src?: string | null;
   alt: string;
   className?: string;
   priority?: boolean;
@@ -133,22 +168,24 @@ export function ProductImage({
       alt={alt}
       fill
       priority={priority}
-      className={cn("object-cover", className)}
       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+      className={cn(
+        "object-cover",
+        className
+      )}
     />
   );
 }
 
-/**
- * Thumbnail images
- */
+/* THUMBNAIL IMAGE */
+
 export function ThumbnailImage({
   src,
   alt,
   className,
   size = 80,
 }: {
-  src: string;
+  src?: string | null;
   alt: string;
   className?: string;
   size?: number;
@@ -159,22 +196,24 @@ export function ThumbnailImage({
       alt={alt}
       width={size}
       height={size}
-      className={cn("rounded-md object-cover", className)}
       sizes={`${size}px`}
+      className={cn(
+        "rounded-md object-cover",
+        className
+      )}
     />
   );
 }
 
-/**
- * Hero images
- */
+/* HERO IMAGE */
+
 export function HeroImage({
   src,
   alt,
   className,
   sizes = "(max-width: 768px) 100vw, 50vw",
 }: {
-  src: string;
+  src?: string | null;
   alt: string;
   className?: string;
   sizes?: string;
@@ -185,22 +224,24 @@ export function HeroImage({
       alt={alt}
       fill
       priority
-      className={cn("object-cover", className)}
       sizes={sizes}
+      className={cn(
+        "object-cover",
+        className
+      )}
     />
   );
 }
 
-/**
- * Avatar images
- */
+/* AVATAR IMAGE */
+
 export function AvatarImage({
   src,
   alt,
   size = 40,
   className,
 }: {
-  src?: string;
+  src?: string | null;
   alt: string;
   size?: number;
   className?: string;
@@ -231,7 +272,10 @@ export function AvatarImage({
       width={size}
       height={size}
       sizes={`${size}px`}
-      className={cn("rounded-full object-cover", className)}
+      className={cn(
+        "rounded-full object-cover",
+        className
+      )}
     />
   );
 }

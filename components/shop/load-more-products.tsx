@@ -35,9 +35,9 @@ export function LoadMoreProducts({
           "border border-foreground/30",
           "rounded-full", // changed from rounded-none
           "transition-all duration-300 ease-out",
-          "hover:border-[#d4af37] hover:text-[#d4af37]",
+          "hover:border-primary hover:text-primary",
           "disabled:opacity-50 disabled:cursor-not-allowed",
-          "focus-visible:ring-2 focus-visible:ring-[#d4af37] focus-visible:ring-offset-2"
+          "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         )}
       >
         {isLoading ? (

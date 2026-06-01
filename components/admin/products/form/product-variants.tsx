@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Layers, AlertCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import type { ProductFormData } from "./admin-product-form-shell";
 
 interface ProductVariantsProps {
@@ -46,7 +47,7 @@ export function ProductVariants({ data, onChange, errors }: ProductVariantsProps
     <div className="space-y-6">
       {/* Section Header */}
       <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-        <div className="w-1.5 h-1.5 bg-[#d4af37]" />
+        <div className="w-1.5 h-1.5 bg-secondary" />
         <h2 className="font-sans text-xs uppercase tracking-[0.15em] text-muted-foreground font-semibold">
           Variants
         </h2>
@@ -64,13 +65,13 @@ export function ProductVariants({ data, onChange, errors }: ProductVariantsProps
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           {SIZE_OPTIONS.map((size) => (
-            <label
+            <Label
               key={size.value}
               className={cn(
                 "flex flex-col items-center gap-2 p-4 border cursor-pointer transition-all duration-200",
                 data.sizes.includes(size.value)
-                  ? "border-[#d4af37] bg-[#d4af37]/5"
-                  : "border-border hover:border-[#d4af37]/50 hover:bg-muted/50"
+                  ? "border-secondary bg-secondary/5"
+                  : "border-border hover:border-secondary/50 hover:bg-muted/50"
               )}
             >
               <Checkbox
@@ -84,7 +85,7 @@ export function ProductVariants({ data, onChange, errors }: ProductVariantsProps
               <span className="font-sans text-xs text-muted-foreground">
                 {size.description}
               </span>
-            </label>
+            </Label>
           ))}
         </div>
 
@@ -107,13 +108,13 @@ export function ProductVariants({ data, onChange, errors }: ProductVariantsProps
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {COMPRESSION_OPTIONS.map((level) => (
-            <label
+            <Label
               key={level.value}
               className={cn(
                 "flex flex-col gap-2 p-4 border cursor-pointer transition-all duration-200",
                 data.compressionLevels.includes(level.value)
-                  ? "border-[#d4af37] bg-[#d4af37]/5"
-                  : "border-border hover:border-[#d4af37]/50 hover:bg-muted/50"
+                  ? "border-secondary bg-secondary/5"
+                  : "border-border hover:border-secondary/50 hover:bg-muted/50"
               )}
             >
               <div className="flex items-center gap-3">
@@ -121,7 +122,7 @@ export function ProductVariants({ data, onChange, errors }: ProductVariantsProps
                   checked={data.compressionLevels.includes(level.value)}
                   onCheckedChange={() => toggleCompression(level.value)}
                   className={cn(
-                    "border-border data-[state=checked]:bg-[#d4af37] data-[state=checked]:border-[#d4af37] data-[state=checked]:text-black"
+                    "border-border data-[state=checked]:bg-secondary data-[state=checked]:border-secondary data-[state=checked]:text-foreground"
                   )}
                 />
                 <span className="font-sans text-sm font-semibold text-foreground">
@@ -131,7 +132,7 @@ export function ProductVariants({ data, onChange, errors }: ProductVariantsProps
               <span className="font-sans text-xs text-muted-foreground pl-7">
                 {level.description}
               </span>
-            </label>
+            </Label>
           ))}
         </div>
       </div>

@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { CreditCard, Truck, ShoppingBag } from "lucide-react";
-import { PaymentStatus, FulfillmentStatus } from "./order-card";
+import type { PaymentStatus, FulfillmentStatus } from "@/lib/generated/prisma/enums";
+import { ROUTES } from "@/lib/constants/routes";
 
 export interface OrderActionsProps {
   orderId: string;
@@ -22,48 +23,42 @@ export function OrderActions({
 }: OrderActionsProps) {
   const router = useRouter();
 
-  const showUploadPaymentProof = paymentStatus === "pending";
-  const showTrackShipment = fulfillmentStatus === "shipped";
+  const showUploadPaymentProof = paymentStatus === "PENDING";
+  const showTrackShipment = fulfillmentStatus === "SHIPPED";
 
   return (
-    <Card className={cn("p-6 md:p-8 border border-border bg-card", className)}>
+    <Card className={cn("p-6 md:p-8 border border-border bg-card rounded-lg", className)}>
       <h2 className="font-heading text-xl md:text-2xl text-foreground mb-6">
         Actions
       </h2>
-
       <div className="flex flex-col gap-3">
-        {/* Upload Payment Proof - Only when payment pending */}
         {showUploadPaymentProof && (
           <Button
-            onClick={() => router.push("/order/payment-proof")}
-            className="w-full px-6 py-3 text-sm font-button tracking-wide uppercase bg-[#d4af37] text-black hover:bg-[#d4af37]/90 transition-colors"
+            onClick={() => router.push(`/order/payment-proof/${orderId}`)}
+            className="w-full px-6 py-3 text-sm font-button tracking-wide uppercase bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors"
           >
             <CreditCard className="w-4 h-4 mr-2" />
             Upload Payment Proof
           </Button>
         )}
-
-        {/* Track Shipment - Only when shipped */}
         {showTrackShipment && (
           <Button
             onClick={() => router.push(`/orders/${orderId}/tracking`)}
             variant="outline"
-            className="w-full px-6 py-3 text-sm font-button tracking-wide uppercase border-[#d4af37]/30 text-foreground hover:bg-[#d4af37]/10 hover:border-[#d4af37]/50 transition-colors"
+            className="w-full px-6 py-3 text-sm font-button tracking-wide uppercase border-primary/30 text-foreground hover:bg-primary/10 rounded-lg transition-colors"
           >
             <Truck className="w-4 h-4 mr-2" />
             Track Shipment
           </Button>
         )}
-
-        {/* Always show Continue Shopping */}
         <Button
-          onClick={() => router.push("/shop")}
+          onClick={() => router.push(ROUTES.SHOP)}
           variant={showUploadPaymentProof || showTrackShipment ? "outline" : "default"}
           className={cn(
-            "w-full px-6 py-3 text-sm font-button tracking-wide uppercase transition-colors",
+            "w-full px-6 py-3 text-sm font-button tracking-wide uppercase rounded-lg transition-colors",
             showUploadPaymentProof || showTrackShipment
-              ? "border-border text-foreground hover:bg-accent hover:text-accent-foreground"
-              : "bg-[#d4af37] text-black hover:bg-[#d4af37]/90"
+              ? "border-border text-foreground hover:bg-accent"
+              : "bg-primary text-primary-foreground hover:bg-primary/90"
           )}
         >
           <ShoppingBag className="w-4 h-4 mr-2" />

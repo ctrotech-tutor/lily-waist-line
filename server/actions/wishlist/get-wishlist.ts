@@ -22,17 +22,22 @@ export async function getWishlist() {
       where: {
         userId: user.id
       },
-      include: {
+      select: {
+        id: true,
+        createdAt: true,
         product: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            shortDescription: true,
+            basePrice: true,
+            compareAtPrice: true,
+            status: true,
             images: {
-              where: {
-                imageType: 'main'
-              },
-              orderBy: {
-                sortOrder: 'asc'
-              },
-              take: 1
+              where: { imageType: 'main' },
+              orderBy: { sortOrder: 'asc' },
+              take: 1,
             },
             variants: {
               select: {
@@ -41,14 +46,12 @@ export async function getWishlist() {
                 compressionLevel: true,
                 color: true,
                 sku: true,
-                stockQuantity: true
+                stockQuantity: true,
               },
-              orderBy: {
-                stockQuantity: 'desc'
-              }
-            }
-          }
-        }
+              orderBy: { stockQuantity: 'desc' },
+            },
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc'

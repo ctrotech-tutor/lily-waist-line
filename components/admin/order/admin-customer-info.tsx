@@ -2,18 +2,20 @@
 
 import { User, Mail, MapPin, Phone } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { OrderDetails } from "./data";
+import type { AdminOrderDetail } from "./data";
 
 interface AdminCustomerInfoProps {
-  order: OrderDetails;
+  order: AdminOrderDetail;
 }
 
 export function AdminCustomerInfo({ order }: AdminCustomerInfoProps) {
+  const address = order.shippingAddress;
+
   return (
-    <Card className="rounded-none border-border/50">
+    <Card className="border-border/50">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <User className="h-5 w-5 text-[#d4af37]" />
+          <User className="h-5 w-5 text-secondary" />
           <CardTitle className="font-[family-name:var(--font-bodoni-moda)] text-lg font-semibold">
             Customer Information
           </CardTitle>
@@ -48,29 +50,31 @@ export function AdminCustomerInfo({ order }: AdminCustomerInfoProps) {
               Shipping Address
             </p>
             <div className="mt-1 space-y-0.5">
-              <p className="font-[family-name:var(--font-montserrat)] text-sm">{order.shippingAddress.fullName}</p>
+              <p className="font-[family-name:var(--font-montserrat)] text-sm">{address.fullName}</p>
               <p className="font-[family-name:var(--font-montserrat)] text-sm text-muted-foreground">
-                {order.shippingAddress.street}
+                {address.street}
               </p>
               <p className="font-[family-name:var(--font-montserrat)] text-sm text-muted-foreground">
-                {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
+                {address.city}, {address.state} {address.zipCode}
               </p>
               <p className="font-[family-name:var(--font-montserrat)] text-sm text-muted-foreground">
-                {order.shippingAddress.country}
+                {address.country}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-start gap-2">
-          <Phone className="mt-0.5 h-4 w-4 text-muted-foreground" />
-          <div>
-            <p className="font-[family-name:var(--font-montserrat)] text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Phone Number
-            </p>
-            <p className="font-[family-name:var(--font-montserrat)] text-sm">{order.shippingAddress.phone}</p>
+        {address.phone && (
+          <div className="flex items-start gap-2">
+            <Phone className="mt-0.5 h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="font-[family-name:var(--font-montserrat)] text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Phone Number
+              </p>
+              <p className="font-[family-name:var(--font-montserrat)] text-sm">{address.phone}</p>
+            </div>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

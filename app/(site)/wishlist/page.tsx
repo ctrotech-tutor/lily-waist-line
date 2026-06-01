@@ -1,14 +1,17 @@
 "use client";
-
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+export const dynamic = "force-dynamic"
 import Link from "next/link";
 import { WishlistHeader } from "@/components/wishlist/wishlist-header";
 import { WishlistItemCard } from "@/components/wishlist/wishlist-item-card";
 import { WishlistItemCardSkeleton } from "@/components/wishlist/wishlist-item-card-skeleton";
 import { EmptyWishlistState } from "@/components/wishlist/empty-wishlist-state";
 import { cn } from "@/lib/utils";
-import { getWishlist } from "@/server/actions/wishlist";
+import { useWishlist } from "@/hooks/use-wishlist";
+import { useRemoveFromWishlist } from "@/hooks/use-wishlist-mutations";
+import { useAddToCart } from "@/hooks/use-cart-mutations";
+import { useCart } from "@/hooks/use-cart";
+import type { StockState } from "@/types/common";
+import { ROUTES } from "@/lib/constants/routes";
 
 // Wishlist item data structure from backend
 interface WishlistItemData {
@@ -43,68 +46,34 @@ interface WishlistItemData {
   };
 }
 
+// Calculate stock state for wishlist product
+function calculateWishlistStockState(product: WishlistItemData['product']): StockState {
+  if (!product.inStock) {
+    return 'out-of-stock';
+  }
+  if (product.variants.some(v => v.stockQuantity > 0 && v.stockQuantity <= 5)) {
+    return 'low-stock';
+  }
+  return 'in-stock';
+}
+
 export default function WishlistPage() {
-  const router = useRouter();
-  const [wishlistItems, setWishlistItems] = useState<WishlistItemData[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch wishlist data on mount
-  useEffect(() => {
-    async function fetchWishlist() {
-      try {
-        const result = await getWishlist();
-        if (result.success) {
-          setWishlistItems(result.data);
-        } else {
-          setError(result.error || "Failed to load wishlist");
-        }
-      } catch (err) {
-        setError("Failed to load wishlist");
-        console.error("Failed to fetch wishlist:", err);
-      } finally {
-        setIsLoaded(true);
-      }
-    }
-
-    fetchWishlist();
-  }, []);
+  const { data: wishlistItems, isLoading, error } = useWishlist();
+  const { data: cartData } = useCart();
+  const removeFromWishlist = useRemoveFromWishlist();
+  const addToCart = useAddToCart();
 
   // Handle remove item - calls backend action
   const handleRemoveItem = async (productId: string) => {
-    try {
-      const { removeFromWishlist } = await import("@/server/actions/wishlist");
-      const result = await removeFromWishlist(productId);
-      
-      if (result.success) {
-        // Refresh wishlist data
-        const wishlistResult = await getWishlist();
-        if (wishlistResult.success) {
-          setWishlistItems(wishlistResult.data);
-        }
-      } else {
-        console.error("Failed to remove item:", result.error);
-      }
-    } catch (error) {
-      console.error("Failed to remove item:", error);
-    }
+    removeFromWishlist.mutate(productId);
   };
 
   // Handle add to cart - calls existing cart backend
   const handleAddToCart = async (variantId: string) => {
-    try {
-      const { addToCart } = await import("@/server/actions/cart");
-      const result = await addToCart({ variantId, quantity: 1 });
-      
-      if (!result.success) {
-        console.error("Failed to add to cart:", result.error);
-      }
-    } catch (error) {
-      console.error("Failed to add to cart:", error);
-    }
+    addToCart.mutate({ variantId, quantity: 1 });
   };
 
-  const itemCount = wishlistItems.length;
+  const itemCount = wishlistItems?.length || 0;
 
   return (
     <>
@@ -112,12 +81,12 @@ export default function WishlistPage() {
         {/* Page Header Section */}
         <WishlistHeader
           itemCount={itemCount}
-          isLoaded={isLoaded}
+          isLoaded={!isLoading}
         />
 
         {/* Wishlist Content Container */}
         <div className="max-w-360 mx-auto px-4 sm:px-6 lg:px-8 xl:px-20 py-8 md:py-12">
-          {!isLoaded ? (
+          {isLoading ? (
             <div
               className={cn(
                 "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
@@ -130,10 +99,10 @@ export default function WishlistPage() {
           ) : error ? (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
-                <p className="text-red-500 mb-4">{error}</p>
+                <p className="text-destructive mb-4">{error.message}</p>
                 <Link
-                  href="/shop"
-                  className="text-[#d4af37] hover:underline"
+                  href={ROUTES.SHOP}
+                  className="text-primary hover:underline"
                 >
                   Continue Shopping
                 </Link>
@@ -146,25 +115,26 @@ export default function WishlistPage() {
               className={cn(
                 "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
                 "transition-all duration-1000 delay-200 ease-out",
-                isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                !isLoading ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
               )}
             >
-              {wishlistItems.map((item) => {
+              {wishlistItems?.map((item) => {
                 const product = item.product;
                 const image = product.images[0]?.url || "/placeholder.png";
                 const price = Number(product.basePrice);
                 const originalPrice = product.compareAtPrice ? Number(product.compareAtPrice) : undefined;
                 
-                // Determine stock state based on variants
-                let stockState: "in-stock" | "low-stock" | "out-of-stock" = "in-stock";
-                if (!product.inStock) {
-                  stockState = "out-of-stock";
-                } else if (product.variants.some(v => v.stockQuantity > 0 && v.stockQuantity <= 5)) {
-                  stockState = "low-stock";
-                }
+                // Determine stock state using shared utility
+                const stockState: StockState = calculateWishlistStockState(product);
 
                 // Get first available variant for add to cart
                 const firstAvailableVariant = product.variants.find(v => v.stockQuantity > 0);
+
+                // Check if this variant is in cart
+                const cartItems = cartData?.items || [];
+                const inCart = firstAvailableVariant 
+                  ? cartItems.some(cartItem => cartItem.variant.id === firstAvailableVariant.id)
+                  : false;
 
                 return (
                   <WishlistItemCard
@@ -178,6 +148,7 @@ export default function WishlistPage() {
                     originalPrice={originalPrice}
                     stockState={stockState}
                     variantId={firstAvailableVariant?.id}
+                    inCart={inCart}
                     onAddToCart={handleAddToCart}
                     onRemove={handleRemoveItem}
                   />

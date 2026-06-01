@@ -1,4 +1,5 @@
 import type { ProductModel, ProductVariantModel, ProductImageModel } from '@/lib/generated/prisma/models'
+import type { StockState } from './common'
 
 // Prisma types with relations included
 export type ProductWithVariantsAndImages = ProductModel & {
@@ -8,24 +9,37 @@ export type ProductWithVariantsAndImages = ProductModel & {
   images: ProductImageModel[]
 }
 
-// Re-export ProductWithDetails from product-service to avoid duplication
-export type { ProductWithDetails } from '@/lib/services/product-service'
-
-// UI Product Card Props
-export interface ProductCardProps {
-  id: string
-  image: string
-  name: string
-  subtitle: string
-  price: number
-  originalPrice?: number
-  badge?: string
-  stockState: 'in-stock' | 'out-of-stock' | 'low-stock'
-  isWishlisted?: boolean
-  slug?: string
+// Domain types for product queries
+export interface ProductQueryOptions {
+  search?: string
+  size?: string
+  compression?: string
+  sort?: string
+  limit?: number
+  offset?: number
+  availability?: 'in-stock' | 'low-stock' | 'out-of-stock'
 }
 
-// Transformed product data for UI
+// Domain result type for product queries (using base Prisma type)
+export interface ProductResult {
+  products: ProductWithVariantsAndImages[]
+  total: number
+  hasMore: boolean
+}
+
+// Unified sorting options (aligns with product-service enum values)
+export const SORT_OPTIONS = ['featured', 'newest', 'price_asc', 'price_desc'] as const
+export type SortOption = typeof SORT_OPTIONS[number]
+
+// Unified size options
+export const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL'] as const
+export type SizeOption = typeof SIZE_OPTIONS[number]
+
+// Unified compression options
+export const COMPRESSION_OPTIONS = ['LIGHT', 'MEDIUM', 'HIGH'] as const
+export type CompressionOption = typeof COMPRESSION_OPTIONS[number]
+
+// UI types for transformed product data
 export interface TransformedProduct {
   id: string
   image: string
@@ -34,7 +48,7 @@ export interface TransformedProduct {
   price: number
   originalPrice?: number
   badge?: string
-  stockState: 'in-stock' | 'out-of-stock' | 'low-stock'
+  stockState: StockState
   isWishlisted: boolean
   slug: string
 }
@@ -50,28 +64,8 @@ export interface FeaturedProductData {
   price: number
   originalPrice?: number
   badge?: string
-  stockState: 'in-stock' | 'out-of-stock' | 'low-stock'
+  stockState: StockState
 }
-
-// Filter and search options
-export interface ProductFilterOptions {
-  search?: string
-  size?: string
-  compression?: string
-  sort?: string
-  limit?: number
-  offset?: number
-  inStock?: boolean
-}
-
-// Size and compression enums for type safety
-export const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL'] as const
-export const COMPRESSION_OPTIONS = ['LIGHT', 'MEDIUM', 'HIGH'] as const
-export const SORT_OPTIONS = ['FEATURED', 'NEWEST', 'PRICE_ASC', 'PRICE_DESC'] as const
-
-export type SizeOption = typeof SIZE_OPTIONS[number]
-export type CompressionOption = typeof COMPRESSION_OPTIONS[number]
-export type SortOption = typeof SORT_OPTIONS[number]
 
 // Product transformation utilities
 export interface ProductTransformOptions {

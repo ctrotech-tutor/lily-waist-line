@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { Eye, Pencil, Trash2, MoreHorizontal } from "lucide-react";
+import { Pencil, Trash2, MoreHorizontal } from "lucide-react";
+import { OptimizedImage } from "@/components/shared/optimized-image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,42 +24,34 @@ import type { AdminProduct, StockStatus } from "./data";
 interface AdminProductsTableProps {
   products: AdminProduct[];
   onDeleteProduct?: (productId: string) => void;
-  onToggleVisibility?: (productId: string, isVisible: boolean) => void;
+  onToggleStatus?: (productId: string, status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED') => void;
 }
 
 const stockStatusConfig: Record<StockStatus, { label: string; className: string }> = {
-  "in-stock": { label: "In Stock", className: "bg-green-500/10 text-green-600 border-green-500/20" },
-  "low-stock": { label: "Low Stock", className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  "out-of-stock": { label: "Out of Stock", className: "bg-red-500/10 text-red-600 border-red-500/20" },
+  IN_STOCK: { label: "In Stock", className: "bg-success/10 text-success border-success/20" },
+  LOW_STOCK: { label: "Low Stock", className: "bg-warning/10 text-warning border-warning/20" },
+  OUT_OF_STOCK: { label: "Out of Stock", className: "bg-destructive/10 text-destructive border-destructive/20" },
+};
+
+const statusDisplay: Record<string, string> = {
+  ACTIVE: "Active",
+  DRAFT: "Draft",
+  ARCHIVED: "Archived",
 };
 
 export function AdminProductsTable({
   products,
   onDeleteProduct,
-  onToggleVisibility,
+  onToggleStatus,
 }: AdminProductsTableProps) {
   const router = useRouter();
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const handleDelete = (productId: string) => {
-    setDeletingId(productId);
-    // Simulate delete delay
-    setTimeout(() => {
-      onDeleteProduct?.(productId);
-      setDeletingId(null);
-    }, 300);
-  };
-
-  const handleToggleVisibility = (productId: string, currentVisibility: boolean) => {
-    onToggleVisibility?.(productId, !currentVisibility);
-  };
 
   if (products.length === 0) {
     return null;
   }
 
   return (
-    <div className="overflow-x-auto border border-border/50">
+    <div className="overflow-x-auto border border-border/50 rounded-lg">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -77,10 +68,10 @@ export function AdminProductsTable({
               Price
             </TableHead>
             <TableHead className="font-[family-name:var(--font-montserrat)] text-xs font-semibold uppercase tracking-wider">
-              Stock Status
+              Status
             </TableHead>
             <TableHead className="font-[family-name:var(--font-montserrat)] text-xs font-semibold uppercase tracking-wider">
-              Category
+              Stock
             </TableHead>
             <TableHead className="font-[family-name:var(--font-montserrat)] text-xs font-semibold uppercase tracking-wider text-right">
               Actions
@@ -88,18 +79,27 @@ export function AdminProductsTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {products.map((product) => (
+          {products.map((product) => {
+            const mainSku = product.variants[0]?.sku || '—'
+            const isVisible = product.status === 'ACTIVE'
+            return (
             <TableRow key={product.id} className="hover:bg-muted/30">
               {/* Product Image */}
               <TableCell>
                 <div className="relative h-12 w-12 overflow-hidden border border-border/50 bg-muted">
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                    sizes="48px"
-                  />
+                  {product.image ? (
+                    <OptimizedImage
+                      src={product.image.url}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
+                      sizes="48px"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground/30 text-xs">
+                      —
+                    </div>
+                  )}
                 </div>
               </TableCell>
 
@@ -109,9 +109,9 @@ export function AdminProductsTable({
                   <span className="font-[family-name:var(--font-montserrat)] text-sm font-medium">
                     {product.name}
                   </span>
-                  {!product.isVisible && (
+                  {!isVisible && (
                     <span className="font-[family-name:var(--font-montserrat)] text-xs text-muted-foreground">
-                      Hidden
+                      {statusDisplay[product.status] || product.status}
                     </span>
                   )}
                 </div>
@@ -119,24 +119,40 @@ export function AdminProductsTable({
 
               {/* SKU */}
               <TableCell className="font-[family-name:var(--font-montserrat)] text-sm text-muted-foreground">
-                {product.sku}
+                {mainSku}
               </TableCell>
 
               {/* Price */}
               <TableCell>
                 <div className="flex flex-col">
                   <span className="font-[family-name:var(--font-montserrat)] text-sm font-medium">
-                    ${product.price.toFixed(2)}
+                    ${product.basePrice.toFixed(2)}
                   </span>
-                  {product.originalPrice && (
+                  {product.compareAtPrice && (
                     <span className="font-[family-name:var(--font-montserrat)] text-xs text-muted-foreground line-through">
-                      ${product.originalPrice.toFixed(2)}
+                      ${product.compareAtPrice.toFixed(2)}
                     </span>
                   )}
                 </div>
               </TableCell>
 
-              {/* Stock Status */}
+              {/* Status */}
+              <TableCell>
+                <Badge
+                  variant="outline"
+                  className={`font-[family-name:var(--font-montserrat)] text-xs ${
+                    isVisible
+                      ? 'bg-success/10 text-success border-success/20'
+                      : product.status === 'DRAFT'
+                      ? 'bg-warning/10 text-warning border-warning/20'
+                      : 'bg-muted text-muted-foreground border-border/50'
+                  }`}
+                >
+                  {statusDisplay[product.status] || product.status}
+                </Badge>
+              </TableCell>
+
+              {/* Stock */}
               <TableCell>
                 <Badge
                   variant="outline"
@@ -145,35 +161,19 @@ export function AdminProductsTable({
                   {stockStatusConfig[product.stockStatus].label}
                 </Badge>
                 <span className="font-[family-name:var(--font-montserrat)] text-xs text-muted-foreground ml-2">
-                  ({product.stockQuantity})
+                  ({product.totalStock})
                 </span>
-              </TableCell>
-
-              {/* Category */}
-              <TableCell className="font-[family-name:var(--font-montserrat)] text-sm text-muted-foreground">
-                {product.category}
               </TableCell>
 
               {/* Actions */}
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-2">
-                  {/* View Button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => router.push(`/product/${product.id}/${product.name.toLowerCase().replace(/\s+/g, "-")}`)}
-                    className="h-8 px-2 font-[family-name:var(--font-montserrat)] text-xs hover:text-[#d4af37]"
-                  >
-                    <Eye className="mr-1 h-3.5 w-3.5" />
-                    View
-                  </Button>
-
                   {/* Edit Button */}
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => router.push(`/admin/products/${product.id}/edit`)}
-                    className="h-8 px-2 font-[family-name:var(--font-montserrat)] text-xs hover:text-[#d4af37]"
+                    className="h-8 px-2 font-[family-name:var(--font-montserrat)] text-xs hover:text-secondary"
                   >
                     <Pencil className="mr-1 h-3.5 w-3.5" />
                     Edit
@@ -185,23 +185,38 @@ export function AdminProductsTable({
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={deletingId === product.id}
-                        className="h-8 px-2 font-[family-name:var(--font-montserrat)] text-xs border-border/50 hover:border-[#d4af37]/50 hover:text-[#d4af37] rounded-none"
+                        className="h-8 px-2 font-[family-name:var(--font-montserrat)] text-xs border-border/50 hover:border-secondary/50 hover:text-secondary"
                       >
                         <MoreHorizontal className="h-3.5 w-3.5" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="rounded-none">
+                    <DropdownMenuContent align="end">
+                      {product.status === 'ACTIVE' ? (
+                        <DropdownMenuItem
+                          onClick={() => onToggleStatus?.(product.id, 'DRAFT')}
+                          className="font-[family-name:var(--font-montserrat)] text-sm"
+                        >
+                          Move to Draft
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem
+                          onClick={() => onToggleStatus?.(product.id, 'ACTIVE')}
+                          className="font-[family-name:var(--font-montserrat)] text-sm"
+                        >
+                          Publish
+                        </DropdownMenuItem>
+                      )}
+                      {product.status !== 'ARCHIVED' && (
+                        <DropdownMenuItem
+                          onClick={() => onToggleStatus?.(product.id, 'ARCHIVED')}
+                          className="font-[family-name:var(--font-montserrat)] text-sm text-warning"
+                        >
+                          Archive
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
-                        onClick={() => handleToggleVisibility(product.id, product.isVisible)}
-                        className="font-[family-name:var(--font-montserrat)] text-sm"
-                      >
-                        {product.isVisible ? "Hide Product" : "Show Product"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleDelete(product.id)}
-                        disabled={deletingId === product.id}
-                        className="font-[family-name:var(--font-montserrat)] text-sm text-red-600 focus:text-red-600"
+                        onClick={() => onDeleteProduct?.(product.id)}
+                        className="font-[family-name:var(--font-montserrat)] text-sm text-destructive focus:text-destructive"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
@@ -211,7 +226,8 @@ export function AdminProductsTable({
                 </div>
               </TableCell>
             </TableRow>
-          ))}
+            )
+          })}
         </TableBody>
       </Table>
     </div>

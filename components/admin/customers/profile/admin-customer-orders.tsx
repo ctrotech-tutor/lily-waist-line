@@ -13,30 +13,39 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { CustomerOrder } from "./data";
 import { formatCurrency } from "./data";
+import type { AdminCustomerOrder } from "../data";
 
 interface AdminCustomerOrdersProps {
-  orders: CustomerOrder[];
+  orders: AdminCustomerOrder[];
 }
 
-type OrderStatus = "processing" | "shipped" | "delivered" | "cancelled";
-
-const statusConfig: Record<OrderStatus, { label: string; className: string }> = {
-  processing: { label: "Processing", className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  shipped: { label: "Shipped", className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  delivered: { label: "Delivered", className: "bg-green-500/10 text-green-600 border-green-500/20" },
-  cancelled: { label: "Cancelled", className: "bg-red-500/10 text-red-600 border-red-500/20" },
+const fulfillmentStatusConfig: Record<string, { label: string; className: string }> = {
+  PENDING: { label: "Pending", className: "bg-warning/10 text-warning border-warning/20" },
+  PROCESSING: { label: "Processing", className: "bg-warning/10 text-warning border-warning/20" },
+  SHIPPED: { label: "Shipped", className: "bg-info/10 text-info border-info/20" },
+  DELIVERED: { label: "Delivered", className: "bg-success/10 text-success border-success/20" },
+  CANCELLED: { label: "Cancelled", className: "bg-destructive/10 text-destructive border-destructive/20" },
 };
+
+function formatDate(date: Date): string {
+  try {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'short', day: 'numeric'
+    })
+  } catch {
+    return "N/A"
+  }
+}
 
 export function AdminCustomerOrders({ orders }: AdminCustomerOrdersProps) {
   const router = useRouter();
 
   return (
-    <Card className="rounded-none border-border/50">
+    <Card className="border-border/50">
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
-          <Package className="h-5 w-5 text-[#d4af37]" />
+          <Package className="h-5 w-5 text-secondary" />
           <CardTitle className="font-[family-name:var(--font-bodoni-moda)] text-lg font-semibold">
             Order History
           </CardTitle>
@@ -78,41 +87,44 @@ export function AdminCustomerOrders({ orders }: AdminCustomerOrdersProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orders.map((order) => (
-                  <TableRow key={order.id} className="hover:bg-muted/30">
-                    <TableCell className="font-[family-name:var(--font-montserrat)] text-sm font-medium">
-                      {order.id}
-                    </TableCell>
-                    <TableCell className="font-[family-name:var(--font-montserrat)] text-sm text-muted-foreground">
-                      {order.date}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={`font-[family-name:var(--font-montserrat)] text-xs ${statusConfig[order.status].className}`}
-                      >
-                        {statusConfig[order.status].label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-[family-name:var(--font-montserrat)] text-sm">
-                      {order.itemCount} {order.itemCount === 1 ? "item" : "items"}
-                    </TableCell>
-                    <TableCell className="font-[family-name:var(--font-montserrat)] text-sm font-medium">
-                      {formatCurrency(order.total)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => router.push(`/admin/orders/${order.id}`)}
-                        className="h-8 px-3 font-[family-name:var(--font-montserrat)] text-xs hover:text-[#d4af37]"
-                      >
-                        <Eye className="mr-1.5 h-3.5 w-3.5" />
-                        View Order
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {orders.map((order) => {
+                  const statusCfg = fulfillmentStatusConfig[order.fulfillmentStatus] || fulfillmentStatusConfig.PENDING;
+                  return (
+                    <TableRow key={order.id} className="hover:bg-muted/30">
+                      <TableCell className="font-[family-name:var(--font-montserrat)] text-sm font-medium">
+                        {order.id}
+                      </TableCell>
+                      <TableCell className="font-[family-name:var(--font-montserrat)] text-sm text-muted-foreground">
+                        {formatDate(order.createdAt as unknown as Date)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={`font-[family-name:var(--font-montserrat)] text-xs ${statusCfg.className}`}
+                        >
+                          {statusCfg.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-[family-name:var(--font-montserrat)] text-sm">
+                        {order.itemCount} {order.itemCount === 1 ? "item" : "items"}
+                      </TableCell>
+                      <TableCell className="font-[family-name:var(--font-montserrat)] text-sm font-medium">
+                        {formatCurrency(order.total)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push(`/admin/orders/${order.id}`)}
+                          className="h-8 px-3 font-[family-name:var(--font-montserrat)] text-xs hover:text-secondary"
+                        >
+                          <Eye className="mr-1.5 h-3.5 w-3.5" />
+                          View Order
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

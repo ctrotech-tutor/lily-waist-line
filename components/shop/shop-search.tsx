@@ -1,12 +1,17 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 import { Search, X } from "lucide-react";
 
 import { useShopURLSync } from "@/lib/shop-url-sync-client";
 import { cn } from "@/lib/utils";
 
-import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupButton,
+} from "@/components/ui/input-group";
 import { Button } from "@/components/ui/button";
 
 export interface ShopSearchProps {
@@ -14,139 +19,94 @@ export interface ShopSearchProps {
   placeholder?: string;
 }
 
-export function ShopSearch({
+export const ShopSearch = memo(function ShopSearch({
   className,
   placeholder = "Search products...",
 }: ShopSearchProps) {
   const { currentParams, updateParams } = useShopURLSync();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [inputValue, setInputValue] = useState(
-    currentParams.q || ""
-  );
+  const [inputValue, setInputValue] = useState(currentParams.q || "");
 
-  const lastSubmittedValue = useRef(
-    currentParams.q || ""
-  );
-
-  const prevQRef = useRef(currentParams.q);
-
-  // Sync from URL changes
   useEffect(() => {
-    if (prevQRef.current === currentParams.q) return;
-
-    prevQRef.current = currentParams.q;
-
-    const urlValue = currentParams.q || "";
-
-    if (urlValue !== inputValue) {
-      queueMicrotask(() => {
-        setInputValue(urlValue);
-        lastSubmittedValue.current = urlValue;
-      });
-    }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setInputValue(currentParams.q || "");
   }, [currentParams.q]);
 
-  // Debounced URL updates
-  useEffect(() => {
-    const trimmedInput = inputValue.trim();
-    const lastSubmitted =
-      lastSubmittedValue.current.trim();
-
-    if (trimmedInput === lastSubmitted) return;
-
-    const timer = setTimeout(() => {
-      lastSubmittedValue.current = inputValue;
-
-      updateParams({
-        q: trimmedInput || undefined,
-      });
+  const debouncedUpdate = (value: string) => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = setTimeout(() => {
+      updateParams({ q: value.trim() || undefined });
     }, 300);
+  };
 
-    return () => clearTimeout(timer);
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputValue]);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+    debouncedUpdate(value);
+  };
 
-  const handleSubmit = (
-    e: React.FormEvent
-  ) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    updateParams({
-      q: inputValue.trim() || undefined,
-    });
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    updateParams({ q: inputValue.trim() || undefined });
   };
 
   const handleClear = () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
     setInputValue("");
-
-    lastSubmittedValue.current = "";
-
-    updateParams({
-      q: undefined,
-    });
+    updateParams({ q: undefined });
   };
 
   return (
     <form
       onSubmit={handleSubmit}
-      className={cn(
-        "flex w-full gap-3",
-        className
-      )}
+      className={cn("flex w-full gap-3", className)}
     >
-      {/* Search Input */}
-      <div className="relative flex-1">
-        <Search
-          className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-        />
-
-        <Input
-          value={inputValue}
-          onChange={(e) =>
-            setInputValue(e.target.value)
-          }
-          placeholder={placeholder}
-          className={cn(
-            "h-12 rounded-full pl-11 pr-11",
-            "border-border/50",
-            "bg-card/40 backdrop-blur-sm",
-            "focus-visible:ring-primary/30",
-            "focus-visible:border-primary/40"
+      <div className="flex-1">
+        <InputGroup>
+          <InputGroupAddon align="inline-start">
+            <Search className="h-4 w-4" />
+          </InputGroupAddon>
+          <InputGroupInput
+            value={inputValue}
+            onChange={handleChange}
+            placeholder={placeholder}
+          />
+          {inputValue && (
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                type="button"
+                onClick={handleClear}
+              >
+                <X className="h-4 w-4" />
+              </InputGroupButton>
+            </InputGroupAddon>
           )}
-        />
-
-        {/* Clear */}
-        {inputValue && (
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            onClick={handleClear}
-            className={cn(
-              "absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2",
-              "rounded-full"
-            )}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
+        </InputGroup>
       </div>
 
-      {/* Search Submit */}
       <Button
         type="submit"
-        className={cn(
-          "h-12 rounded-full px-6 shrink-0",
-          "font-medium"
-        )}
+        className="px-6 shrink-0 font-medium"
       >
         Search
       </Button>
     </form>
   );
-}
+});
 
 export default ShopSearch;

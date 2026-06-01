@@ -3,6 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { ROUTES } from "@/lib/constants/routes"
 
 interface AuthLink {
   label: string
@@ -46,20 +47,20 @@ export function AuthFooterLinks({
 // Pre-configured link sets for common auth patterns
 export const authLinkPresets = {
   login: [
-    { label: "Forgot password?", href: "/forgot-password", variant: "primary" as const },
-    { label: "Create account", href: "/signup" },
+    { label: "Forgot password?", href: ROUTES.FORGOT_PASSWORD, variant: "primary" as const },
+    { label: "Create account", href: ROUTES.SIGNUP },
   ],
   signup: [
-    { label: "Already have an account?", href: "/login", variant: "primary" as const },
+    { label: "Already have an account?", href: ROUTES.LOGIN, variant: "primary" as const },
   ],
   forgotPassword: [
-    { label: "Back to sign in", href: "/login" },
-    { label: "Create account", href: "/signup" },
+    { label: "Back to sign in", href: ROUTES.LOGIN },
+    { label: "Create account", href: ROUTES.SIGNUP },
   ],
   resetPassword: [
-    { label: "Back to sign in", href: "/login", variant: "primary" as const },
+    { label: "Back to sign in", href: ROUTES.LOGIN, variant: "primary" as const },
   ],
   verifyEmail: [
-    { label: "Back to sign in", href: "/login", variant: "primary" as const },
+    { label: "Back to sign in", href: ROUTES.LOGIN, variant: "primary" as const },
   ],
 }

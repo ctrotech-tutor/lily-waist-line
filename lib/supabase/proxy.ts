@@ -1,6 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { ROUTE_ACCESS } from '@/lib/constants/routes'
+import { ROUTE_ACCESS, ROUTES } from '@/lib/constants/routes'
+
+const isProduction = process.env.NODE_ENV === 'production'
+
+const defaultCookieOptions = isProduction
+  ? { domain: '.lilywaistline.com', path: '/', sameSite: 'lax' as const }
+  : { path: '/' }
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -9,7 +15,7 @@ export async function updateSession(request: NextRequest) {
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
@@ -25,7 +31,7 @@ export async function updateSession(request: NextRequest) {
           })
 
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, { ...defaultCookieOptions, ...options })
           )
 
           Object.entries(headers).forEach(([key, value]) =>
@@ -52,7 +58,7 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
-  const isRootPath = pathname === '/'
+  const isRootPath = pathname === ROUTES.HOME
   const isPublicRoute = ROUTE_ACCESS.public.some(route =>
     pathname.startsWith(route)
   )
@@ -74,14 +80,14 @@ export async function updateSession(request: NextRequest) {
   // Guest-only routes
   if (isGuestOnlyRoute && isAuthenticated) {
     const url = request.nextUrl.clone()
-    url.pathname = '/'
+    url.pathname = ROUTES.HOME
     return NextResponse.redirect(url)
   }
 
   // Protected routes
   if ((isUserRoute || isAdminRoute) && !isAuthenticated) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = ROUTES.LOGIN
     url.searchParams.set('redirectTo', pathname)
     return NextResponse.redirect(url)
   }
@@ -89,7 +95,7 @@ export async function updateSession(request: NextRequest) {
   // Email verification enforcement
   if ((isUserRoute || isAdminRoute) && !isEmailVerified) {
     const url = request.nextUrl.clone()
-    url.pathname = '/verify-email'
+    url.pathname = ROUTES.VERIFY_EMAIL
     return NextResponse.redirect(url)
   }
 

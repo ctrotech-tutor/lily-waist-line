@@ -8,7 +8,7 @@ export { OrdersList } from "./orders-list";
 export type { OrdersListProps } from "./orders-list";
 
 export { OrderCard } from "./order-card";
-export type { OrderData, PaymentStatus, FulfillmentStatus } from "./order-card";
+export type { OrderData } from "./order-card";
 
 export { EmptyOrdersState } from "./empty-orders-state";
 export type { EmptyOrdersStateProps } from "./empty-orders-state";
@@ -49,3 +49,6 @@ export type { ShipmentUpdatesProps, ShipmentUpdate } from "./shipment-updates";
 
 export { TrackingActions } from "./tracking-actions";
 export type { TrackingActionsProps } from "./tracking-actions";
+
+export { TrackingItemsCard } from "./tracking-items-card";
+export { TrackingAddressCard } from "./tracking-address-card";

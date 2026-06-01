@@ -46,7 +46,7 @@ export function CheckoutProgress({
                 {/* Icon Circle */}
                 <div
                   className={cn(
-                    "w-10 h-10 flex items-center justify-center",
+                    "w-10 h-10 flex items-center justify-center rounded-lg",
                     "transition-all duration-300",
                     isCompleted && "bg-secondary text-secondary-foreground",
                     isCurrent && "bg-secondary text-secondary-foreground ring-2 ring-secondary/30",

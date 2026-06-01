@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
+import { formatOrderNumber } from '@/lib/utils/order'
 
 const orderDetailsSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required')
@@ -30,29 +31,53 @@ export async function getOrderDetails(orderId: string) {
         id: validatedOrderId,
         userId: user.id // Critical: ensures user can only access own orders
       },
-      include: {
-        address: true, // Full address snapshot
+      select: {
+        id: true,
+        createdAt: true,
+        updatedAt: true,
+        subtotal: true,
+        shippingFee: true,
+        total: true,
+        paymentMethod: true,
+        paymentStatus: true,
+        fulfillmentStatus: true,
+        address: {
+          select: {
+            id: true, firstName: true, lastName: true, company: true,
+            addressLine1: true, addressLine2: true, city: true, state: true,
+            postalCode: true, country: true, phone: true,
+          },
+        },
         orderItems: {
-          include: {
+          select: {
+            id: true, quantity: true, unitPrice: true,
             product: {
-              include: {
+              select: {
+                id: true, name: true, slug: true,
                 images: {
                   where: { imageType: 'main' },
                   orderBy: { sortOrder: 'asc' },
-                  take: 1
-                }
-              }
+                  take: 1,
+                  select: { id: true, url: true, altText: true },
+                },
+              },
             },
-            variant: true
-          }
+            variant: {
+              select: {
+                id: true, size: true, compressionLevel: true, color: true, sku: true,
+              },
+            },
+          },
         },
         paymentProofs: {
-          orderBy: { uploadedAt: 'desc' }
+          orderBy: { uploadedAt: 'desc' },
+          select: { id: true, status: true, uploadedAt: true, imageUrl: true },
         },
         shipments: {
-          orderBy: { shippedAt: 'desc' }
-        }
-      }
+          orderBy: { shippedAt: 'desc' },
+          select: { id: true, carrier: true, trackingNumber: true, shippedAt: true, deliveredAt: true },
+        },
+      },
     })
 
     // Strict ownership validation - no order ID guessing allowed
@@ -66,7 +91,7 @@ export async function getOrderDetails(orderId: string) {
     // Transform order into UI-ready format
     const transformedOrder = {
       id: order.id,
-      orderNumber: `LWL-${order.createdAt.getFullYear()}-${order.id.slice(-6).toUpperCase()}`,
+      orderNumber: formatOrderNumber(order.id, order.createdAt),
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       // Pricing snapshot (immutable)

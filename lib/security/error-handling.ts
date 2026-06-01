@@ -1,5 +1,3 @@
-import { VALIDATION_ERRORS } from '@/lib/validators/base'
-
 /**
  * Standardized Error Handling System
  * 
@@ -196,19 +194,64 @@ export const ErrorCreators = {
   internal: () => createErrorResponse('INTERNAL_ERROR'),
 } as const
 
+export type ActionResult<T> =
+  | { success: true; data: T }
+  | { success: false; error: string; code?: keyof typeof ERROR_CODES }
+
+export function createSuccessResult<T>(data: T): ActionResult<T> {
+  return { success: true, data }
+}
+
+export function createErrorResult(
+  code: keyof typeof ERROR_CODES,
+  customMessage?: string
+): ActionResult<never> {
+  return {
+    success: false,
+    error: customMessage || ERROR_MESSAGES[code],
+    code,
+  }
+}
+
 /**
  * Server action error handler
  * Wraps server actions with consistent error handling
+ * Returns ActionResult<R> instead of throwing
  */
 export function withErrorHandling<T extends unknown[], R>(
   action: (...args: T) => Promise<R>
 ) {
-  return async (...args: T): Promise<R> => {
+  return async (...args: T): Promise<ActionResult<R>> => {
     try {
-      return await action(...args)
+      const data = await action(...args)
+      return createSuccessResult(data)
     } catch (error) {
       const errorResponse = handleError(error)
-      throw new Error(JSON.stringify(errorResponse))
+      return createErrorResult(
+        (errorResponse.error?.code as keyof typeof ERROR_CODES) || 'INTERNAL_ERROR',
+        errorResponse.error?.message
+      )
+    }
+  }
+}
+
+/**
+ * Wraps a server action that may throw errors and returns ActionResult<R>
+ * Use for legacy action files that throw instead of returning success/error objects
+ */
+export function tryAction<T extends unknown[], R>(
+  action: (...args: T) => Promise<R>
+) {
+  return async (...args: T): Promise<ActionResult<R>> => {
+    try {
+      const data = await action(...args)
+      return createSuccessResult(data)
+    } catch (error) {
+      const errorResponse = handleError(error)
+      return createErrorResult(
+        (errorResponse.error?.code as keyof typeof ERROR_CODES) || 'INTERNAL_ERROR',
+        errorResponse.error?.message
+      )
     }
   }
 }

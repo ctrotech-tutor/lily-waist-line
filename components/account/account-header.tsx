@@ -1,130 +1,90 @@
-"use client";
+'use client'
 
-import { User, Pencil } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { AccountHeaderSkeleton } from "./account-header-skeleton";
+import { Pencil } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { AvatarUpload } from './avatar-upload'
 
 interface AccountHeaderProps {
-  fullName: string;
-  email: string;
-  memberSince: string;
-  onEditProfile: () => void;
-  className?: string;
-  isLoaded?: boolean;
+  fullName: string
+  email: string
+  memberSince: string
+  emailVerified: boolean
+  avatarUrl: string | null
+  onEditProfile: () => void
+  className?: string
 }
 
 export function AccountHeader({
   fullName,
   email,
   memberSince,
+  emailVerified,
+  avatarUrl,
   onEditProfile,
   className,
-  isLoaded = true,
 }: AccountHeaderProps) {
-  if (!isLoaded) {
-    return (
-      <div className={cn("border-b border-border", className)}>
-        <div className="py-12 md:py-16 lg:py-20">
-          <AccountHeaderSkeleton />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className={cn("border-b border-border", className)}>
+    <div className={cn('border-b border-border', className)}>
       <div className="py-6 md:py-8 lg:py-10">
-        {/* Eyebrow */}
-        <div
-          className={cn(
-            "flex items-center gap-2 mb-6",
-            "transition-all duration-700 ease-out",
-            isLoaded
-              ? "opacity-100 translate-x-0"
-              : "opacity-0 -translate-x-4"
-          )}
-        >
-          <User className="w-4 h-4 text-[#d4af37]" />
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-8">
+          {/* Avatar */}
+          <div className="flex shrink-0 justify-center sm:justify-start">
+            <AvatarUpload
+              avatarUrl={avatarUrl}
+              fullName={fullName}
+            />
+          </div>
 
-          <span className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-[#d4af37]">
-            Your Profile
-          </span>
-        </div>
+          {/* Content */}
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
+            <div>
+              <h1 className="font-heading text-2xl leading-tight tracking-tight text-foreground sm:text-3xl md:text-4xl">
+                {fullName}
+              </h1>
 
-        {/* Divider */}
-        <div
-          className={cn(
-            "w-16 h-px bg-[#d4af37] mb-8",
-            "transition-all duration-700 delay-100 ease-out",
-            isLoaded
-              ? "opacity-100 scale-x-100"
-              : "opacity-0 scale-x-0"
-          )}
-          style={{ transformOrigin: "left" }}
-        />
-
-        {/* Content */}
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            {/* Heading */}
-            <h1
-              className={cn(
-                "font-heading text-3xl sm:text-4xl md:text-5xl lg:text-6xl",
-                "leading-[1.1] tracking-tight text-foreground mb-4",
-                "transition-all duration-1000 delay-200 ease-out",
-                isLoaded
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-4"
-              )}
-            >
-              {fullName}
-            </h1>
-
-            {/* Supporting Copy */}
-            <p
-              className={cn(
-                "font-sans text-base sm:text-lg text-muted-foreground",
-                "leading-relaxed mb-6 max-w-xl",
-                "transition-all duration-1000 delay-300 ease-out",
-                isLoaded
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-4"
-              )}
-            >
-              Manage your personal details, preferences, and order history.
-            </p>
-
-            {/* Meta */}
-            <div
-              className={cn(
-                "flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6",
-                "transition-all duration-1000 delay-400 ease-out",
-                isLoaded ? "opacity-100" : "opacity-0"
-              )}
-            >
-              <span className="text-sm text-muted-foreground">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {email}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-xs text-muted-foreground">
+                Member since {memberSince}
               </span>
 
-              <div className="hidden sm:block w-1 h-1 rounded-full bg-[#d4af37]" />
+              <span className="hidden h-1 w-1 rounded-full bg-border sm:block" />
 
-              <span className="text-sm text-muted-foreground">
-                Member since {memberSince}
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium',
+                  emailVerified
+                    ? 'bg-primary/10 text-primary'
+                    : 'bg-muted text-muted-foreground'
+                )}
+              >
+                <span
+                  className={cn(
+                    'h-1.5 w-1.5 rounded-full',
+                    emailVerified ? 'bg-primary' : 'bg-muted-foreground'
+                  )}
+                />
+                {emailVerified ? 'Email Verified' : 'Email Unverified'}
               </span>
             </div>
           </div>
 
-          {/* Action */}
+          {/* Edit Button */}
           <Button
             onClick={onEditProfile}
-            className="w-full sm:w-auto rounded-full bg-[#d4af37] text-black hover:bg-[#d4af37]/90 font-button tracking-wide uppercase"
+            variant="outline"
+            className="w-full shrink-0 sm:w-auto"
           >
-            <Pencil className="w-4 h-4 mr-2" />
+            <Pencil className="mr-2 h-4 w-4" />
             Edit Profile
           </Button>
         </div>
       </div>
     </div>
-  );
+  )
 }

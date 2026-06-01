@@ -1,43 +1,51 @@
 "use client";
 
 import { useState } from "react";
-import { Truck, Package, CheckCircle, Circle } from "lucide-react";
+import { Truck, Package, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import type { OrderDetails, FulfillmentStatus } from "./data";
+import type { AdminOrderDetail } from "./data";
 
 interface AdminFulfillmentPanelProps {
-  order: OrderDetails;
+  order: AdminOrderDetail;
+  onUpdateStatus: (orderId: string, newStatus: 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED') => void;
+  onSaveTracking: (orderId: string, carrier: string, trackingNumber: string) => void;
+  isUpdatingStatus?: boolean;
+  isSavingTracking?: boolean;
 }
 
-const fulfillmentStatusConfig = {
-  processing: { label: "Processing", className: "bg-slate-500/10 text-slate-600 border-slate-500/20" },
-  shipped: { label: "Shipped", className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  delivered: { label: "Delivered", className: "bg-green-500/10 text-green-600 border-green-500/20" },
+const fulfillmentStatusConfig: Record<string, { label: string; className: string }> = {
+  PENDING: { label: "Pending", className: "bg-muted-foreground/10 text-muted-foreground border-muted-foreground/20" },
+  PROCESSING: { label: "Processing", className: "bg-muted-foreground/10 text-muted-foreground border-muted-foreground/20" },
+  SHIPPED: { label: "Shipped", className: "bg-info/10 text-info border-info/20" },
+  DELIVERED: { label: "Delivered", className: "bg-success/10 text-success border-success/20" },
+  CANCELLED: { label: "Cancelled", className: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
-export function AdminFulfillmentPanel({ order }: AdminFulfillmentPanelProps) {
-  const [fulfillmentStatus, setFulfillmentStatus] = useState<FulfillmentStatus>(order.fulfillmentStatus);
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  PENDING: ['PROCESSING', 'CANCELLED'],
+  PROCESSING: ['SHIPPED', 'CANCELLED'],
+  SHIPPED: ['DELIVERED'],
+  DELIVERED: [],
+  CANCELLED: [],
+};
+
+export function AdminFulfillmentPanel({ order, onUpdateStatus, onSaveTracking, isUpdatingStatus, isSavingTracking }: AdminFulfillmentPanelProps) {
   const [carrierName, setCarrierName] = useState(order.carrierName || "");
   const [trackingNumber, setTrackingNumber] = useState(order.trackingNumber || "");
-  const [isUpdating, setIsUpdating] = useState(false);
 
-  const handleStatusUpdate = (status: FulfillmentStatus) => {
-    setIsUpdating(true);
-    setTimeout(() => {
-      setFulfillmentStatus(status);
-      setIsUpdating(false);
-    }, 300);
-  };
+  const statusConfig = fulfillmentStatusConfig[order.fulfillmentStatus] || fulfillmentStatusConfig.PENDING;
+  const allowedTransitions = ALLOWED_TRANSITIONS[order.fulfillmentStatus] || [];
 
   return (
-    <Card className="rounded-none border-border/50">
+    <Card className="border-border/50">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <Truck className="h-5 w-5 text-[#d4af37]" />
+          <Truck className="h-5 w-5 text-secondary" />
           <CardTitle className="font-[family-name:var(--font-bodoni-moda)] text-lg font-semibold">
             Fulfillment
           </CardTitle>
@@ -50,9 +58,9 @@ export function AdminFulfillmentPanel({ order }: AdminFulfillmentPanelProps) {
           </p>
           <Badge
             variant="outline"
-            className={`font-[family-name:var(--font-montserrat)] text-xs ${fulfillmentStatusConfig[fulfillmentStatus].className}`}
+            className={`font-[family-name:var(--font-montserrat)] text-xs ${statusConfig.className}`}
           >
-            {fulfillmentStatusConfig[fulfillmentStatus].label}
+            {statusConfig.label}
           </Badge>
         </div>
 
@@ -63,36 +71,53 @@ export function AdminFulfillmentPanel({ order }: AdminFulfillmentPanelProps) {
             Update Status
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button
-              onClick={() => handleStatusUpdate("processing")}
-              disabled={isUpdating || fulfillmentStatus === "processing"}
-              variant="outline"
-              size="sm"
-              className="rounded-none border-border/50 font-[family-name:var(--font-montserrat)] text-xs hover:border-[#d4af37]/50 hover:text-[#d4af37] disabled:opacity-50"
-            >
-              <Package className="mr-1.5 h-3.5 w-3.5" />
-              Mark as Processing
-            </Button>
-            <Button
-              onClick={() => handleStatusUpdate("shipped")}
-              disabled={isUpdating || fulfillmentStatus === "shipped"}
-              variant="outline"
-              size="sm"
-              className="rounded-none border-border/50 font-[family-name:var(--font-montserrat)] text-xs hover:border-[#d4af37]/50 hover:text-[#d4af37] disabled:opacity-50"
-            >
-              <Truck className="mr-1.5 h-3.5 w-3.5" />
-              Mark as Shipped
-            </Button>
-            <Button
-              onClick={() => handleStatusUpdate("delivered")}
-              disabled={isUpdating || fulfillmentStatus === "delivered"}
-              variant="outline"
-              size="sm"
-              className="rounded-none border-border/50 font-[family-name:var(--font-montserrat)] text-xs hover:border-[#d4af37]/50 hover:text-[#d4af37] disabled:opacity-50"
-            >
-              <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
-              Mark as Delivered
-            </Button>
+            {allowedTransitions.includes('PROCESSING') && (
+              <Button
+                onClick={() => onUpdateStatus(order.id, 'PROCESSING')}
+                disabled={isUpdatingStatus}
+                variant="outline"
+                size="sm"
+                className="border-border/50 font-[family-name:var(--font-montserrat)] text-xs hover:border-secondary/50 hover:text-secondary"
+              >
+                <Package className="mr-1.5 h-3.5 w-3.5" />
+                Mark as Processing
+              </Button>
+            )}
+            {allowedTransitions.includes('SHIPPED') && (
+              <Button
+                onClick={() => onUpdateStatus(order.id, 'SHIPPED')}
+                disabled={isUpdatingStatus}
+                variant="outline"
+                size="sm"
+                className="border-border/50 font-[family-name:var(--font-montserrat)] text-xs hover:border-secondary/50 hover:text-secondary"
+              >
+                <Truck className="mr-1.5 h-3.5 w-3.5" />
+                Mark as Shipped
+              </Button>
+            )}
+            {allowedTransitions.includes('DELIVERED') && (
+              <Button
+                onClick={() => onUpdateStatus(order.id, 'DELIVERED')}
+                disabled={isUpdatingStatus}
+                variant="outline"
+                size="sm"
+                className="border-border/50 font-[family-name:var(--font-montserrat)] text-xs hover:border-secondary/50 hover:text-secondary"
+              >
+                <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
+                Mark as Delivered
+              </Button>
+            )}
+            {allowedTransitions.includes('CANCELLED') && (
+              <Button
+                onClick={() => onUpdateStatus(order.id, 'CANCELLED')}
+                disabled={isUpdatingStatus}
+                variant="outline"
+                size="sm"
+                className="border-destructive/50 font-[family-name:var(--font-montserrat)] text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                Cancel Order
+              </Button>
+            )}
           </div>
         </div>
 
@@ -104,28 +129,36 @@ export function AdminFulfillmentPanel({ order }: AdminFulfillmentPanelProps) {
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="font-[family-name:var(--font-montserrat)] text-xs text-muted-foreground">
+              <Label className="font-[family-name:var(--font-montserrat)] text-xs text-muted-foreground">
                 Carrier Name
-              </label>
+              </Label>
               <Input
                 value={carrierName}
                 onChange={(e) => setCarrierName(e.target.value)}
                 placeholder="e.g., FedEx, UPS"
-                className="rounded-none border-border/50 font-[family-name:var(--font-montserrat)] text-sm focus-visible:border-[#d4af37] focus-visible:ring-0"
+                className="border-border/50 font-[family-name:var(--font-montserrat)] text-sm focus-visible:border-secondary focus-visible:ring-0"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="font-[family-name:var(--font-montserrat)] text-xs text-muted-foreground">
+              <Label className="font-[family-name:var(--font-montserrat)] text-xs text-muted-foreground">
                 Tracking Number
-              </label>
+              </Label>
               <Input
                 value={trackingNumber}
                 onChange={(e) => setTrackingNumber(e.target.value)}
                 placeholder="Enter tracking number"
-                className="rounded-none border-border/50 font-[family-name:var(--font-montserrat)] text-sm focus-visible:border-[#d4af37] focus-visible:ring-0"
+                className="border-border/50 font-[family-name:var(--font-montserrat)] text-sm focus-visible:border-secondary focus-visible:ring-0"
               />
             </div>
           </div>
+          <Button
+            onClick={() => onSaveTracking(order.id, carrierName, trackingNumber)}
+            disabled={isSavingTracking || !carrierName || !trackingNumber}
+            size="sm"
+            className="bg-secondary font-[family-name:var(--font-montserrat)] text-xs font-semibold uppercase tracking-wider text-foreground hover:bg-secondary/90"
+          >
+            {isSavingTracking ? "Saving..." : "Save Tracking Info"}
+          </Button>
         </div>
       </CardContent>
     </Card>

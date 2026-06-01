@@ -4,21 +4,12 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, Package, CreditCard, Truck, CheckCircle, XCircle } from "lucide-react";
+import { Calendar, Package, CreditCard, Truck, CheckCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { OptimizedImage } from "@/components/shared/optimized-image";
+import type { OrderData } from "@/types/order";
 
-export type PaymentStatus = "pending" | "paid" | "failed";
-export type FulfillmentStatus = "processing" | "shipped" | "delivered" | "cancelled";
-
-export interface OrderData {
-  id: string;
-  orderNumber: string;
-  orderDate: string;
-  total: number;
-  paymentStatus: PaymentStatus;
-  fulfillmentStatus: FulfillmentStatus;
-  itemCount: number;
-}
+export type { OrderData };
 
 interface OrderCardProps {
   order: OrderData;
@@ -30,34 +21,25 @@ export function OrderCard({ order, className }: OrderCardProps) {
 
   const getPaymentStatusBadge = () => {
     switch (order.paymentStatus) {
-      case "paid":
+      case "PAID":
         return (
-          <Badge
-            variant="secondary"
-            className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1"
-          >
-            <CheckCircle className="w-3 h-3 mr-1" />
+          <Badge variant="secondary" className="bg-success/10 text-success border-success/20 font-sans text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-lg">
+            <CheckCircle className="w-2.5 h-2.5 mr-1" />
             Paid
           </Badge>
         );
-      case "failed":
+      case "REJECTED":
         return (
-          <Badge
-            variant="secondary"
-            className="bg-destructive/10 text-destructive border border-destructive/20 font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1"
-          >
-            <XCircle className="w-3 h-3 mr-1" />
-            Failed
+          <Badge variant="secondary" className="bg-destructive/10 text-destructive border-destructive/20 font-sans text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-lg">
+            <XCircle className="w-2.5 h-2.5 mr-1" />
+            Rejected
           </Badge>
         );
       default:
         return (
-          <Badge
-            variant="secondary"
-            className="bg-amber-500/10 text-amber-500 border border-amber-500/20 font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1"
-          >
-            <CreditCard className="w-3 h-3 mr-1" />
-            Pending Payment
+          <Badge variant="secondary" className="bg-warning/10 text-warning border-warning/20 font-sans text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-lg">
+            <CreditCard className="w-2.5 h-2.5 mr-1" />
+            Pending
           </Badge>
         );
     }
@@ -65,43 +47,31 @@ export function OrderCard({ order, className }: OrderCardProps) {
 
   const getFulfillmentStatusBadge = () => {
     switch (order.fulfillmentStatus) {
-      case "delivered":
+      case "DELIVERED":
         return (
-          <Badge
-            variant="secondary"
-            className="bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/20 font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1"
-          >
-            <CheckCircle className="w-3 h-3 mr-1" />
+          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-sans text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-lg">
+            <CheckCircle className="w-2.5 h-2.5 mr-1" />
             Delivered
           </Badge>
         );
-      case "shipped":
+      case "SHIPPED":
         return (
-          <Badge
-            variant="secondary"
-            className="bg-blue-500/10 text-blue-500 border border-blue-500/20 font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1"
-          >
-            <Truck className="w-3 h-3 mr-1" />
+          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-sans text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-lg">
+            <Truck className="w-2.5 h-2.5 mr-1" />
             Shipped
           </Badge>
         );
-      case "cancelled":
+      case "CANCELLED":
         return (
-          <Badge
-            variant="secondary"
-            className="bg-gray-500/10 text-gray-500 border border-gray-500/20 font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1"
-          >
-            <XCircle className="w-3 h-3 mr-1" />
+          <Badge variant="secondary" className="bg-muted/50 text-muted-foreground border-border font-sans text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-lg">
+            <XCircle className="w-2.5 h-2.5 mr-1" />
             Cancelled
           </Badge>
         );
       default:
         return (
-          <Badge
-            variant="secondary"
-            className="bg-purple-500/10 text-purple-500 border border-purple-500/20 font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1"
-          >
-            <Package className="w-3 h-3 mr-1" />
+          <Badge variant="secondary" className="bg-muted text-muted-foreground border-border font-sans text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-lg">
+            <Package className="w-2.5 h-2.5 mr-1" />
             Processing
           </Badge>
         );
@@ -109,98 +79,93 @@ export function OrderCard({ order, className }: OrderCardProps) {
   };
 
   const getActionButton = () => {
-    // Pending Payment → Complete Payment (go to payment proof upload)
-    if (order.paymentStatus === "pending") {
+    if (order.paymentStatus === "PENDING") {
       return (
         <Button
-          onClick={() => router.push("/order/payment-proof")}
-          className="w-full sm:w-auto px-6 py-2 text-sm font-button tracking-wide uppercase bg-[#d4af37] text-black hover:bg-[#d4af37]/90 transition-colors"
+          onClick={() => router.push(`/order/payment-proof/${order.id}`)}
+          className="w-full px-4 py-2 text-xs font-button tracking-wide uppercase bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors"
         >
-          <CreditCard className="w-4 h-4 mr-2" />
+          <CreditCard className="w-3 h-3 mr-1.5" />
           Complete Payment
         </Button>
       );
     }
-
-    // Shipped → Track Order (go to tracking page)
-    if (order.fulfillmentStatus === "shipped") {
+    if (order.fulfillmentStatus === "SHIPPED") {
       return (
         <Button
           onClick={() => router.push(`/orders/${order.id}/tracking`)}
           variant="outline"
-          className="w-full sm:w-auto px-6 py-2 text-sm font-button tracking-wide uppercase border-[#d4af37]/30 text-foreground hover:bg-[#d4af37]/10 hover:border-[#d4af37]/50 transition-colors"
+          className="w-full px-4 py-2 text-xs font-button tracking-wide uppercase border-primary/30 text-foreground hover:bg-primary/10 rounded-lg transition-colors"
         >
-          <Truck className="w-4 h-4 mr-2" />
+          <Truck className="w-3 h-3 mr-1.5" />
           Track Order
         </Button>
       );
     }
-
-    // Paid / Processing / Delivered → View Details
     return (
       <Button
         onClick={() => router.push(`/orders/${order.id}`)}
         variant="outline"
-        className="w-full sm:w-auto px-6 py-2 text-sm font-button tracking-wide uppercase border-[#d4af37]/30 text-foreground hover:bg-[#d4af37]/10 hover:border-[#d4af37]/50 transition-colors"
+        className="w-full px-4 py-2 text-xs font-button tracking-wide uppercase border-primary/30 text-foreground hover:bg-primary/10 rounded-lg transition-colors"
       >
         View Details
       </Button>
     );
   };
 
+  const previewImage = order.previewItem?.product?.image?.url;
+
   return (
-    <Card
-      className={cn(
-        "p-6 md:p-8 border border-border bg-card hover:border-[#d4af37]/30 transition-colors",
-        className
-      )}
-    >
-      {/* Header: Order Number and Date */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 flex items-center justify-center border border-[#d4af37]/30 bg-[#d4af37]/10">
-            <Package className="w-5 h-5 text-[#d4af37]" />
+    <Card className={cn("border border-border bg-card hover:border-primary/30 transition-colors rounded-lg overflow-hidden", className)}>
+      {/* Preview Image */}
+      <div className="relative h-40 w-full bg-muted">
+        {previewImage ? (
+          <OptimizedImage
+            src={previewImage}
+            alt={order.previewItem?.product?.name || "Order item"}
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Package className="w-10 h-10 text-muted-foreground/30" />
           </div>
+        )}
+        {/* Status badges overlay */}
+        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+          {getPaymentStatusBadge()}
+          {getFulfillmentStatusBadge()}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-4 md:p-5">
+        {/* Order Number and Total */}
+        <div className="flex items-start justify-between mb-3">
           <div>
-            <h3 className="font-heading text-lg font-semibold text-foreground">
+            <h3 className="font-heading text-base font-semibold text-foreground leading-tight">
               {order.orderNumber}
             </h3>
-            <div className="flex items-center gap-2 text-muted-foreground">
+            <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
               <Calendar className="w-3 h-3" />
               <span className="font-sans text-xs">{order.orderDate}</span>
             </div>
           </div>
-        </div>
-
-        {/* Total */}
-        <div className="flex items-center gap-2">
-          <DollarSign className="w-4 h-4 text-[#d4af37]" />
-          <span className="font-heading text-xl font-semibold text-foreground">
+          <span className="font-heading text-lg font-semibold text-foreground shrink-0 ml-2">
             ${order.total.toFixed(2)}
           </span>
         </div>
-      </div>
 
-      {/* Divider */}
-      <div className="w-full h-px bg-border/50 mb-6" />
-
-      {/* Status Badges and Item Count */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div className="flex flex-wrap items-center gap-3">
-          {getPaymentStatusBadge()}
-          {getFulfillmentStatusBadge()}
-        </div>
-
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Package className="w-4 h-4" />
-          <span className="font-sans text-sm">
+        {/* Item Count */}
+        <div className="flex items-center gap-1.5 text-muted-foreground mb-4">
+          <Package className="w-3.5 h-3.5" />
+          <span className="font-sans text-xs">
             {order.itemCount} {order.itemCount === 1 ? "Item" : "Items"}
           </span>
         </div>
-      </div>
 
-      {/* Action Button */}
-      <div className="flex justify-end">
+        {/* Action */}
         {getActionButton()}
       </div>
     </Card>

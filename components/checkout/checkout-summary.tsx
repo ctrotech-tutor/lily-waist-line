@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { OptimizedImage } from "@/components/shared/optimized-image";
 import { Package, ChevronDown, ChevronUp, Tag, Shield, Truck, RotateCcw } from "lucide-react";
 
 // Mock item for preview
@@ -70,9 +70,10 @@ export function CheckoutSummary({
       <CardContent className="p-0">
         {/* Mobile Accordion Header */}
         <div className="lg:hidden">
-          <button
+          <Button
+            variant="ghost"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+            className="w-full flex items-center justify-between p-4 h-auto hover:bg-muted/30 transition-colors"
           >
             <div className="flex items-center gap-2">
               <span className="font-heading text-lg font-semibold text-foreground">
@@ -92,7 +93,7 @@ export function CheckoutSummary({
                 <ChevronDown className="w-5 h-5 text-muted-foreground" />
               )}
             </div>
-          </button>
+          </Button>
         </div>
 
         {/* Desktop Header - Always Visible */}
@@ -117,7 +118,7 @@ export function CheckoutSummary({
                       {/* Item Image */}
                       <div className="w-16 h-20 bg-muted flex items-center justify-center shrink-0 overflow-hidden relative">
                         {item.image ? (
-                          <Image
+                          <OptimizedImage
                             src={item.image}
                             alt={item.name}
                             fill
@@ -228,7 +229,7 @@ export function CheckoutSummary({
                 <span
                   className={cn(
                     "font-sans text-sm font-medium",
-                    shipping === 0 ? "text-green-500" : "text-foreground"
+                    shipping === 0 ? "text-success" : "text-foreground"
                   )}
                 >
                   {shippingDisplay}
@@ -241,7 +242,7 @@ export function CheckoutSummary({
                   <span className="font-sans text-sm text-muted-foreground">
                     Discount
                   </span>
-                  <span className="font-sans text-sm font-medium text-green-500">
+                  <span className="font-sans text-sm font-medium text-success">
                     -${discount.toFixed(2)}
                   </span>
                 </div>

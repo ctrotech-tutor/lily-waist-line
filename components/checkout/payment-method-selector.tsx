@@ -4,8 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Globe, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { UIPaymentMethod } from "@/types/checkout";
 
-export type PaymentMethod = "cashapp" | "paypal";
+export type PaymentMethod = UIPaymentMethod;
 
 interface PaymentOption {
   id: PaymentMethod;
@@ -53,15 +54,24 @@ export function PaymentMethodSelector({
         return (
           <Card
             key={option.id}
+            role="radio"
+            aria-checked={isSelected}
+            tabIndex={disabled ? -1 : 0}
             onClick={() => !disabled && onSelect(option.id)}
-            className={cn(
-              "relative p-5 md:p-6",
-              "border transition-all duration-300",
-              disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-[#d4af37]/50",
-              isSelected
-                ? "border-[#d4af37] bg-[#d4af37]/5 ring-1 ring-[#d4af37]/30"
-                : "border-border bg-card"
-            )}
+            onKeyDown={(e) => {
+              if (!disabled && (e.key === "Enter" || e.key === " ")) {
+                e.preventDefault();
+                onSelect(option.id);
+              }
+            }}
+              className={cn(
+                "relative p-5 md:p-6 rounded-xl",
+                "border transition-all duration-300",
+                disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-primary/50",
+                isSelected
+                  ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                  : "border-border bg-card"
+              )}
           >
             {/* Selection Indicator */}
             <div
@@ -69,11 +79,11 @@ export function PaymentMethodSelector({
                 "absolute top-4 right-4 w-6 h-6 flex items-center justify-center",
                 "border transition-all duration-300",
                 isSelected
-                  ? "bg-[#d4af37] border-[#d4af37]"
+                  ? "bg-primary border-primary"
                   : "bg-transparent border-border"
               )}
             >
-              {isSelected && <Check className="w-4 h-4 text-black" />}
+              {isSelected && <Check className="w-4 h-4 text-primary-foreground" />}
             </div>
 
             {/* Badge */}
@@ -83,7 +93,7 @@ export function PaymentMethodSelector({
                 className={cn(
                   "font-sans text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5",
                   isSelected
-                    ? "bg-[#d4af37] text-black"
+                    ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground"
                 )}
               >
@@ -98,8 +108,8 @@ export function PaymentMethodSelector({
                 className={cn(
                   "shrink-0 w-12 h-12 flex items-center justify-center border transition-all duration-300",
                   isSelected
-                    ? "border-[#d4af37] bg-[#d4af37]/10 text-[#d4af37]"
-                    : "border-[#d4af37]/20 text-[#d4af37]/70"
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-primary/20 text-primary/70"
                 )}
               >
                 {option.icon}

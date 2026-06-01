@@ -10,25 +10,25 @@ interface AdminShippingStatsProps {
 
 const statConfig = [
   {
-    key: "pendingShipment" as const,
-    title: "Pending Shipment",
+    key: "processing" as const,
+    title: "Processing",
     icon: Package,
-    description: "Ready to ship",
-    className: "text-amber-600",
+    description: "Awaiting shipment",
+    className: "text-warning",
   },
   {
     key: "shipped" as const,
     title: "Shipped",
     icon: Truck,
     description: "In transit",
-    className: "text-blue-600",
+    className: "text-info",
   },
   {
     key: "delivered" as const,
     title: "Delivered",
     icon: CheckCircle,
     description: "Completed",
-    className: "text-green-600",
+    className: "text-success",
   },
 ];
 
@@ -44,7 +44,7 @@ export function AdminShippingStats({ stats }: AdminShippingStatsProps) {
             <stat.icon className={`h-4 w-4 ${stat.className}`} />
           </CardHeader>
           <CardContent>
-            <div className="font-[family-name:var(--font-bodoni)] text-3xl font-bold">
+            <div className="font-[family-name:var(--font-bodoni-moda)] text-3xl font-bold">
               {stats[stat.key]}
             </div>
             <p className="font-[family-name:var(--font-montserrat)] text-xs text-muted-foreground">

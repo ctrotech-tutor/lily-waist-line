@@ -3,7 +3,6 @@
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { loginSchema, type LoginFormData } from '@/lib/validators/auth'
-import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { sendLoginAlertEmail } from '@/lib/services/email/email-triggers'
 

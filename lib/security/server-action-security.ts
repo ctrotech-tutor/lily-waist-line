@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { ZodSchema } from 'zod'
 import { redirect } from 'next/navigation'
 import { VALIDATION_ERRORS } from '@/lib/validators/base'
+import { ROUTES } from '@/lib/constants/routes'
 
 /**
  * Server Action Security Layer
@@ -75,10 +76,10 @@ export async function validateServerAction(options: SecurityOptions): Promise<{
 async function validateSession(required: boolean): Promise<SecurityContext> {
   const supabase = createClient()
   
-  const { data: { user }, error } = await (await supabase).auth.getUser()
+  const { data: { user } } = await (await supabase).auth.getUser()
   
   if (required && !user) {
-    redirect('/login')
+    redirect(ROUTES.LOGIN)
   }
   
   if (!user) {

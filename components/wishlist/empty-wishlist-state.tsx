@@ -3,6 +3,7 @@ import { Heart } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ROUTES } from "@/lib/constants/routes";
 
 interface EmptyWishlistProps {
   className?: string;
@@ -14,8 +15,8 @@ export function EmptyWishlistState({ className }: EmptyWishlistProps) {
       <div className="flex flex-col items-center justify-center text-center max-w-md mx-auto">
         {/* Icon / Visual Element */}
         <div className="mb-8">
-          <div className="w-20 h-20 border-2 border-[#d4af37]/20 flex items-center justify-center">
-            <Heart className="w-10 h-10 text-[#d4af37]" />
+          <div className="w-20 h-20 border-2 border-primary/20 flex items-center justify-center">
+            <Heart className="w-10 h-10 text-primary" />
           </div>
         </div>
 
@@ -30,12 +31,11 @@ export function EmptyWishlistState({ className }: EmptyWishlistProps) {
         </p>
 
         {/* Primary CTA */}
-        <Link
-          href="/shop"
-          className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3 text-sm font-button tracking-wide uppercase bg-[#d4af37] text-black hover:bg-[#d4af37]/90 transition-colors"
-        >
-          Continue Shopping
-        </Link>
+        <Button asChild size="lg" className="px-8 text-sm font-button tracking-wide uppercase">
+          <Link href={ROUTES.SHOP}>
+            Continue Shopping
+          </Link>
+        </Button>
       </div>
     </Card>
   );

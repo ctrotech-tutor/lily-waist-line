@@ -1,5 +1,13 @@
+import type { Metadata } from "next";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+
+export const metadata: Metadata = {
+  title: {
+    default: "Shop",
+    template: "%s | Lily Waist Line",
+  },
+};
 
 export default function SiteLayout({
   children,
@@ -9,7 +17,7 @@ export default function SiteLayout({
   return (
     <>
       <Navbar />
-      <main className="flex-1">{children}</main>
+      <main id="main-content" className="flex-1">{children}</main>
       <Footer />
     </>
   );

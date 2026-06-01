@@ -1,18 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Heart, Eye, ShoppingBag, Loader2 } from "lucide-react";
+import { ROUTES } from "@/lib/constants/routes";
+import { toast } from "sonner"
+
 import { cn } from "@/lib/utils";
-import { addToCart, getCart } from "@/server/actions/cart";
+import { Button } from "@/components/ui/button";
+
+import { useAddToCart } from "@/hooks/use-cart-mutations";
 import {
-  addToWishlist,
-  removeFromWishlist,
-  getWishlist,
-} from "@/server/actions/wishlist";
+  useAddToWishlist,
+  useRemoveFromWishlist,
+} from "@/hooks/use-wishlist-mutations";
+
+import {
+  useProductWishlistStatus,
+  useProductCartStatus,
+} from "@/hooks/use-product-interactions";
+
 import { ProductImage } from "../shared/optimized-image";
 
-export type StockState = "in-stock" | "low-stock" | "out-of-stock";
+import type { StockState } from "@/types/common";
 
 export interface ProductCardProps {
   id: string;
@@ -40,206 +50,179 @@ export function ProductCard({
   originalPrice,
   badge,
   stockState = "in-stock",
-  isWishlisted = false,
   className,
 }: ProductCardProps) {
   const router = useRouter();
 
-  const [wishlisted, setWishlisted] = useState(isWishlisted);
   const [isHovered, setIsHovered] = useState(false);
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
-  const [cartMessage, setCartMessage] = useState<string | null>(null);
-  const [inCart, setInCart] = useState(false);
 
-  useEffect(() => {
-    async function checkWishlistStatus() {
-      try {
-        const result = await getWishlist();
 
-        if (result.success) {
-          const isInWishlist = result.data.some(
-            (item) => item.product.id === id
-          );
+  const { isWishlisted: wishlisted } =
+    useProductWishlistStatus(id);
 
-          setWishlisted(isInWishlist);
-        }
-      } catch (error) {
-        console.error("Failed to check wishlist status:", error);
-      }
-    }
+  const { inCart } =
+    useProductCartStatus(variantId);
 
-    checkWishlistStatus();
-  }, [id]);
+  const addToCartMutation = useAddToCart();
 
-  useEffect(() => {
-    async function checkCartStatus() {
-      try {
-        const result = await getCart();
+  const addToWishlistMutation =
+    useAddToWishlist();
 
-        if (result.success && result.data) {
-          const isInCart = result.data.items.some(
-            (item) => item.variant.id === variantId
-          );
+  const removeFromWishlistMutation =
+    useRemoveFromWishlist();
 
-          setInCart(isInCart);
-        }
-      } catch (error) {
-        console.error("Failed to check cart status:", error);
-      }
-    }
-
-    checkCartStatus();
-  }, [variantId]);
-
-  const hasDiscount = originalPrice && originalPrice > price;
+  const hasDiscount =
+    originalPrice && originalPrice > price;
 
   const discountPercentage = hasDiscount
-    ? Math.round(((originalPrice - price) / originalPrice) * 100)
+    ? Math.round(
+        ((originalPrice - price) / originalPrice) * 100
+      )
     : null;
 
   const stockConfig = {
     "in-stock": {
       label: "In Stock",
-      color: "text-emerald-500",
+      color: "text-success",
     },
+
     "low-stock": {
       label: "Low Stock",
-      color: "text-amber-500",
+      color: "text-warning",
     },
+
     "out-of-stock": {
       label: "Out of Stock",
-      color: "text-red-500",
+      color: "text-destructive",
     },
-  };
-
-  const handleAddToCart = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    if (stockState === "out-of-stock") return;
-
-    setIsAddingToCart(true);
-    setCartMessage(null);
-
-    try {
-      const result = await addToCart({
-        variantId,
-        quantity: 1,
-      });
-
-      if (result.success) {
-        setInCart(true);
-        setCartMessage("Added to cart!");
-
-        setTimeout(() => {
-          setCartMessage(null);
-        }, 2000);
-      } else {
-        setCartMessage(result.error || "Failed to add to cart");
-
-        setTimeout(() => {
-          setCartMessage(null);
-        }, 3000);
-      }
-    } catch {
-      setCartMessage("Failed to add to cart");
-
-      setTimeout(() => {
-        setCartMessage(null);
-      }, 3000);
-    } finally {
-      setIsAddingToCart(false);
-    }
-  };
-
-  const handleAddToWishlist = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    setIsAddingToWishlist(true);
-
-    try {
-      if (wishlisted) {
-        const result = await removeFromWishlist(id);
-
-        if (result.success) {
-          setWishlisted(false);
-        }
-      } else {
-        const result = await addToWishlist(id);
-
-        if (result.success) {
-          setWishlisted(true);
-        } else {
-          if (result.error?.includes("logged in")) {
-            router.push("/login");
-            return;
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Failed to update wishlist:", error);
-    } finally {
-      setIsAddingToWishlist(false);
-    }
-  };
-
-  const handleQuickView = (e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    console.log("Quick view:", id);
   };
 
   const handleCardClick = () => {
     router.push(`/product/${id}/${slug}`);
   };
 
+  const handleQuickView = (
+    e: React.MouseEvent
+  ) => {
+    e.stopPropagation();
+  };
+
+  const handleAddToWishlist = (
+    e: React.MouseEvent
+  ) => {
+    e.stopPropagation();
+
+    if (wishlisted) {
+      removeFromWishlistMutation.mutate(id, {
+        onError: (error) => {
+          if (
+            error.message?.includes("logged in")
+          ) {
+            router.push(ROUTES.LOGIN);
+          }
+        },
+      });
+
+      return;
+    }
+
+    addToWishlistMutation.mutate(id, {
+      onError: (error) => {
+        if (
+          error.message?.includes("logged in")
+        ) {
+          router.push("/login");
+        }
+      },
+    });
+  };
+
+  const handleAddToCart = (
+    e: React.MouseEvent
+  ) => {
+    e.stopPropagation();
+
+    if (stockState === "out-of-stock") {
+      return;
+    }
+
+    addToCartMutation.mutate(
+      {
+        variantId,
+        quantity: 1,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Added to cart!")
+        },
+
+        onError: (error) => {
+          toast.error(error.message || "Failed to add to cart")
+          router.push(ROUTES.LOGIN)
+        },
+      }
+    );
+  };
+
   return (
     <div
+      role="link"
+      tabIndex={0}
       className={cn(
         "group relative flex flex-col cursor-pointer",
-        "transition-all duration-500 ease-out",
         className
       )}
       onClick={handleCardClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleCardClick();
+        }
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* IMAGE */}
       <div
         className={cn(
-          "relative aspect-3/4 overflow-hidden rounded-3xl",
+          "relative isolate aspect-3/4",
+          "overflow-hidden rounded-3xl",
           "bg-card",
-          "transition-all duration-500 ease-out",
+          "transition-shadow duration-300 ease-out",
           isHovered &&
-          "shadow-[0_8px_30px_rgba(212,175,55,0.10)] dark:shadow-[0_0_30px_rgba(212,175,55,0.15)]"
+            "shadow-primary/10"
         )}
       >
         <ProductImage
           src={image}
           alt={name}
           className={cn(
-            "transition-transform duration-700 ease-out",
-            isHovered && "scale-105"
+            "h-full w-full object-cover",
+            "transition-transform duration-500 ease-out",
+            "transform-gpu backface-hidden",
+            isHovered && "md:scale-[1.03]"
           )}
         />
 
-        {/* Hover Overlay */}
+        {/* Hover Border */}
         <div
           className={cn(
-            "absolute inset-0 rounded-3xl border border-transparent",
-            "transition-all duration-500 ease-out",
-            isHovered && "border-accent/40"
+            "pointer-events-none absolute inset-0 rounded-3xl border",
+            "border-transparent",
+            "transition-colors duration-300",
+              isHovered &&
+                "border-primary/30"
           )}
         />
 
         {/* Badge */}
         {badge && (
-          <div className="absolute top-3 left-3 z-10">
+          <div className="absolute left-3 top-3 z-10">
             <span
               className={cn(
-                "inline-flex rounded-full px-3 py-1.5",
-                "bg-[#d4af37] text-black",
-                "font-sans text-[10px] font-semibold uppercase tracking-widest"
+                "inline-flex px-3 py-1.5 rounded-md",
+                "bg-primary text-primary-foreground",
+                "text-[10px] font-semibold uppercase tracking-widest"
               )}
             >
               {badge}
@@ -249,12 +232,12 @@ export function ProductCard({
 
         {/* Discount */}
         {discountPercentage && (
-          <div className="absolute top-3 right-3 z-10">
+          <div className="absolute right-3 top-3 z-10">
             <span
               className={cn(
-                "inline-flex rounded-full px-3 py-1.5",
-                "bg-black text-[#d4af37]",
-                "font-sans text-[10px] font-semibold uppercase tracking-widest"
+                "inline-flex px-3 py-1.5 rounded-md",
+                "bg-primary text-primary-foreground",
+                "text-[10px] font-semibold uppercase tracking-widest"
               )}
             >
               -{discountPercentage}%
@@ -265,26 +248,30 @@ export function ProductCard({
         {/* Actions */}
         <div
           className={cn(
-            "absolute bottom-3 left-3 right-3 flex gap-2",
-            "transition-all duration-500 ease-out",
-            "sm:opacity-0 sm:translate-y-4",
-            "group-hover:sm:opacity-100 group-hover:sm:translate-y-0"
+            "absolute bottom-3 left-3 right-3 z-10 flex gap-2",
+            "transition-opacity duration-300",
+            "sm:translate-y-3 sm:opacity-0",
+            "group-hover:sm:translate-y-0",
+            "group-hover:sm:opacity-100"
           )}
         >
           {/* Wishlist */}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={handleAddToWishlist}
-            disabled={isAddingToWishlist}
+            disabled={
+              addToWishlistMutation.isPending ||
+              removeFromWishlistMutation.isPending
+            }
             className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-full shrink-0",
-              "bg-black/80 backdrop-blur-sm",
-              "transition-all duration-300",
-              "hover:bg-[#d4af37] hover:text-black",
-              wishlisted ? "text-[#d4af37]" : "text-white",
-              "disabled:opacity-50"
+              "bg-background/80 text-foreground hover:bg-primary hover:text-primary-foreground",
+              wishlisted && "text-primary",
+              "shrink-0"
             )}
           >
-            {isAddingToWishlist ? (
+            {addToWishlistMutation.isPending ||
+            removeFromWishlistMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Heart
@@ -294,88 +281,80 @@ export function ProductCard({
                 )}
               />
             )}
-          </button>
+          </Button>
 
           {/* Quick View */}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={handleQuickView}
-            className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-full shrink-0",
-              "bg-black/80 text-white backdrop-blur-sm",
-              "transition-all duration-300",
-              "hover:bg-[#d4af37] hover:text-black"
-            )}
+            className="bg-background/80 text-foreground hover:bg-primary hover:text-primary-foreground shrink-0"
           >
             <Eye className="h-4 w-4" />
-          </button>
+          </Button>
 
           {/* Add To Cart */}
-          <button
+          <Button
+            variant="ghost"
             onClick={handleAddToCart}
-            disabled={stockState === "out-of-stock" || isAddingToCart}
+            disabled={
+              stockState === "out-of-stock" ||
+              addToCartMutation.isPending
+            }
             className={cn(
-              "flex h-10 flex-1 min-w-0 items-center justify-center gap-2 rounded-full px-4",
+              "min-w-0 flex-1 px-4",
+              "text-xs font-semibold uppercase tracking-wider",
               inCart
-                ? "bg-[#d4af37] text-black"
-                : "bg-black/80 text-white backdrop-blur-sm",
-              "font-sans text-xs font-semibold uppercase tracking-wider",
-              "transition-all duration-300",
-              !inCart && "hover:bg-[#d4af37] hover:text-black",
-              "disabled:opacity-50"
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-background/80 text-foreground hover:bg-primary hover:text-primary-foreground",
             )}
           >
-            {isAddingToCart ? (
+            {addToCartMutation.isPending ? (
               <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
             ) : (
               <ShoppingBag className="h-4 w-4 shrink-0" />
             )}
 
-            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+            <span className="truncate">
               {stockState === "out-of-stock"
                 ? "Sold Out"
                 : inCart
                   ? "In Cart"
                   : "Add to Cart"}
             </span>
-          </button>
+          </Button>
         </div>
 
-        {/* Stock Overlay */}
-        {stockState === "out-of-stock" && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-3xl bg-black/60">
-            <span className="font-sans text-xs font-semibold uppercase tracking-widest text-white/80">
+        {/* Out Of Stock */}
+        {stockState ===
+          "out-of-stock" && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/60">
+            <span className="text-xs font-semibold uppercase tracking-widest text-foreground/80">
               Out of Stock
             </span>
           </div>
         )}
 
-        {/* Toast */}
-        {cartMessage && (
-          <div className="absolute top-3 left-1/2 z-20 -translate-x-1/2">
-            <span className="inline-flex rounded-full bg-black/90 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white">
-              {cartMessage}
-            </span>
-          </div>
-        )}
+
       </div>
 
       {/* DETAILS */}
       <div className="flex flex-col gap-1.5 pt-4">
-        <h3 className="line-clamp-1 font-heading text-lg text-foreground">
+        <h3 className="line-clamp-1 text-lg text-foreground">
           {name}
         </h3>
 
-        <p className="line-clamp-1 font-sans text-sm text-muted-foreground">
+        <p className="line-clamp-1 text-sm text-muted-foreground">
           {subtitle}
         </p>
 
         <div className="mt-1 flex items-center gap-2">
-          <span className="font-heading text-lg text-foreground">
+          <span className="text-lg text-foreground">
             ${price.toFixed(2)}
           </span>
 
           {hasDiscount && (
-            <span className="font-heading text-sm text-muted-foreground line-through">
+            <span className="text-sm text-muted-foreground line-through">
               ${originalPrice.toFixed(2)}
             </span>
           )}
@@ -383,7 +362,7 @@ export function ProductCard({
 
         <span
           className={cn(
-            "font-sans text-xs",
+            "text-xs",
             stockConfig[stockState].color
           )}
         >

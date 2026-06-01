@@ -4,8 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import type { Prisma, PrismaClient } from '@/lib/generated/prisma/client'
+import type { PrismaClient } from '@/lib/generated/prisma/client'
 import { sendOrderConfirmationEmail } from '@/lib/services/email/email-triggers'
+import { formatOrderNumber } from '@/lib/utils/order'
 
 // Transaction result type
 interface OrderCreationResult {
@@ -79,13 +80,15 @@ export async function createOrder(formData: { addressId: string; paymentMethod: 
       // Fetch user's cart with full product and variant data
       const cartItems = await tx.cartItem.findMany({
         where: { userId: user.id },
-        include: {
+        select: {
+          id: true, variantId: true, quantity: true, userId: true,
           variant: {
-            include: {
-              product: true
-            }
-          }
-        }
+            select: {
+              id: true, stockQuantity: true, productId: true,
+              product: { select: { name: true, basePrice: true } },
+            },
+          },
+        },
       })
 
       if (cartItems.length === 0) {
@@ -134,6 +137,12 @@ export async function createOrder(formData: { addressId: string; paymentMethod: 
           paymentStatus: 'PENDING',
           fulfillmentStatus: 'PENDING'
         }
+      })
+
+      // Set order number after creation since ID is auto-generated
+      await tx.order.update({
+        where: { id: order.id },
+        data: { orderNumber: formatOrderNumber(order.id) }
       })
 
       // Create order items with snapshot data
@@ -188,7 +197,7 @@ export async function createOrder(formData: { addressId: string; paymentMethod: 
 
     // Send order confirmation email (non-blocking)
     try {
-      const orderNumber = `LWL-${new Date().getFullYear()}-${result.order.id.slice(-6).toUpperCase()}`
+      const orderNumber = formatOrderNumber(result.order.id)
       const firstName = result.address.firstName
       const email = user.email || ''
       
@@ -237,7 +246,7 @@ export async function createOrder(formData: { addressId: string; paymentMethod: 
       message: 'Order created successfully',
       data: {
         orderId: result.order.id,
-        orderNumber: `LWL-${new Date().getFullYear()}-${result.order.id.slice(-6).toUpperCase()}`,
+        orderNumber: formatOrderNumber(result.order.id),
         total: Number(result.order.total),
         paymentMethod: result.order.paymentMethod,
         paymentStatus: result.order.paymentStatus,

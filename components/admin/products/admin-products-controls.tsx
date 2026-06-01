@@ -2,6 +2,7 @@
 
 import { Search, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ROUTES } from "@/lib/constants/routes";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,7 +40,7 @@ export function AdminProductsControls({
             placeholder="Search by product name or SKU..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10 font-[family-name:var(--font-montserrat)] border-border/50 focus:border-[#d4af37] rounded-none"
+            className="pl-10 font-[family-name:var(--font-montserrat)] border-border/50 focus:border-secondary"
           />
         </div>
 
@@ -48,10 +49,10 @@ export function AdminProductsControls({
           value={stockFilter}
           onValueChange={(value) => onStockFilterChange(value as FilterStockStatus)}
         >
-          <SelectTrigger className="w-full sm:w-[180px] font-[family-name:var(--font-montserrat)] border-border/50 rounded-none focus:ring-[#d4af37]">
+          <SelectTrigger className="w-full sm:w-[180px] font-[family-name:var(--font-montserrat)] border-border/50 focus:ring-secondary">
             <SelectValue placeholder="Filter by Stock" />
           </SelectTrigger>
-          <SelectContent className="rounded-none">
+          <SelectContent>
             <SelectItem value="all" className="font-[family-name:var(--font-montserrat)]">
               All Products
             </SelectItem>
@@ -70,8 +71,8 @@ export function AdminProductsControls({
 
       {/* Add Product Button */}
       <Button
-        onClick={() => router.push("/admin/products/new")}
-        className="font-[family-name:var(--font-montserrat)] bg-[#d4af37] text-black hover:bg-[#d4af37]/90 rounded-none"
+        onClick={() => router.push(ROUTES.ADMIN_PRODUCTS_NEW)}
+        className="font-[family-name:var(--font-montserrat)] bg-secondary text-foreground hover:bg-secondary/90"
       >
         <Plus className="mr-2 h-4 w-4" />
         Add Product

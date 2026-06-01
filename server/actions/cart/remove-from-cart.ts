@@ -28,11 +28,15 @@ export async function removeFromCart(formData: { cartItemId: string }) {
     // Find the cart item and verify ownership
     const cartItem = await prisma.cartItem.findUnique({
       where: { id: validatedData.cartItemId },
-      include: {
+      select: {
+        id: true, variantId: true, userId: true, quantity: true,
         variant: {
-          include: { product: true }
-        }
-      }
+          select: {
+            id: true, size: true, compressionLevel: true, sku: true,
+            product: { select: { name: true } },
+          },
+        },
+      },
     })
 
     if (!cartItem) {

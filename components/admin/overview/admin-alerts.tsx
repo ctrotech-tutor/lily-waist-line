@@ -3,51 +3,51 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Package, Clock, CreditCard } from "lucide-react";
 
-interface Alert {
-  id: string;
-  type: "payment" | "stock" | "shipping";
-  message: string;
-  count: number;
+interface AdminAlertsProps {
+  paymentConfirmations: number;
+  lowStock: number;
+  unshippedOrders: number;
 }
 
-const mockAlerts: Alert[] = [
-  {
-    id: "1",
-    type: "payment",
-    message: "orders are awaiting payment confirmation",
-    count: 5,
-  },
-  {
-    id: "2",
-    type: "stock",
-    message: "products are low in stock",
-    count: 3,
-  },
-  {
-    id: "3",
-    type: "shipping",
-    message: "orders need to be shipped",
-    count: 8,
-  },
-];
+export function AdminAlerts({ paymentConfirmations, lowStock, unshippedOrders }: AdminAlertsProps) {
+  const alerts = [
+    paymentConfirmations > 0 && {
+      id: 'payment',
+      type: 'payment' as const,
+      count: paymentConfirmations,
+      message: 'orders are awaiting payment confirmation',
+    },
+    lowStock > 0 && {
+      id: 'stock',
+      type: 'stock' as const,
+      count: lowStock,
+      message: 'products are low in stock',
+    },
+    unshippedOrders > 0 && {
+      id: 'shipping',
+      type: 'shipping' as const,
+      count: unshippedOrders,
+      message: 'orders need to be shipped',
+    },
+  ].filter(Boolean)
 
-const alertConfig = {
-  payment: { icon: CreditCard, color: "text-amber-500" },
-  stock: { icon: Package, color: "text-red-500" },
-  shipping: { icon: Clock, color: "text-blue-500" },
-};
+  const alertConfig = {
+    payment: { icon: CreditCard, color: "text-warning" },
+    stock: { icon: Package, color: "text-destructive" },
+    shipping: { icon: Clock, color: "text-info" },
+  };
 
-export function AdminAlerts() {
   return (
     <Card className="border-border/50">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 font-[family-name:var(--font-bodoni)] text-xl">
-          <AlertTriangle className="h-5 w-5 text-[#d4af37]" />
+        <CardTitle className="flex items-center gap-2 font-[family-name:var(--font-bodoni-moda)] text-xl">
+          <AlertTriangle className="h-5 w-5 text-secondary" />
           System Alerts
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {mockAlerts.map((alert) => {
+        {alerts.length > 0 ? alerts.map((alert) => {
+          if (!alert) return null
           const { icon: Icon, color } = alertConfig[alert.type];
           return (
             <div
@@ -63,8 +63,7 @@ export function AdminAlerts() {
               </div>
             </div>
           );
-        })}
-        {mockAlerts.length === 0 && (
+        }) : (
           <p className="font-[family-name:var(--font-montserrat)] text-sm text-muted-foreground">
             No alerts at this time.
           </p>

@@ -1,8 +1,12 @@
+'use server'
+
 import { createClient } from '@/lib/supabase/server'
+import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { sendShippingUpdateEmail } from '@/lib/services/email/email-triggers'
+import { formatOrderNumber } from '@/lib/utils/order'
 
-// Input validation schema
 const addTrackingNumberSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
   carrier: z.string().min(1, 'Carrier name is required'),
@@ -11,113 +15,131 @@ const addTrackingNumberSchema = z.object({
 
 export async function addTrackingNumber(input: z.infer<typeof addTrackingNumberSchema>) {
   try {
-    // Validate input
     const { orderId, carrier, trackingNumber } = addTrackingNumberSchema.parse(input)
-    
+
     const supabase = await createClient()
-    
-    // Check admin authentication
+
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       throw new Error('Unauthorized')
     }
 
-    // Get user role from database
-    const { data: userData } = await supabase
-      .from('User')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true }
+    })
 
-    if (!userData || userData.role !== 'ADMIN') {
+    if (!dbUser || dbUser.role !== 'ADMIN') {
       throw new Error('Access denied. Admin access required.')
     }
 
-    // Get current order status
-    const { data: order, error: orderError } = await supabase
-      .from('Order')
-      .select(`
-        id,
-        paymentStatus,
-        fulfillmentStatus
-      `)
-      .eq('id', orderId)
-      .single()
-
-    if (orderError || !order) {
-      throw new Error('Order not found')
-    }
-
-    // Validate order is ready for tracking
-    if (order.paymentStatus !== 'PAID') {
-      throw new Error('Cannot add tracking number for unpaid order')
-    }
-
-    if (order.fulfillmentStatus === 'PENDING') {
-      throw new Error('Cannot add tracking number for order that has not been processed')
-    }
-
-    if (order.fulfillmentStatus === 'CANCELLED') {
-      throw new Error('Cannot add tracking number for cancelled order')
-    }
-
-    // Check if tracking number already exists for this order
-    const { data: existingShipment, error: existingError } = await supabase
-      .from('Shipment')
-      .select('id, trackingNumber, shippedAt, deliveredAt')
-      .eq('orderId', orderId)
-      .single()
-
-    if (existingError && existingError.code !== 'PGRST116') { // Not found error
-      throw new Error(`Error checking existing shipment: ${existingError.message}`)
-    }
-
-    // Create or update shipment record
-    const { data: shipment, error: shipmentError } = await supabase
-      .from('Shipment')
-      .upsert({
-        orderId,
-        carrier,
-        trackingNumber,
-        shippedAt: existingShipment?.shippedAt || new Date().toISOString(),
-        deliveredAt: existingShipment?.deliveredAt || null,
-      }, {
-        onConflict: 'orderId'
+    const result = await prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+        select: {
+          id: true,
+          paymentStatus: true,
+          fulfillmentStatus: true,
+          userId: true,
+          orderItems: {
+            select: {
+              quantity: true,
+              product: { select: { name: true } }
+            }
+          }
+        }
       })
-      .select()
-      .single()
 
-    if (shipmentError) {
-      throw new Error(`Failed to save tracking information: ${shipmentError.message}`)
-    }
-
-    // If order is not yet marked as shipped, update it
-    if (order.fulfillmentStatus === 'PROCESSING') {
-      const { error: statusUpdateError } = await supabase
-        .from('Order')
-        .update({ 
-          fulfillmentStatus: 'SHIPPED',
-          updatedAt: new Date().toISOString()
-        })
-        .eq('id', orderId)
-
-      if (statusUpdateError) {
-        throw new Error(`Failed to update order status to shipped: ${statusUpdateError.message}`)
+      if (!order) {
+        throw new Error('Order not found')
       }
+
+      if (order.paymentStatus !== 'PAID') {
+        throw new Error('Cannot add tracking number for unpaid order')
+      }
+
+      if (order.fulfillmentStatus === 'PENDING') {
+        throw new Error('Cannot add tracking number for order that has not been processed')
+      }
+
+      if (order.fulfillmentStatus === 'CANCELLED') {
+        throw new Error('Cannot add tracking number for cancelled order')
+      }
+
+      const orderStatusUpdated = order.fulfillmentStatus === 'PROCESSING'
+
+      const existingShipment = await tx.shipment.findFirst({
+        where: { orderId }
+      })
+
+      const shipment = existingShipment
+        ? await tx.shipment.update({
+            where: { id: existingShipment.id },
+            data: { carrier, trackingNumber }
+          })
+        : await tx.shipment.create({
+            data: {
+              orderId,
+              carrier,
+              trackingNumber,
+              shippedAt: new Date(),
+            }
+          })
+
+      if (orderStatusUpdated) {
+        await tx.order.update({
+          where: { id: orderId },
+          data: { fulfillmentStatus: 'SHIPPED' }
+        })
+      }
+
+      return { shipment, orderStatusUpdated, order }
+    })
+
+    // Send email with real tracking info asynchronously
+    try {
+      const userData = await prisma.user.findUnique({
+        where: { id: result.order.userId },
+        select: { fullName: true, email: true }
+      })
+
+      if (userData) {
+        const firstName = userData.fullName.split(' ')[0] || 'there'
+        const orderNumber = formatOrderNumber(orderId)
+        const estimatedDelivery = '3-5 business days'
+
+        const emailItems = result.order.orderItems.map(item => ({
+          name: item.product?.name || 'Product',
+          quantity: item.quantity,
+        }))
+
+        sendShippingUpdateEmail(
+          firstName,
+          userData.email,
+          orderNumber,
+          carrier,
+          trackingNumber,
+          estimatedDelivery,
+          emailItems
+        )
+      }
+    } catch (error) {
+      console.error('Failed to send shipping update email:', error)
     }
 
-    // Revalidate admin pages
     revalidatePath('/admin/orders')
     revalidatePath(`/admin/orders/${orderId}`)
+    revalidatePath('/orders')
+    revalidatePath(`/order/confirmation/${orderId}`)
 
     return {
       success: true,
-      message: `Tracking number added successfully`,
+      message: 'Tracking number added successfully',
       orderId,
       carrier,
       trackingNumber,
-      shipment,
-      orderStatusUpdated: order.fulfillmentStatus === 'PROCESSING',
+      shipment: result.shipment,
+      orderStatusUpdated: result.orderStatusUpdated,
     }
 
   } catch (error) {

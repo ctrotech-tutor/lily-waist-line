@@ -1,14 +1,29 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useForm, type Resolver } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { ROUTES } from "@/lib/constants/routes";
+import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { AddressData } from "./address-card";
-import { Loader2, Check, MapPin, ArrowLeft, AlertCircle } from "lucide-react";
+import { Loader2, Check, MapPin, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createAddress, updateAddress } from "@/server/actions/address";
+import { createAddressSchema, type UpdateAddressInput } from "@/lib/validators/address";
+import { z } from "zod";
 
 interface AddressFormProps {
   mode: "create" | "edit";
@@ -16,62 +31,14 @@ interface AddressFormProps {
   onSubmit?: (data: AddressData) => void;
   onCancel?: () => void;
   className?: string;
+  redirectTo?: string;
 }
 
-// Form field component with floating label pattern
-interface FormFieldProps {
-  id: string;
-  label: string;
-  type?: string;
-  required?: boolean;
-  defaultValue?: string;
-  placeholder?: string;
-  autoComplete?: string;
-}
+const addressFormSchema = createAddressSchema.extend({
+  id: z.string().optional(),
+});
 
-function FormField({
-  id,
-  label,
-  type = "text",
-  required = false,
-  defaultValue = "",
-  placeholder,
-  autoComplete,
-}: FormFieldProps) {
-  return (
-    <div className="relative w-full group">
-      <input
-        id={id}
-        name={id}
-        type={type}
-        required={required}
-        defaultValue={defaultValue}
-        placeholder={placeholder || " "}
-        autoComplete={autoComplete}
-        className={cn(
-          "peer w-full border-0 border-b border-border bg-transparent py-3 px-0 text-[14px] md:text-[15px] rounded-none",
-          "focus:border-[#d4af37] focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none",
-          "placeholder-transparent transition-colors",
-          "text-foreground"
-        )}
-      />
-      <label
-        htmlFor={id}
-        className={cn(
-          "absolute left-0 top-3 -translate-y-6 text-[10px] md:text-[11px] text-muted-foreground uppercase tracking-[0.15em] transition-all",
-          "peer-placeholder-shown:translate-y-0 peer-placeholder-shown:text-[14px] md:peer-placeholder-shown:text-[15px] peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-placeholder-shown:text-muted-foreground/70",
-          "peer-focus:-translate-y-6 peer-focus:text-[10px] md:peer-focus:text-[11px] peer-focus:text-[#d4af37] peer-focus:uppercase peer-focus:tracking-[0.15em]",
-          required && "after:content-['*'] after:ml-1 after:text-destructive",
-          "cursor-text font-sans font-semibold pointer-events-none"
-        )}
-      >
-        {label}
-      </label>
-      {/* Bottom border highlight on focus */}
-      <div className="absolute bottom-0 left-0 w-0 h-[1px] bg-[#d4af37] transition-all duration-300 peer-focus:w-full" />
-    </div>
-  );
-}
+type AddressFormValues = z.infer<typeof addressFormSchema>;
 
 export function AddressForm({
   mode,
@@ -79,76 +46,73 @@ export function AddressForm({
   onSubmit,
   onCancel,
   className,
+  redirectTo,
 }: AddressFormProps) {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDefault, setIsDefault] = useState(initialData?.isDefault || false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const isEditMode = mode === "edit";
   const pageTitle = isEditMode ? "Edit Address" : "Add New Address";
   const pageSubtitle = isEditMode
     ? "Update your delivery address information"
     : "Enter your delivery address for seamless order fulfillment";
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
+  const form = useForm<AddressFormValues>({
+    resolver: zodResolver(addressFormSchema) as Resolver<AddressFormValues>,
+    defaultValues: {
+      id: initialData?.id || "",
+      firstName: initialData?.firstName || "",
+      lastName: initialData?.lastName || "",
+      company: initialData?.company || "",
+      addressLine1: initialData?.addressLine1 || "",
+      addressLine2: initialData?.addressLine2 || "",
+      city: initialData?.city || "",
+      state: initialData?.state || "",
+      postalCode: initialData?.postalCode || "",
+      country: initialData?.country || "United States",
+      phone: initialData?.phone || "",
+      isDefault: initialData?.isDefault || false,
+    },
+  });
 
+  const {
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { isSubmitting },
+  } = form;
+
+  const isDefault = watch("isDefault"); // eslint-disable-line react-hooks/incompatible-library
+
+  const onSubmitForm = async (values: AddressFormValues) => {
     try {
-      // Build address data from form - use e.target which is the form element
-      const form = e.target as HTMLFormElement;
-      const formData = new FormData(form);
-      
-      const addressData = {
-        id: initialData?.id || "",
-        firstName: formData.get("firstName") as string,
-        lastName: formData.get("lastName") as string,
-        company: (formData.get("company") as string) || undefined,
-        addressLine1: formData.get("addressLine1") as string,
-        addressLine2: (formData.get("addressLine2") as string) || undefined,
-        city: formData.get("city") as string,
-        state: (formData.get("state") as string) || "",
-        postalCode: formData.get("postalCode") as string,
-        country: formData.get("country") as string,
-        phone: (formData.get("phone") as string) || "",
-        isDefault,
-      };
-
-      // Call appropriate backend action
       let result;
       if (isEditMode) {
-        result = await updateAddress(addressData);
+        if (!values.id) {
+          toast.error("Address ID is missing");
+          return;
+        }
+        result = await updateAddress(values as UpdateAddressInput);
       } else {
-        result = await createAddress(addressData);
+        const { id, ...createData } = values;
+        void id;
+        result = await createAddress(createData);
       }
 
       if (result.success) {
-        // Call onSubmit callback if provided
-        onSubmit?.(addressData as AddressData);
-
-        // Show success state
-        setShowSuccess(true);
-
-        // Hide success after 2 seconds and navigate back
-        setTimeout(() => {
-          setShowSuccess(false);
-          if (onCancel) {
-            onCancel();
-          } else {
-            router.push("/address");
-          }
-        }, 2000);
+        onSubmit?.(values as AddressData);
+        toast.success(isEditMode ? "Address updated" : "Address added");
+        if (redirectTo) {
+          router.push(redirectTo);
+        } else if (onCancel) {
+          onCancel();
+        } else {
+          router.push(ROUTES.ADDRESS);
+        }
       } else {
-        setError(result.error || "Failed to save address");
+        toast.error(result.error || "Failed to save address");
       }
     } catch (err) {
       console.error("Form submission error:", err);
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+      toast.error("An unexpected error occurred. Please try again.");
     }
   };
 
@@ -164,10 +128,9 @@ export function AddressForm({
     <div className={cn("w-full max-w-3xl mx-auto", className)}>
       {/* Page Header */}
       <div className="mb-8 md:mb-12">
-        {/* Back Link */}
         <button
           onClick={handleCancel}
-          className="flex items-center gap-2 text-muted-foreground hover:text-[#d4af37] transition-colors mb-6 group"
+          className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6 group"
         >
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
           <span className="font-sans text-xs uppercase tracking-wider font-semibold">
@@ -175,11 +138,10 @@ export function AddressForm({
           </span>
         </button>
 
-        {/* Title Section */}
         <div className="flex items-start gap-4">
           <div className="shrink-0">
-            <div className="w-12 h-12 border border-[#d4af37]/30 flex items-center justify-center bg-[#d4af37]/5">
-              <MapPin className="w-5 h-5 text-[#d4af37]" />
+            <div className="w-12 h-12 border border-primary/30 flex items-center justify-center bg-primary/5">
+              <MapPin className="w-5 h-5 text-primary" />
             </div>
           </div>
           <div>
@@ -192,41 +154,17 @@ export function AddressForm({
           </div>
         </div>
 
-        {/* Gold Divider */}
-        <div className="w-16 h-px bg-[#d4af37] mt-6" />
+        <div className="w-16 h-px bg-primary mt-6" />
       </div>
 
       {/* Form Card */}
       <Card className="border border-border bg-card p-6 sm:p-8 md:p-10">
-        {error && (
-          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/30 rounded-md flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm text-destructive font-medium">{error}</p>
-            </div>
-          </div>
-        )}
-
-        {showSuccess ? (
-          /* Success State */
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-16 h-16 border border-[#d4af37] flex items-center justify-center mb-6">
-              <Check className="w-8 h-8 text-[#d4af37]" />
-            </div>
-            <h2 className="font-heading text-xl md:text-2xl text-foreground mb-2">
-              Address Saved
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              Your address has been {isEditMode ? "updated" : "added"} successfully.
-            </p>
-          </div>
-        ) : (
-          /* Form */
-          <form onSubmit={handleSubmit} className="space-y-8">
+        <Form {...form}>
+          <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-8">
             {/* Personal Information Section */}
             <div className="space-y-6">
               <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="w-1.5 h-1.5 bg-[#d4af37]" />
+                <div className="w-1.5 h-1.5 bg-primary" />
                 <h2 className="font-sans text-xs uppercase tracking-[0.15em] text-muted-foreground font-semibold">
                   Personal Information
                 </h2>
@@ -234,84 +172,154 @@ export function AddressForm({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-6">
                 <FormField
-                  id="firstName"
-                  label="First Name"
-                  required
-                  defaultValue={initialData?.firstName}
-                  autoComplete="given-name"
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-sans text-xs uppercase tracking-wider text-muted-foreground">
+                        First Name
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="John" autoComplete="given-name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
                 <FormField
-                  id="lastName"
-                  label="Last Name"
-                  required
-                  defaultValue={initialData?.lastName}
-                  autoComplete="family-name"
+
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-sans text-xs uppercase tracking-wider text-muted-foreground">
+                        Last Name
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="Doe" autoComplete="family-name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
 
               <FormField
-                id="company"
-                label="Company (Optional)"
-                defaultValue={initialData?.company}
-                autoComplete="organization"
+                name="company"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-sans text-xs uppercase tracking-wider text-muted-foreground">
+                      Company (Optional)
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="Company name" autoComplete="organization" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
 
             {/* Address Information Section */}
             <div className="space-y-6 pt-2">
               <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="w-1.5 h-1.5 bg-[#d4af37]" />
+                <div className="w-1.5 h-1.5 bg-primary" />
                 <h2 className="font-sans text-xs uppercase tracking-[0.15em] text-muted-foreground font-semibold">
                   Address Information
                 </h2>
               </div>
 
               <FormField
-                id="addressLine1"
-                label="Address Line 1"
-                required
-                defaultValue={initialData?.addressLine1}
-                autoComplete="address-line1"
+                name="addressLine1"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-sans text-xs uppercase tracking-wider text-muted-foreground">
+                      Address Line 1
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="123 Main Street" autoComplete="address-line1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
 
               <FormField
-                id="addressLine2"
-                label="Address Line 2 (Optional)"
-                defaultValue={initialData?.addressLine2}
-                autoComplete="address-line2"
+                name="addressLine2"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-sans text-xs uppercase tracking-wider text-muted-foreground">
+                      Address Line 2 (Optional)
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="Apt, Suite, etc." autoComplete="address-line2" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-6">
                 <FormField
-                  id="city"
-                  label="City"
-                  required
-                  defaultValue={initialData?.city}
-                  autoComplete="address-level2"
+
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-sans text-xs uppercase tracking-wider text-muted-foreground">
+                        City
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="New York" autoComplete="address-level2" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
                 <FormField
-                  id="state"
-                  label="State / Province (Optional)"
-                  defaultValue={initialData?.state}
-                  autoComplete="address-level1"
+
+                  name="state"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-sans text-xs uppercase tracking-wider text-muted-foreground">
+                        State / Province
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="NY" autoComplete="address-level1" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-6">
                 <FormField
-                  id="postalCode"
-                  label="Postal Code"
-                  type="text"
-                  required
-                  defaultValue={initialData?.postalCode}
-                  autoComplete="postal-code"
+
+                  name="postalCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-sans text-xs uppercase tracking-wider text-muted-foreground">
+                        Postal Code
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="10001" autoComplete="postal-code" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
                 <FormField
-                  id="country"
-                  label="Country"
-                  required
-                  defaultValue={initialData?.country || "United States"}
-                  autoComplete="country-name"
+
+                  name="country"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-sans text-xs uppercase tracking-wider text-muted-foreground">
+                        Country
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="United States" autoComplete="country-name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
             </div>
@@ -319,18 +327,25 @@ export function AddressForm({
             {/* Contact Section */}
             <div className="space-y-6 pt-2">
               <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="w-1.5 h-1.5 bg-[#d4af37]" />
+                <div className="w-1.5 h-1.5 bg-primary" />
                 <h2 className="font-sans text-xs uppercase tracking-[0.15em] text-muted-foreground font-semibold">
                   Contact Information
                 </h2>
               </div>
 
               <FormField
-                id="phone"
-                label="Phone Number (Optional)"
-                type="tel"
-                defaultValue={initialData?.phone}
-                autoComplete="tel"
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-sans text-xs uppercase tracking-wider text-muted-foreground">
+                      Phone Number (Optional)
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="tel" placeholder="+1 (555) 123-4567" autoComplete="tel" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
 
@@ -339,16 +354,16 @@ export function AddressForm({
               <Checkbox
                 id="isDefault"
                 checked={isDefault}
-                onCheckedChange={(checked) => setIsDefault(checked as boolean)}
-                className="mt-0.5 border-border data-[state=checked]:bg-[#d4af37] data-[state=checked]:border-[#d4af37] data-[state=checked]:text-black"
+                onCheckedChange={(checked) => setValue("isDefault", checked as boolean)}
+                className="mt-0.5 border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-primary-foreground"
               />
               <div className="space-y-1">
-                <label
+                <Label
                   htmlFor="isDefault"
                   className="font-sans text-sm font-medium text-foreground cursor-pointer"
                 >
                   Set as default shipping address
-                </label>
+                </Label>
                 <p className="font-sans text-xs text-muted-foreground">
                   This address will be used as the default for all future orders
                 </p>
@@ -360,7 +375,7 @@ export function AddressForm({
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 sm:flex-none sm:min-w-[200px] bg-[#d4af37] text-black hover:bg-[#d4af37]/90 text-xs uppercase tracking-wider py-3 h-auto rounded-none transition-all duration-300 flex justify-center items-center gap-2 font-semibold"
+                className="flex-1 sm:flex-none sm:min-w-50 bg-primary text-primary-foreground hover:bg-primary/90 text-xs uppercase tracking-wider py-3 h-auto transition-all duration-300 flex justify-center items-center gap-2 font-semibold"
               >
                 {isSubmitting ? (
                   <>
@@ -380,13 +395,13 @@ export function AddressForm({
                 variant="outline"
                 onClick={handleCancel}
                 disabled={isSubmitting}
-                className="flex-1 sm:flex-none sm:min-w-[140px] text-xs uppercase tracking-wider py-3 h-auto rounded-none border-border hover:border-[#d4af37] hover:text-[#d4af37] transition-colors font-semibold"
+                className="flex-1 sm:flex-none sm:min-w-50 text-xs uppercase tracking-wider py-3 h-auto border-border hover:border-primary hover:text-primary transition-colors font-semibold"
               >
                 Cancel
               </Button>
             </div>
           </form>
-        )}
+        </Form>
       </Card>
     </div>
   );

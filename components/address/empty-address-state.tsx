@@ -16,7 +16,7 @@ export function EmptyAddressState({ className, onAddAddress }: EmptyAddressState
       <div className="flex flex-col items-center justify-center text-center max-w-md mx-auto">
         {/* Icon / Visual Element */}
         <div className="mb-8">
-          <div className="w-20 h-20 border border-[#d4af37]/30 flex items-center justify-center">
+          <div className="w-20 h-20 border border-primary/30 flex items-center justify-center">
             <MapPin className="w-10 h-10 text-muted-foreground" />
           </div>
         </div>
@@ -35,7 +35,7 @@ export function EmptyAddressState({ className, onAddAddress }: EmptyAddressState
         <Button
           onClick={onAddAddress}
           size="lg"
-          className="w-full sm:w-auto px-8 py-3 text-sm font-button tracking-wide uppercase bg-[#d4af37] text-black hover:bg-[#d4af37]/90 transition-colors"
+          className="w-full sm:w-auto px-8 py-3 text-sm font-button tracking-wide uppercase bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           Add Address
         </Button>

@@ -2,7 +2,7 @@ export { AdminProductsHeader } from "./admin-products-header";
 export { AdminProductsControls, type FilterStockStatus } from "./admin-products-controls";
 export { AdminProductsTable } from "./admin-products-table";
 export { AdminProductsEmpty } from "./admin-products-empty";
-export { mockAdminProducts, type AdminProduct, type StockStatus } from "./data";
+export type { AdminProduct, StockStatus, AdminProductVariantSummary, AdminProductImageSummary } from "./data";
 
 // Form Components
 export {

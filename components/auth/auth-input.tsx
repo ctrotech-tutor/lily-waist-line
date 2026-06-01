@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { Input } from "@/components/ui/input"
+import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupButton } from "@/components/ui/input-group"
 import { Label } from "@/components/ui/label"
 import { LucideIcon } from "lucide-react"
 
@@ -39,45 +39,52 @@ export function AuthInput({
           {label}
         </Label>
       )}
-      <div className="relative">
+
+      <InputGroup>
         {Icon && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground">
+          <InputGroupAddon align="inline-start">
             <Icon className="h-4 w-4" />
-          </div>
+          </InputGroupAddon>
         )}
-        <Input
+        <InputGroupInput
           id={inputId}
-          data-slot="auth-input"
-          className={cn(
-            "h-12 bg-transparent border-0 border-b border-input rounded-none px-0",
-            "font-sans text-base text-foreground placeholder:text-muted-foreground/60",
-            "focus-visible:border-ring focus-visible:ring-0 focus-visible:ring-offset-0",
-            "transition-colors duration-200",
-            Icon && "pl-8",
-            EndIcon && "pr-10",
-            error && "border-destructive focus-visible:border-destructive",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
-          )}
+          aria-invalid={!!error}
+          aria-describedby={
+            error
+              ? `${inputId}-error`
+              : helperText
+              ? `${inputId}-helper`
+              : undefined
+          }
           {...props}
         />
-        {EndIcon && onEndIconClick && (
-          <button
-            type="button"
-            onClick={onEndIconClick}
-            className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            tabIndex={-1}
-          >
-            <EndIcon className="h-4 w-4" />
-          </button>
+        {EndIcon && (
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton
+              type="button"
+              onClick={onEndIconClick}
+              tabIndex={-1}
+            >
+              <EndIcon className="h-4 w-4" />
+            </InputGroupButton>
+          </InputGroupAddon>
         )}
-      </div>
+      </InputGroup>
+
       {error && (
-        <p className="font-sans text-xs text-destructive mt-1.5">
+        <p
+          id={`${inputId}-error`}
+          className="font-sans text-xs text-destructive mt-1.5"
+        >
           {error}
         </p>
       )}
+
       {helperText && !error && (
-        <p className="font-sans text-xs text-muted-foreground mt-1.5">
+        <p
+          id={`${inputId}-helper`}
+          className="font-sans text-xs text-muted-foreground mt-1.5"
+        >
           {helperText}
         </p>
       )}

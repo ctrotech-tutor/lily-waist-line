@@ -10,6 +10,7 @@
  */
 
 export { getAllOrders } from './get-all-orders'
+export { getOrderById } from './get-order-by-id'
 export { verifyPayment } from './verify-payment'
 export { updateFulfillmentStatus } from './update-fulfillment-status'
 export { addTrackingNumber } from './add-tracking-number'
@@ -21,6 +22,10 @@ export type GetAllOrdersInput = {
   search?: string
   paymentStatus?: 'PENDING' | 'PAID' | 'REJECTED'
   fulfillmentStatus?: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
+}
+
+export type GetOrderByIdInput = {
+  orderId: string
 }
 
 export type VerifyPaymentInput = {

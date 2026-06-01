@@ -2,22 +2,18 @@ import prisma from '@/lib/prisma'
 import { unstable_cache } from 'next/cache'
 import { Decimal } from '@/lib/prisma'
 import type { Prisma } from '@/lib/generated/prisma/client'
+import type { AdminOrderFilters, AdminCustomerFilters } from '@/types/admin'
 
-// Types for admin operations
-export interface AdminOrderFilters {
-  page?: number
-  limit?: number
-  search?: string
-  paymentStatus?: 'PENDING' | 'PAID' | 'REJECTED'
-  fulfillmentStatus?: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
-}
+// Re-export domain types for backward compatibility
+export type { AdminOrderFilters }
+export type { AdminCustomerFilters }
 
-// Type for admin order with selected fields
-type AdminOrder = {
+// Type for serializable admin order (Decimal converted to number)
+export type AdminOrderSerializable = {
   id: string
-  subtotal: Decimal
-  shippingFee: Decimal
-  total: Decimal
+  subtotal: number
+  shippingFee: number
+  total: number
   paymentMethod: string
   paymentStatus: string
   fulfillmentStatus: string
@@ -27,22 +23,27 @@ type AdminOrder = {
     id: string
     email: string
     fullName: string
+    phone?: string | null
   }
   address: {
     firstName: string
     lastName: string
     addressLine1: string
+    addressLine2?: string | null
     city: string
     state: string
     country: string
     postalCode: string
+    phone?: string | null
   }
   orderItems: Array<{
+    id?: string
     quantity: number
-    unitPrice: Decimal
+    unitPrice: number
     product: {
       name: string
       slug: string
+      images: { url: string }[]
     }
     variant: {
       size: string
@@ -66,7 +67,7 @@ type AdminOrder = {
 }
 
 export interface AdminOrderResult {
-  orders: AdminOrder[]
+  orders: AdminOrderSerializable[]
   pagination: {
     currentPage: number
     totalPages: number
@@ -80,7 +81,7 @@ export interface AdminOrderResult {
 // Type for recent order with selected fields
 type RecentOrder = {
   id: string
-  total: Decimal
+  total: number
   paymentStatus: string
   fulfillmentStatus: string
   createdAt: Date
@@ -168,10 +169,12 @@ export class AdminService {
               firstName: true,
               lastName: true,
               addressLine1: true,
+              addressLine2: true,
               city: true,
               state: true,
               country: true,
-              postalCode: true
+              postalCode: true,
+              phone: true
             }
           },
           orderItems: {
@@ -181,7 +184,12 @@ export class AdminService {
               product: {
                 select: {
                   name: true,
-                  slug: true
+                  slug: true,
+                  images: {
+                    where: { imageType: 'main' },
+                    take: 1,
+                    select: { url: true }
+                  }
                 }
               },
               variant: {
@@ -227,8 +235,19 @@ export class AdminService {
     const hasNextPage = page < totalPages
     const hasPreviousPage = page > 1
 
+    const serializedOrders: AdminOrderSerializable[] = orders.map(order => ({
+      ...order,
+      subtotal: order.subtotal.toNumber(),
+      shippingFee: order.shippingFee.toNumber(),
+      total: order.total.toNumber(),
+      orderItems: order.orderItems.map(item => ({
+        ...item,
+        unitPrice: item.unitPrice.toNumber()
+      }))
+    }))
+
     return {
-      orders,
+      orders: serializedOrders,
       pagination: {
         currentPage: page,
         totalPages,
@@ -316,12 +335,17 @@ export class AdminService {
       })
     ])
 
+    const serializedRecentOrders: RecentOrder[] = recentOrders.map(order => ({
+      ...order,
+      total: order.total.toNumber()
+    }))
+
     return {
       totalOrders: totalOrdersResult,
       totalRevenue: totalRevenueResult._sum.total?.toNumber() || 0,
       pendingOrders: pendingOrdersResult,
       shippedOrders: shippedOrdersResult,
-      recentOrders,
+      recentOrders: serializedRecentOrders,
       alerts: {
         paymentConfirmations: paymentConfirmationsResult,
         lowStock: lowStockResult,
@@ -372,14 +396,23 @@ export class AdminService {
     const transformedCustomers = customers.map(customer => {
       const totalSpent = customer.orders.reduce((sum: number, order: { total: Decimal }) => sum + order.total.toNumber(), 0)
       const orderCount = customer._count.orders
-      
+
       // Determine customer segment
-      let status = 'New'
+      let status = 'NEW'
       if (totalSpent > 500) status = 'VIP'
-      else if (orderCount >= 2) status = 'Returning'
+      else if (orderCount >= 2) status = 'RETURNING'
 
       return {
-        ...customer,
+        id: customer.id,
+        email: customer.email,
+        fullName: customer.fullName,
+        phone: customer.phone,
+        avatarUrl: customer.avatarUrl,
+        avatarStoragePath: customer.avatarStoragePath,
+        role: customer.role,
+        emailVerified: customer.emailVerified,
+        createdAt: customer.createdAt,
+        updatedAt: customer.updatedAt,
         totalSpent,
         orderCount,
         status,
@@ -399,6 +432,168 @@ export class AdminService {
         hasNextPage: page < totalPages,
         hasPreviousPage: page > 1
       }
+    }
+  }
+
+  /**
+   * Get a single order by ID with all relations
+   */
+  static async getOrderById(orderId: string): Promise<AdminOrderSerializable | null> {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        subtotal: true,
+        shippingFee: true,
+        total: true,
+        paymentMethod: true,
+        paymentStatus: true,
+        fulfillmentStatus: true,
+        createdAt: true,
+        updatedAt: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+            phone: true
+          }
+        },
+        address: {
+          select: {
+            firstName: true,
+            lastName: true,
+            addressLine1: true,
+            addressLine2: true,
+            city: true,
+            state: true,
+            country: true,
+            postalCode: true,
+            phone: true
+          }
+        },
+        orderItems: {
+          select: {
+            id: true,
+            quantity: true,
+            unitPrice: true,
+            product: {
+              select: {
+                name: true,
+                slug: true,
+                images: {
+                  where: { imageType: 'main' },
+                  take: 1,
+                  select: { url: true }
+                }
+              }
+            },
+            variant: {
+              select: {
+                size: true,
+                compressionLevel: true,
+                sku: true
+              }
+            }
+          }
+        },
+        paymentProofs: {
+          select: {
+            id: true,
+            imageUrl: true,
+            status: true,
+            uploadedAt: true
+          },
+          orderBy: { uploadedAt: 'desc' },
+          take: 1
+        },
+        shipments: {
+          select: {
+            id: true,
+            carrier: true,
+            trackingNumber: true,
+            shippedAt: true,
+            deliveredAt: true
+          },
+          orderBy: { shippedAt: 'desc' },
+          take: 1
+        }
+      }
+    })
+
+    if (!order) return null
+
+    return {
+      ...order,
+      subtotal: order.subtotal.toNumber(),
+      shippingFee: order.shippingFee.toNumber(),
+      total: order.total.toNumber(),
+      orderItems: order.orderItems.map(item => ({
+        ...item,
+        unitPrice: item.unitPrice.toNumber()
+      }))
+    }
+  }
+
+  /**
+   * Get a single customer by ID with order history
+   */
+  static async getCustomerById(customerId: string) {
+    const customer = await prisma.user.findUnique({
+      where: { id: customerId },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        avatarUrl: true,
+        createdAt: true,
+        _count: {
+          select: { orders: true }
+        },
+        orders: {
+          select: {
+            id: true,
+            createdAt: true,
+            fulfillmentStatus: true,
+            total: true,
+            _count: {
+              select: { orderItems: true }
+            }
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 50
+        }
+      }
+    })
+
+    if (!customer) return null
+
+    const totalSpent = customer.orders.reduce((sum, order) => sum + order.total.toNumber(), 0)
+    const orderCount = customer._count.orders
+
+    let status = 'NEW'
+    if (totalSpent > 500) status = 'VIP'
+    else if (orderCount >= 2) status = 'RETURNING'
+
+    return {
+      id: customer.id,
+      email: customer.email,
+      fullName: customer.fullName,
+      phone: customer.phone,
+      avatarUrl: customer.avatarUrl,
+      orderCount,
+      totalSpent,
+      status,
+      lastOrderDate: customer.orders[0]?.createdAt || null,
+      createdAt: customer.createdAt,
+      orders: customer.orders.map(order => ({
+        id: order.id,
+        createdAt: order.createdAt,
+        fulfillmentStatus: order.fulfillmentStatus,
+        total: order.total.toNumber(),
+        itemCount: order._count.orderItems
+      }))
     }
   }
 
@@ -519,5 +714,35 @@ export const getCachedAdminOrders = unstable_cache(
   ['get-admin-orders'],
   {
     revalidate: 60, // 1 minute cache for orders
+  }
+)
+
+export const getCachedAdminOrder = unstable_cache(
+  async (orderId: string) => {
+    return await AdminService.getOrderById(orderId)
+  },
+  ['get-admin-order'],
+  {
+    revalidate: 30, // 30 seconds cache for order detail
+  }
+)
+
+export const getCachedAdminCustomers = unstable_cache(
+  async (filters: AdminCustomerFilters) => {
+    return await AdminService.getCustomers(filters.page, filters.limit, filters.search)
+  },
+  ['get-admin-customers'],
+  {
+    revalidate: 60, // 1 minute cache for customers list
+  }
+)
+
+export const getCachedAdminCustomer = unstable_cache(
+  async (customerId: string) => {
+    return await AdminService.getCustomerById(customerId)
+  },
+  ['get-admin-customer'],
+  {
+    revalidate: 30, // 30 seconds cache for customer detail
   }
 )

@@ -1,18 +1,9 @@
-import prisma, { Decimal } from '@/lib/prisma'
+import prisma from '@/lib/prisma'
 import type { ProductModel, ProductVariantModel, ProductImageModel } from '@/lib/generated/prisma/models'
 import type { Prisma } from '@/lib/generated/prisma/client'
+import type { ProductQueryOptions } from '@/types/product'
 
-// Types for product queries
-export interface ProductQueryOptions {
-  search?: string
-  size?: string
-  compression?: string
-  sort?: string
-  limit?: number
-  offset?: number
-  inStock?: boolean
-}
-
+// Service-specific result type (with computed fields)
 export interface ProductResult {
   products: ProductWithDetails[]
   total: number
@@ -36,16 +27,19 @@ export interface ProductVariantWithStock extends ProductVariantModel {
 
 export type ProductImage = ProductImageModel
 
-// Sorting options
-export enum SortOption {
+// Re-export unified options from types/product
+export type { SortOption, SizeOption, CompressionOption } from '@/types/product'
+
+// Sorting options enum for backward compatibility (deprecated, use types/product instead)
+export enum SortOptionEnum {
   FEATURED = 'featured',
   NEWEST = 'newest',
   PRICE_ASC = 'price_asc',
   PRICE_DESC = 'price_desc'
 }
 
-// Size options
-export enum SizeOption {
+// Size options enum for backward compatibility (deprecated, use types/product instead)
+export enum SizeOptionEnum {
   XS = 'XS',
   S = 'S',
   M = 'M',
@@ -53,8 +47,8 @@ export enum SizeOption {
   XL = 'XL'
 }
 
-// Compression options
-export enum CompressionOption {
+// Compression options enum for backward compatibility (deprecated, use types/product instead)
+export enum CompressionOptionEnum {
   LIGHT = 'LIGHT',
   MEDIUM = 'MEDIUM',
   HIGH = 'HIGH'
@@ -69,18 +63,16 @@ export class ProductService {
       search,
       size,
       compression,
-      sort = SortOption.FEATURED,
+      availability,
+      sort = SortOptionEnum.FEATURED,
       limit = 12,
       offset = 0,
-      inStock = true
     } = options
 
-    // Build optimized where clause using new indexes
     const where: Prisma.ProductWhereInput = {
-      status: 'ACTIVE' // Uses idx_product_status_created_at
+      status: 'ACTIVE'
     }
 
-    // Optimized search filter - consider using full-text search for large datasets
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -89,9 +81,8 @@ export class ProductService {
       ]
     }
 
-    // Optimized variant filters - combine into single query for better index usage
     const variantConditions: Prisma.ProductVariantWhereInput[] = []
-    
+
     if (size) {
       variantConditions.push({ size: size.toUpperCase() })
     }
@@ -100,40 +91,40 @@ export class ProductService {
       variantConditions.push({ compressionLevel: compression.toUpperCase() })
     }
 
-    if (inStock) {
+    if (availability === 'in-stock') {
+      variantConditions.push({ stockQuantity: { gt: 5 } })
+    } else if (availability === 'low-stock') {
       variantConditions.push({ stockQuantity: { gt: 0 } })
+      variantConditions.push({ stockQuantity: { lte: 5 } })
+    } else if (availability === 'out-of-stock') {
+      variantConditions.push({ stockQuantity: 0 })
     }
 
-    // Apply combined variant filter
     if (variantConditions.length > 0) {
       where.variants = {
-        some: variantConditions.length === 1 
-          ? variantConditions[0]
-          : Object.assign({}, ...variantConditions.map((condition, index) => 
-            index === 0 ? condition : { AND: [condition] }
-          ))
+        some: {
+          AND: variantConditions
+        }
       }
     }
 
-    // Optimized order by clause using indexes
     let orderBy: Prisma.ProductOrderByWithRelationInput
     switch (sort) {
-      case SortOption.NEWEST:
-        orderBy = { createdAt: 'desc' } // Uses idx_product_status_created_at
+      case SortOptionEnum.NEWEST:
+        orderBy = { createdAt: 'desc' }
         break
-      case SortOption.PRICE_ASC:
-        orderBy = { basePrice: 'asc' } // Uses idx_product_base_price
+      case SortOptionEnum.PRICE_ASC:
+        orderBy = { basePrice: 'asc' }
         break
-      case SortOption.PRICE_DESC:
-        orderBy = { basePrice: 'desc' } // Uses idx_product_base_price
+      case SortOptionEnum.PRICE_DESC:
+        orderBy = { basePrice: 'desc' }
         break
-      case SortOption.FEATURED:
+      case SortOptionEnum.FEATURED:
       default:
-        orderBy = { createdAt: 'desc' } // Uses idx_product_status_created_at
+        orderBy = { createdAt: 'desc' }
         break
     }
 
-    // Execute optimized queries with proper include structure
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
@@ -141,13 +132,10 @@ export class ProductService {
           variants: {
             include: {
               images: {
-                where: {
-                  imageType: 'variant'
-                },
+                where: { imageType: 'variant' },
                 orderBy: { sortOrder: 'asc' }
               }
-            },
-            where: inStock ? { stockQuantity: { gt: 0 } } : undefined
+            }
           },
           images: {
             where: {
@@ -166,7 +154,6 @@ export class ProductService {
       prisma.product.count({ where })
     ])
 
-    // Transform products to include computed fields
     const transformedProducts = products.map(this.transformProduct)
 
     return {
@@ -218,9 +205,9 @@ export class ProductService {
    */
   static async getFeaturedProducts(limit: number = 8): Promise<ProductWithDetails[]> {
     const result = await this.getProducts({
-      sort: SortOption.FEATURED,
+      sort: SortOptionEnum.FEATURED,
       limit,
-      inStock: true
+      availability: 'in-stock'
     })
 
     return result.products
@@ -295,7 +282,7 @@ export class ProductService {
       // Uses idx_variant_size_stock and idx_variant_active_product_stock
     })
 
-    return sizes.map(s => s.size)
+    return sizes.map((s: { size: string }) => s.size)
   }
 
   /**
@@ -321,7 +308,7 @@ export class ProductService {
       // Uses idx_variant_compression_stock and idx_variant_active_product_stock
     })
 
-    return levels.map(l => l.compressionLevel)
+    return levels.map((l: { compressionLevel: string }) => l.compressionLevel)
   }
 
   /**
@@ -348,6 +335,6 @@ export class ProductService {
       }
     })
 
-    return products.map(p => p.name)
+    return products.map((p: { name: string }) => p.name)
   }
 }

@@ -1,5 +1,3 @@
-import prisma from '@/lib/prisma'
-
 /**
  * Basic Rate Limiting Foundation (Phase 1)
  * 

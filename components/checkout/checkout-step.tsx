@@ -22,7 +22,7 @@ export function CheckoutStep({
   return (
     <div
       className={cn(
-        "relative",
+        "relative rounded-2xl",
         "border border-border",
         "bg-card",
         "transition-all duration-300",

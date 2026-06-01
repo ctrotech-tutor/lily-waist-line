@@ -33,15 +33,15 @@ export function AdminOrdersFilters({
           placeholder="Search by Order ID or Customer..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10 font-[family-name:var(--font-montserrat)] border-border/50 focus:border-[#d4af37] rounded-none"
+          className="pl-10 font-[family-name:var(--font-montserrat)] border-border/50 focus:border-secondary"
         />
       </div>
 
       <Select value={statusFilter} onValueChange={(value) => onStatusChange(value as FilterStatus)}>
-        <SelectTrigger className="w-full sm:w-[200px] font-[family-name:var(--font-montserrat)] border-border/50 rounded-none focus:ring-[#d4af37]">
+        <SelectTrigger className="w-full sm:w-[200px] font-[family-name:var(--font-montserrat)] border-border/50 focus:ring-secondary">
           <SelectValue placeholder="Filter by Status" />
         </SelectTrigger>
-        <SelectContent className="rounded-none">
+        <SelectContent>
           <SelectItem value="all" className="font-[family-name:var(--font-montserrat)]">
             All Orders
           </SelectItem>

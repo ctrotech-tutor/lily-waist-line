@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
+import { formatOrderNumber } from '@/lib/utils/order'
 
 const paginationSchema = z.object({
   page: z.coerce.number().min(1).default(1),
@@ -35,9 +36,20 @@ export async function getUserOrders(params?: {
     const [orders, totalCount] = await Promise.all([
       prisma.order.findMany({
         where: { userId: user.id },
-        include: {
+        select: {
+          id: true,
+          createdAt: true,
+          total: true,
+          subtotal: true,
+          shippingFee: true,
+          paymentMethod: true,
+          paymentStatus: true,
+          fulfillmentStatus: true,
           orderItems: {
-            include: {
+            select: {
+              id: true,
+              quantity: true,
+              unitPrice: true,
               product: {
                 select: {
                   id: true,
@@ -99,11 +111,11 @@ export async function getUserOrders(params?: {
       
       return {
         id: order.id,
-        orderNumber: `LWL-${order.createdAt.getFullYear()}-${order.id.slice(-6).toUpperCase()}`,
-        createdAt: order.createdAt,
-        total: order.total,
-        subtotal: order.subtotal,
-        shippingFee: order.shippingFee,
+        orderNumber: formatOrderNumber(order.id, order.createdAt),
+        orderDate: order.createdAt.toISOString().split('T')[0],
+        total: order.total.toNumber(),
+        subtotal: order.subtotal.toNumber(),
+        shippingFee: order.shippingFee.toNumber(),
         paymentMethod: order.paymentMethod,
         paymentStatus: order.paymentStatus,
         fulfillmentStatus: order.fulfillmentStatus,
@@ -122,7 +134,7 @@ export async function getUserOrders(params?: {
         previewItem: order.orderItems[0] ? {
           id: order.orderItems[0].id,
           quantity: order.orderItems[0].quantity,
-          unitPrice: order.orderItems[0].unitPrice,
+          unitPrice: order.orderItems[0].unitPrice.toNumber(),
           product: {
             id: order.orderItems[0].product.id,
             name: order.orderItems[0].product.name,

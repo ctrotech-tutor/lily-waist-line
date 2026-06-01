@@ -13,7 +13,7 @@ export function OrdersList({ orders, className, isLoaded = true }: OrdersListPro
   return (
     <div
       className={cn(
-        "flex flex-col gap-6",
+        "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6",
         "transition-all duration-1000 delay-200 ease-out",
         isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4",
         className

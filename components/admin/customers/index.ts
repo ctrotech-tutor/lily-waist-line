@@ -1,8 +1,9 @@
 export { AdminCustomersHeader } from "./admin-customers-header";
 export { AdminCustomersStats } from "./admin-customers-stats";
 export { AdminCustomersTable } from "./admin-customers-table";
+export { AdminCustomersTableSkeleton } from "./admin-customers-table-skeleton";
 export { AdminCustomersEmpty } from "./admin-customers-empty";
-export { mockCustomers, type Customer, type CustomerStatus } from "./data";
+export type { AdminCustomerRow, CustomerStatus } from "./data";
 
 // Profile components
 export {
@@ -12,12 +13,10 @@ export {
   AdminCustomerActivity,
   AdminCustomerNotes,
   AdminCustomerActions,
-  mockCustomerProfile,
   formatCurrency,
 } from "./profile";
 export type {
-  CustomerOrder,
+  AdminCustomerProfile,
   CustomerActivity,
   CustomerNote,
-  CustomerProfile,
 } from "./profile";

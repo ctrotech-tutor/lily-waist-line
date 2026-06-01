@@ -1,82 +1,50 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { OrdersHeader } from "@/components/orders/orders-header";
 import { OrdersList } from "@/components/orders/orders-list";
+import { OrdersShell } from "@/components/orders/orders-shell";
 import { EmptyOrdersState } from "@/components/orders/empty-orders-state";
-import { OrderData } from "@/components/orders/order-card";
+import { useOrders } from "@/hooks/use-orders";
 
-// Mock orders data - TEMPORARY only
-// Set to empty array [] to test empty state, or populate to test with orders
-const mockOrders: OrderData[] = [
-  {
-    id: "LWL-2026-001",
-    orderNumber: "LWL-2026-001",
-    orderDate: "May 11, 2026",
-    total: 149.99,
-    paymentStatus: "pending",
-    fulfillmentStatus: "processing",
-    itemCount: 2,
-  },
-  {
-    id: "LWL-2026-002",
-    orderNumber: "LWL-2026-002",
-    orderDate: "May 8, 2026",
-    total: 239.98,
-    paymentStatus: "paid",
-    fulfillmentStatus: "shipped",
-    itemCount: 3,
-  },
-  {
-    id: "LWL-2026-003",
-    orderNumber: "LWL-2026-003",
-    orderDate: "May 5, 2026",
-    total: 89.99,
-    paymentStatus: "paid",
-    fulfillmentStatus: "delivered",
-    itemCount: 1,
-  },
-  {
-    id: "LWL-2026-004",
-    orderNumber: "LWL-2026-004",
-    orderDate: "April 28, 2026",
-    total: 199.99,
-    paymentStatus: "failed",
-    fulfillmentStatus: "cancelled",
-    itemCount: 2,
-  },
-];
+function OrdersListSkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="rounded-lg border border-border bg-card overflow-hidden animate-pulse">
+          <div className="h-40 bg-muted" />
+          <div className="p-4 md:p-5 space-y-3">
+            <div className="h-4 w-32 bg-muted rounded" />
+            <div className="h-3 w-24 bg-muted rounded" />
+            <div className="h-8 w-full bg-muted rounded-lg" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function OrdersPage() {
-  const router = useRouter();
-  const [orders] = useState<OrderData[]>(mockOrders);
-  const [isLoaded] = useState(true);
+  const { data, isLoading, error } = useOrders();
 
-  const handleStartShopping = () => {
-    router.push("/shop");
-  };
-
+  const orders = data?.orders ?? [];
   const orderCount = orders.length;
 
   return (
-    <>
-      <div className="min-h-full">
-        {/* Page Header Section */}
-        <OrdersHeader
-          orderCount={orderCount}
-          isLoaded={isLoaded}
-        />
-
-        {/* Orders Content Container */}
-        <div className="max-w-360 mx-auto px-4 sm:px-6 lg:px-8 xl:px-20 py-8 md:py-12">
-          {orderCount === 0 ? (
-            <EmptyOrdersState onStartShopping={handleStartShopping} />
-          ) : (
-            <OrdersList orders={orders} isLoaded={isLoaded} />
-          )}
-        </div>
-      </div>
-    </>
+    <div className="min-h-full">
+      <OrdersHeader orderCount={orderCount} isLoaded={!isLoading} />
+      <OrdersShell>
+        {isLoading ? (
+          <OrdersListSkeleton />
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">{error instanceof Error ? error.message : "Failed to load orders"}</p>
+          </div>
+        ) : orderCount === 0 ? (
+          <EmptyOrdersState />
+        ) : (
+          <OrdersList orders={orders} isLoaded={true} />
+        )}
+      </OrdersShell>
+    </div>
   );
 }

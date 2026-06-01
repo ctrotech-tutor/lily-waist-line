@@ -3,7 +3,6 @@ import {
   strictObject, 
   baseIdSchema, 
   basePositiveNumberSchema,
-  VALIDATION_ERRORS 
 } from '../base'
 
 /**

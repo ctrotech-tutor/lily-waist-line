@@ -51,9 +51,12 @@ export async function selectPaymentMethod(input: SelectPaymentMethodInput) {
       where: {
         id: validatedData.orderId
       },
-      include: {
-        address: true // Include the address relation (shippingAddress)
-      }
+      select: {
+        id: true, userId: true, paymentStatus: true,
+        address: {
+          select: { country: true },
+        },
+      },
     })
 
     if (!order) {

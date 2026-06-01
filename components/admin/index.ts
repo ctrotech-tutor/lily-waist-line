@@ -15,11 +15,10 @@ export {
   AdminOrdersHeader,
   AdminOrdersFilters,
   AdminOrdersTable,
+  AdminOrdersTableSkeleton,
   AdminOrdersEmpty,
   type FilterStatus,
-  type AdminOrder,
-  type PaymentStatus,
-  type FulfillmentStatus,
+  type AdminOrderRow,
 } from "./orders";
 
 // Admin Order Detail Components
@@ -30,12 +29,11 @@ export {
   AdminCustomerInfo,
   AdminFulfillmentPanel,
   AdminOrderAlerts,
-  getOrderById,
-  mockOrderDetails,
-  type OrderDetails,
-  type OrderItem,
-  type ShippingAddress,
-  type PaymentProof,
+  AdminOrderDetailSkeleton,
+  type AdminOrderDetail,
+  type AdminOrderDetailItem,
+  type AdminOrderShippingAddress,
+  type AdminOrderPaymentProof,
 } from "./order";
 
 // Admin Products Components
@@ -44,7 +42,6 @@ export {
   AdminProductsControls,
   AdminProductsTable,
   AdminProductsEmpty,
-  mockAdminProducts,
   type FilterStockStatus,
   type AdminProduct,
   type StockStatus,
@@ -55,9 +52,9 @@ export {
   AdminCustomersHeader,
   AdminCustomersStats,
   AdminCustomersTable,
+  AdminCustomersTableSkeleton,
   AdminCustomersEmpty,
-  mockCustomers,
-  type Customer,
+  type AdminCustomerRow,
   type CustomerStatus,
 } from "./customers";
 
@@ -68,10 +65,10 @@ export {
   AdminShippingTable,
   AdminShippingModal,
   AdminShippingEmpty,
-  mockShippingOrders,
-  calculateShippingStats,
-  type ShippingOrder,
-  type ShippingStatus,
-  type Carrier,
+  AdminShippingStatsSkeleton,
+  AdminShippingTableSkeleton,
+  type AdminShippingRow,
   type ShippingStats,
+  computeShippingStats,
+  formatShippingDate,
 } from "./shipping";

@@ -1,29 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   ShoppingBag,
   Heart,
-  Shield,
   Truck,
   RefreshCw,
   Lock,
   Loader2,
+  Minus,
+  Plus,
 } from "lucide-react";
+import { ROUTES } from "@/lib/constants/routes";
 import { cn } from "@/lib/utils";
-import { addToCart } from "@/server/actions/cart";
-import { addToWishlist } from "@/server/actions/wishlist";
+import { useAddToCart } from "@/hooks/use-cart-mutations";
+import { useAddToWishlist, useRemoveFromWishlist } from "@/hooks/use-wishlist-mutations";
+import { useProductWishlistStatus } from "@/hooks/use-product-interactions";
+import { useProductCartStatus } from "@/hooks/use-product-interactions";
 import type { ProductWithDetails } from "@/lib/services";
 
 interface ProductPurchasePanelProps {
@@ -39,15 +37,15 @@ const compressionLevels = [
 const stockConfig = {
   "in-stock": {
     label: "In Stock",
-    className: "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20",
+    className: "bg-success/10 text-success hover:bg-success/20",
   },
   "low-stock": {
     label: "Low Stock",
-    className: "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20",
+    className: "bg-warning/10 text-warning hover:bg-warning/20",
   },
   "out-of-stock": {
     label: "Out of Stock",
-    className: "bg-red-500/10 text-red-500 hover:bg-red-500/20",
+    className: "bg-destructive/10 text-destructive hover:bg-destructive/20",
   },
 };
 
@@ -55,13 +53,16 @@ export function ProductPurchasePanel({
   product,
 }: ProductPurchasePanelProps) {
   const router = useRouter();
-  const [selectedSize, setSelectedSize] = useState<string>("M");
-  const [compressionLevel, setCompressionLevel] = useState<string>("MEDIUM");
+  
+  // Smart default variant selection - select first in-stock variant
+  const firstInStockVariant = product.variants.find(v => v.stockQuantity > 0);
+  const defaultSize = firstInStockVariant?.size || product.variants[0]?.size || "M";
+  const defaultCompression = firstInStockVariant?.compressionLevel || product.variants[0]?.compressionLevel || "MEDIUM";
+  
+  const [selectedSize, setSelectedSize] = useState<string>(defaultSize);
+  const [compressionLevel, setCompressionLevel] = useState<string>(defaultCompression);
   const [quantity, setQuantity] = useState<number>(1);
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
-  const [cartMessage, setCartMessage] = useState<string | null>(null);
+
 
   // Get unique sizes from variants
   const availableSizes = Array.from(new Set(product.variants.map(v => v.size)));
@@ -70,6 +71,15 @@ export function ProductPurchasePanel({
   const selectedVariant = product.variants.find(
     v => v.size === selectedSize && v.compressionLevel === compressionLevel
   );
+
+  // Use shared hooks for wishlist and cart status
+  const { isWishlisted } = useProductWishlistStatus(product.id);
+  const { inCart } = useProductCartStatus(selectedVariant?.id || '');
+
+  // Use shared mutation hooks
+  const addToCartMutation = useAddToCart();
+  const addToWishlistMutation = useAddToWishlist();
+  const removeFromWishlistMutation = useRemoveFromWishlist();
 
   const handleQuantityDecrease = () => {
     setQuantity((prev) => Math.max(1, prev - 1));
@@ -82,67 +92,62 @@ export function ProductPurchasePanel({
   const handleAddToCart = async () => {
     if (!selectedVariant || selectedVariant.stockQuantity === 0) return;
 
-    setIsAddingToCart(true);
-    setCartMessage(null);
-
-    try {
-      const result = await addToCart({ variantId: selectedVariant.id, quantity });
-      if (result.success) {
-        setCartMessage("Added to cart!");
-        setTimeout(() => setCartMessage(null), 2000);
-      } else {
-        setCartMessage(result.error || "Failed to add to cart");
-        setTimeout(() => setCartMessage(null), 3000);
-      }
-    } catch (error) {
-      setCartMessage("Failed to add to cart");
-      setTimeout(() => setCartMessage(null), 3000);
-    } finally {
-      setIsAddingToCart(false);
+    // If item is already in cart, navigate to cart
+    if (inCart) {
+      router.push(ROUTES.CART);
+      return;
     }
+
+    addToCartMutation.mutate(
+      { variantId: selectedVariant.id, quantity },
+      {
+        onSuccess: () => {
+          toast.success("Added to cart!")
+        },
+        onError: (error) => {
+          toast.error(error.message || "Failed to add to cart")
+        }
+      }
+    );
   };
 
   const handleAddToWishlist = async () => {
-    setIsAddingToWishlist(true);
-
-    try {
-      const result = await addToWishlist(product.id);
-      if (result.success) {
-        setIsWishlisted(true);
-      } else {
-        if (result.error?.includes("logged in")) {
-          router.push("/login");
-          return;
+    if (isWishlisted) {
+      removeFromWishlistMutation.mutate(product.id, {
+        onError: (error) => {
+          if (error.message?.includes("logged in")) {
+            router.push(ROUTES.LOGIN);
+          }
         }
-        console.error(result.error);
-      }
-    } catch (error) {
-      console.error("Failed to add to wishlist", error);
-    } finally {
-      setIsAddingToWishlist(false);
+      });
+    } else {
+      addToWishlistMutation.mutate(product.id, {
+        onError: (error) => {
+          if (error.message?.includes("logged in")) {
+            router.push(ROUTES.LOGIN);
+          }
+        }
+      });
     }
   };
 
   const handleBuyNow = async () => {
     if (!selectedVariant || selectedVariant.stockQuantity === 0) return;
 
-    setIsAddingToCart(true);
-
-    try {
-      const result = await addToCart({ variantId: selectedVariant.id, quantity });
-      if (result.success) {
-        // Navigate to checkout page (to be implemented)
-        router.push("/checkout");
-      } else {
-        setCartMessage(result.error || "Failed to add to cart");
-        setTimeout(() => setCartMessage(null), 3000);
+    addToCartMutation.mutate(
+      { variantId: selectedVariant.id, quantity },
+      {
+        onSuccess: () => {
+          toast.success("Added to cart! Redirecting to checkout...")
+          setTimeout(() => {
+            router.push(ROUTES.CHECKOUT);
+          }, 1000);
+        },
+        onError: (error) => {
+          toast.error(error.message || "Failed to add to cart")
+        }
       }
-    } catch (error) {
-      setCartMessage("Failed to add to cart");
-      setTimeout(() => setCartMessage(null), 3000);
-    } finally {
-      setIsAddingToCart(false);
-    }
+    );
   };
 
   const isOutOfStock = !selectedVariant || selectedVariant.stockQuantity === 0;
@@ -189,6 +194,11 @@ export function ProductPurchasePanel({
             </span>
           )}
         </div>
+
+        {/* Description preview */}
+        {product.description && (
+          <DescriptionPreview description={product.description} />
+        )}
       </div>
 
       <Separator className="my-8" />
@@ -200,32 +210,26 @@ export function ProductPurchasePanel({
           <label className="font-sans text-sm font-semibold uppercase tracking-wide text-foreground">
             Size
           </label>
-          <Select
-            value={selectedSize}
-            onValueChange={setSelectedSize}
-            disabled={isOutOfStock}
-          >
-            <SelectTrigger
-              className={cn(
-                "h-12 w-full border-border bg-transparent font-sans text-sm",
-                "focus:ring-secondary focus:ring-1",
-                "disabled:opacity-50 disabled:cursor-not-allowed"
-              )}
-            >
-              <SelectValue placeholder="Select size" />
-            </SelectTrigger>
-            <SelectContent className="border-border bg-card">
-              {availableSizes.map((size) => (
-                <SelectItem
-                  key={size}
-                  value={size}
-                  className="font-sans text-sm focus:bg-secondary/10 focus:text-foreground"
-                >
-                  {size}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap gap-2">
+            {availableSizes.map((size) => (
+              <Button
+                key={size}
+                variant={selectedSize === size ? "default" : "outline"}
+                size="sm"
+                onClick={() => !isOutOfStock && setSelectedSize(size)}
+                disabled={isOutOfStock}
+                className={cn(
+                  "h-10 min-w-12 flex-1 sm:flex-none font-sans text-sm font-semibold",
+                  selectedSize === size
+                    ? "bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                    : "border-border text-foreground hover:border-primary hover:text-primary",
+                  "disabled:opacity-50 disabled:cursor-not-allowed"
+                )}
+              >
+                {size}
+              </Button>
+            ))}
+          </div>
         </div>
 
         {/* Compression Level */}
@@ -233,24 +237,24 @@ export function ProductPurchasePanel({
           <label className="font-sans text-sm font-semibold uppercase tracking-wide text-foreground">
             Compression Level
           </label>
-          <div className="flex border border-border overflow-hidden">
-            {compressionLevels.map((level, index) => (
-              <button
+          <div className="flex gap-2">
+            {compressionLevels.map((level) => (
+              <Button
                 key={level.value}
+                variant={compressionLevel === level.value ? "default" : "outline"}
+                size="sm"
                 onClick={() => !isOutOfStock && setCompressionLevel(level.value)}
                 disabled={isOutOfStock}
                 className={cn(
-                  "flex-1 py-3 px-2 font-sans text-xs font-semibold uppercase tracking-wide",
-                  "transition-colors duration-200",
-                  "disabled:opacity-50 disabled:cursor-not-allowed",
-                  index !== compressionLevels.length - 1 && "border-r border-border",
+                  "flex-1 h-10 font-sans text-xs font-semibold uppercase tracking-wide rounded-md",
                   compressionLevel === level.value
-                    ? "bg-secondary text-secondary-foreground"
-                    : "bg-transparent text-foreground hover:bg-secondary/10"
+                    ? "bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                    : "border-border text-foreground hover:border-primary hover:text-primary",
+                  "disabled:opacity-50 disabled:cursor-not-allowed"
                 )}
               >
                 {level.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -260,38 +264,30 @@ export function ProductPurchasePanel({
           <label className="font-sans text-sm font-semibold uppercase tracking-wide text-foreground">
             Quantity
           </label>
-          <div className="flex items-center w-fit">
-            <button
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
               onClick={handleQuantityDecrease}
               disabled={quantity <= 1 || isOutOfStock}
-              className={cn(
-                "flex h-12 w-12 items-center justify-center",
-                "border border-r-0 border-border bg-transparent",
-                "font-sans text-lg text-foreground",
-                "transition-colors hover:text-secondary",
-                "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-foreground"
-              )}
               aria-label="Decrease quantity"
+              className="h-10 w-10"
             >
-              −
-            </button>
-            <div className="flex h-12 w-16 items-center justify-center border border-border bg-transparent font-sans text-base text-foreground">
+              <Minus className="w-4 h-4" />
+            </Button>
+            <div className="flex h-10 w-12 items-center justify-center border border-border bg-transparent font-sans text-base text-foreground">
               {quantity}
             </div>
-            <button
+            <Button
+              variant="outline"
+              size="icon"
               onClick={handleQuantityIncrease}
               disabled={quantity >= (selectedVariant?.stockQuantity || 10) || isOutOfStock}
-              className={cn(
-                "flex h-12 w-12 items-center justify-center",
-                "border border-l-0 border-border bg-transparent",
-                "font-sans text-lg text-foreground",
-                "transition-colors hover:text-secondary",
-                "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-foreground"
-              )}
               aria-label="Increase quantity"
+              className="h-10 w-10"
             >
-              +
-            </button>
+              <Plus className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </div>
@@ -302,7 +298,7 @@ export function ProductPurchasePanel({
         <Button
           size="lg"
           onClick={handleAddToCart}
-          disabled={isOutOfStock || isAddingToCart}
+          disabled={isOutOfStock || addToCartMutation.isPending}
           className={cn(
             "w-full gap-2 bg-secondary text-secondary-foreground",
             "font-sans text-sm font-semibold uppercase tracking-wide",
@@ -311,12 +307,12 @@ export function ProductPurchasePanel({
             "disabled:opacity-50 disabled:cursor-not-allowed"
           )}
         >
-          {isAddingToCart ? (
+          {addToCartMutation.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <ShoppingBag className="h-4 w-4" />
           )}
-          {isOutOfStock ? "Out of Stock" : "Add to Cart"}
+          {isOutOfStock ? "Out of Stock" : inCart ? "In Cart" : "Add to Cart"}
         </Button>
 
         {/* Secondary Action - Add to Wishlist */}
@@ -324,7 +320,7 @@ export function ProductPurchasePanel({
           size="lg"
           variant="outline"
           onClick={handleAddToWishlist}
-          disabled={isAddingToWishlist}
+          disabled={addToWishlistMutation.isPending || removeFromWishlistMutation.isPending}
           className={cn(
             "w-full gap-2 border-border bg-transparent",
             "font-sans text-sm font-semibold uppercase tracking-wide text-foreground",
@@ -332,7 +328,7 @@ export function ProductPurchasePanel({
             "h-14"
           )}
         >
-          {isAddingToWishlist ? (
+          {addToWishlistMutation.isPending || removeFromWishlistMutation.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Heart className={cn("h-4 w-4", isWishlisted && "fill-current text-secondary")} />
@@ -343,31 +339,21 @@ export function ProductPurchasePanel({
         {/* Buy Now */}
         <Button
           size="lg"
-          variant="ghost"
+          variant="outline"
           onClick={handleBuyNow}
-          disabled={isOutOfStock || isAddingToCart}
+          disabled={isOutOfStock || addToCartMutation.isPending}
           className={cn(
             "w-full gap-2",
             "font-sans text-sm font-semibold uppercase tracking-wide",
             "h-14",
+            "border-secondary/50 text-secondary",
+            "hover:bg-secondary/10",
             "disabled:opacity-50 disabled:cursor-not-allowed"
           )}
         >
-          Buy Now
+          {addToCartMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Buy Now"}
         </Button>
       </div>
-
-      {/* Success/Error Message */}
-      {cartMessage && (
-        <div className="mt-4 text-center">
-          <span className={cn(
-            "inline-block px-4 py-2 text-xs font-semibold uppercase tracking-wider",
-            cartMessage.includes("Added") ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
-          )}>
-            {cartMessage}
-          </span>
-        </div>
-      )}
 
       {/* Trust Micro Section */}
       <div className="mt-8 grid grid-cols-3 gap-2">
@@ -391,21 +377,42 @@ export function ProductPurchasePanel({
         </div>
       </div>
 
-      {/* Additional Trust Badges */}
-      <div className="mt-6 grid grid-cols-2 gap-3 pt-6 border-t border-border">
-        <div className="flex items-center gap-2">
-          <Shield className="h-4 w-4 text-secondary" />
-          <span className="font-sans text-xs text-muted-foreground">
-            256-bit SSL Secure
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Truck className="h-4 w-4 text-secondary" />
-          <span className="font-sans text-xs text-muted-foreground">
-            Free Shipping $75+
-          </span>
-        </div>
+    </div>
+  );
+}
+
+function DescriptionPreview({ description }: { description: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const textRef = useRef<HTMLDivElement>(null);
+  const [needsTruncation, setNeedsTruncation] = useState(false);
+
+  useEffect(() => {
+    if (textRef.current) {
+      setNeedsTruncation(textRef.current.scrollHeight > textRef.current.clientHeight);
+    }
+  }, []);
+
+  return (
+    <div className="mt-6">
+      <div
+        ref={textRef}
+        className={cn(
+          "font-sans text-sm text-muted-foreground leading-relaxed",
+          !expanded && "line-clamp-3"
+        )}
+      >
+        {description}
       </div>
+      {needsTruncation && (
+        <Button
+          variant="link"
+          size="sm"
+          onClick={() => setExpanded(!expanded)}
+          className="mt-2 font-sans text-xs font-semibold uppercase tracking-wider text-secondary hover:text-accent p-0 h-auto"
+        >
+          {expanded ? "Show Less" : "Read More"}
+        </Button>
+      )}
     </div>
   );
 }

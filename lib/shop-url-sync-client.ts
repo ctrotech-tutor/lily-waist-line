@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
-import { ShopSearchParams } from './shop-url-sync-server';
+import type { ShopSearchParams } from '@/types/shop';
 
 // Utility functions for URL parameter management (client version)
 export function createQueryString(params: Record<string, string | string[] | undefined>): string {
@@ -35,6 +35,7 @@ export function useShopURLSync() {
     q: searchParams.get('q') || undefined,
     size: searchParams.get('size') || undefined,
     compression: searchParams.get('compression') || undefined,
+    availability: searchParams.get('availability') || undefined,
     sort: searchParams.get('sort') || undefined,
   }), [searchParams]);
 
@@ -54,6 +55,7 @@ export function useShopURLSync() {
       q: undefined,
       size: undefined,
       compression: undefined,
+      availability: undefined,
       sort: currentParams.sort, // Preserve sort when clearing filters
     };
     const queryString = createQueryString(newParams);

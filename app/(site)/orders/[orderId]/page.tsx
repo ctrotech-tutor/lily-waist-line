@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React from "react";
 import {
   OrderDetailsShell,
   OrderDetailsHeader,
@@ -9,40 +9,29 @@ import {
   OrderItemsList,
   OrderActions,
   type OrderItemData,
-  type PaymentStatus,
-  type FulfillmentStatus,
 } from "@/components/orders";
+import { useOrder } from "@/hooks/use-orders";
 
-// Mock data - will be replaced with real data later
-const mockOrder = {
-  id: "LWL-2026-001",
-  orderNumber: "LWL-2026-001",
-  orderDate: "May 11, 2026",
-  total: 120.0,
-  paymentStatus: "pending" as PaymentStatus,
-  fulfillmentStatus: "processing" as FulfillmentStatus,
-};
-
-const mockItems: OrderItemData[] = [
-  {
-    id: "item-001",
-    productName: "Lily Sculpting Waist Trainer",
-    productImage: "/img-1.png",
-    size: "M",
-    compression: "High",
-    quantity: 1,
-    unitPrice: 85.0,
-  },
-  {
-    id: "item-002",
-    productName: "Core Control Compression Band",
-    productImage: "/img-1.png",
-    size: "S",
-    compression: "Medium",
-    quantity: 1,
-    unitPrice: 35.0,
-  },
-];
+function OrderDetailsSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="h-6 w-32 bg-muted rounded-lg mb-6" />
+      <div className="h-px w-16 bg-muted mb-6" />
+      <div className="h-12 w-72 bg-muted rounded-lg mb-3" />
+      <div className="h-5 w-48 bg-muted rounded-lg mb-8" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="h-32 bg-muted rounded-lg" />
+          <div className="h-64 bg-muted rounded-lg" />
+          <div className="h-48 bg-muted rounded-lg" />
+        </div>
+        <div className="lg:col-span-1">
+          <div className="h-48 bg-muted rounded-lg" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface OrderDetailsPageProps {
   params: Promise<{
@@ -51,65 +40,87 @@ interface OrderDetailsPageProps {
 }
 
 export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
-  const [orderId, setOrderId] = useState<string>("");
-  
-  useEffect(() => {
-    const resolveParams = async () => {
-      const resolved = await params;
-      setOrderId(resolved.orderId);
-    };
-    resolveParams();
-  }, [params]);
+  const { orderId } = React.use(params);
+  const { data: order, isLoading, error } = useOrder(orderId);
 
-  // In the future, this will fetch real order data
-  console.log("Order ID:", orderId);
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <main>
+          <OrderDetailsShell>
+            <OrderDetailsSkeleton />
+          </OrderDetailsShell>
+        </main>
+      </div>
+    );
+  }
+
+  if (error || !order) {
+    return (
+      <div className="min-h-screen bg-background">
+        <main>
+          <OrderDetailsShell>
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">{error instanceof Error ? error.message : "Order not found"}</p>
+            </div>
+          </OrderDetailsShell>
+        </main>
+      </div>
+    );
+  }
+
+  const items: OrderItemData[] = order.items.map((item) => ({
+    id: item.id,
+    productName: item.product.name,
+    productImage: item.product.image?.url || null,
+    size: item.variant.size,
+    compression: item.variant.compressionLevel,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    totalPrice: item.totalPrice,
+  }));
+
+  const orderDate = new Date(order.createdAt).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 
   return (
     <div className="min-h-screen bg-background">
-
       <main>
         <OrderDetailsShell>
-          {/* Header Section */}
           <OrderDetailsHeader
-            orderNumber={mockOrder.orderNumber}
-            orderDate={mockOrder.orderDate}
-            total={mockOrder.total}
+            orderNumber={order.orderNumber}
+            orderDate={orderDate}
+            total={order.total}
           />
 
-          {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Main Info */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Status Overview */}
               <OrderStatusOverview
-                paymentStatus={mockOrder.paymentStatus}
-                fulfillmentStatus={mockOrder.fulfillmentStatus}
+                paymentStatus={order.paymentStatus}
+                fulfillmentStatus={order.fulfillmentStatus}
               />
-
-              {/* Order Timeline */}
               <OrderTimeline
-                paymentStatus={mockOrder.paymentStatus}
-                fulfillmentStatus={mockOrder.fulfillmentStatus}
+                paymentStatus={order.paymentStatus}
+                fulfillmentStatus={order.fulfillmentStatus}
               />
-
-              {/* Order Items */}
-              <OrderItemsList items={mockItems} />
+              <OrderItemsList items={items} />
             </div>
 
-            {/* Right Column - Actions */}
             <div className="lg:col-span-1">
               <div className="sticky top-24">
                 <OrderActions
-                  orderId={mockOrder.id}
-                  paymentStatus={mockOrder.paymentStatus}
-                  fulfillmentStatus={mockOrder.fulfillmentStatus}
+                  orderId={order.id}
+                  paymentStatus={order.paymentStatus}
+                  fulfillmentStatus={order.fulfillmentStatus}
                 />
               </div>
             </div>
           </div>
         </OrderDetailsShell>
       </main>
-
     </div>
   );
 }

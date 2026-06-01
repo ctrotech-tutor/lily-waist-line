@@ -7,9 +7,8 @@ import { ShopSort } from "./shop-sort";
 import { ShopSearch } from "./shop-search";
 import { MobileFilterDrawer, MobileFilterTrigger } from "./mobile-filter-drawer";
 import { ProductGrid } from "./product-grid";
-import { Footer } from "../layout/footer";
+import { ActiveFilters } from "./active-filters";
 import { ShopSearchParams } from "@/lib/shop-url-sync-server";
-import { ProductWithDetails } from "@/lib/services";
 
 interface ShopLayoutProps {
   children?: ReactNode;
@@ -17,9 +16,6 @@ interface ShopLayoutProps {
   showFilters?: boolean;
   showSort?: boolean;
   searchParams?: ShopSearchParams;
-  initialProducts?: ProductWithDetails[];
-  initialTotalCount?: number;
-  initialHasMore?: boolean;
 }
 
 export function ShopLayout({
@@ -28,9 +24,6 @@ export function ShopLayout({
   showFilters = true,
   showSort = true,
   searchParams,
-  initialProducts,
-  initialTotalCount,
-  initialHasMore,
 }: ShopLayoutProps) {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [activeMobileFilters, setActiveMobileFilters] = useState(0);
@@ -76,22 +69,22 @@ export function ShopLayout({
                   </div>
 
                   {/* Grid Header with Sort */}
-                  <div className="flex items-center justify-between pb-4 border-b border-border/30">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/30">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-[#d4af37]" />
+                      <div className="w-2 h-2 bg-primary" />
                       <span className="font-sans text-sm font-medium text-foreground">
                         Products
                       </span>
                     </div>
-                    {showSort && <ShopSort searchParams={searchParams} />}
+                    <div className="flex items-center gap-4">
+                      <ActiveFilters searchParams={searchParams} />
+                      {showSort && <ShopSort searchParams={searchParams} />}
+                    </div>
                   </div>
 
                   {/* Product Grid */}
                   <ProductGrid
                     searchParams={searchParams}
-                    initialProducts={initialProducts}
-                    initialTotalCount={initialTotalCount}
-                    initialHasMore={initialHasMore}
                   />
                 </div>
               )}

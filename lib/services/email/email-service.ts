@@ -1,22 +1,8 @@
 import nodemailer from 'nodemailer'
 import { getEmailConfig, isEmailConfigured } from '@/lib/config/email'
+import type { EmailMessage, EmailSendResult } from '@/types/email'
 
-export interface EmailMessage {
-  to: string
-  subject: string
-  html?: string
-  text?: string
-  from?: {
-    name?: string
-    email?: string
-  }
-}
-
-export interface EmailSendResult {
-  success: boolean
-  messageId?: string
-  error?: string
-}
+export type { EmailMessage, EmailSendResult }
 
 class EmailService {
   private transporter: nodemailer.Transporter | null = null

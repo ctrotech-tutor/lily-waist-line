@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CheckoutAddressCard, type AddressCardData } from "./address-card";
+import { ROUTES } from "@/lib/constants/routes";
 
 export type { AddressCardData };
 import { cn } from "@/lib/utils";
@@ -45,7 +46,7 @@ export function AddressSelector({
   };
 
   const handleAddNew = () => {
-    router.push("/address/new");
+    router.push(ROUTES.ADDRESS_NEW + "?redirect=/checkout");
   };
 
   // If no addresses, show empty state
@@ -53,9 +54,9 @@ export function AddressSelector({
     return (
       <div className={cn("space-y-6", className)}>
         {/* Empty State */}
-        <div className="text-center py-12 px-6 border border-border bg-muted/30">
-          <div className="w-16 h-16 mx-auto mb-4 border border-[#d4af37]/20 flex items-center justify-center">
-            <MapPin className="w-8 h-8 text-[#d4af37]/50" />
+        <div className="text-center py-12 px-6 border border-border bg-muted/30 rounded-2xl">
+          <div className="w-16 h-16 mx-auto mb-4 border border-primary/20 flex items-center justify-center">
+            <MapPin className="w-8 h-8 text-primary/50" />
           </div>
           <h3 className="font-heading text-lg font-semibold text-foreground mb-2">
             No Saved Addresses
@@ -103,28 +104,28 @@ export function AddressSelector({
           "w-full h-14",
           "font-sans text-sm font-medium",
           "border-dashed border-border",
-          "hover:border-[#d4af37] hover:bg-[#d4af37]/5",
+          "hover:border-primary hover:bg-primary/5",
           "transition-all duration-200"
         )}
       >
-        <Plus className="w-4 h-4 mr-2 text-[#d4af37]" />
+        <Plus className="w-4 h-4 mr-2 text-primary" />
         Add New Address
       </Button>
 
       {/* Delivery Confirmation Message */}
       <div
         className={cn(
-          "flex items-start gap-3 p-4 border",
+          "flex items-start gap-3 p-4 border rounded-lg",
           "transition-all duration-300",
           hasSelection
-            ? "border-[#d4af37]/30 bg-[#d4af37]/5"
+            ? "border-primary/30 bg-primary/5"
             : "border-border bg-muted/30 opacity-60"
         )}
       >
         <MapPin
           className={cn(
             "w-5 h-5 shrink-0 mt-0.5",
-            hasSelection ? "text-[#d4af37]" : "text-muted-foreground"
+            hasSelection ? "text-primary" : "text-muted-foreground"
           )}
         />
         <p className="font-sans text-sm text-foreground">

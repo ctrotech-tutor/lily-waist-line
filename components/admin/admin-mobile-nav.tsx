@@ -1,20 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import {
-  LayoutDashboard,
-  ShoppingCart,
-  Package,
-  Users,
-  Truck,
-  Settings,
-  Sun,
-  Moon,
-  X,
-} from "lucide-react";
+import { Sun, Moon, X, ExternalLink } from "lucide-react";
+import { ROUTES } from "@/lib/constants/routes"
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -26,39 +16,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-const navItems = [
-  {
-    href: "/admin",
-    label: "Dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    href: "/admin/orders",
-    label: "Orders",
-    icon: ShoppingCart,
-  },
-  {
-    href: "/admin/products",
-    label: "Products",
-    icon: Package,
-  },
-  {
-    href: "/admin/customers",
-    label: "Customers",
-    icon: Users,
-  },
-  {
-    href: "/admin/shipping",
-    label: "Shipping",
-    icon: Truck,
-  },
-  {
-    href: "/admin/settings",
-    label: "Settings",
-    icon: Settings,
-  },
-];
+import { OptimizedImage } from "@/components/shared/optimized-image";
+import { adminNavItems } from "@/lib/admin-nav";
 
 interface AdminMobileNavProps {
   open: boolean;
@@ -77,11 +36,11 @@ export function AdminMobileNav({ open, onOpenChange }: AdminMobileNavProps) {
           <SheetHeader className="border-b border-sidebar-border px-5 py-4">
             <div className="flex items-center justify-between">
               <Link
-                href="/admin"
+                href={ROUTES.ADMIN}
                 className="flex items-center gap-3"
                 onClick={() => onOpenChange(false)}
               >
-                <Image
+                <OptimizedImage
                   src="/logo.png"
                   alt="Lily Waist Line"
                   width={36}
@@ -104,17 +63,19 @@ export function AdminMobileNav({ open, onOpenChange }: AdminMobileNavProps) {
           {/* Navigation */}
           <ScrollArea className="flex-1 px-3 py-4">
             <nav className="flex flex-col gap-1">
-              {navItems.map((item) => {
+              {adminNavItems.map((item) => {
                 const Icon = item.icon;
                 const isActive =
-                  pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  item.href === ROUTES.ADMIN
+                    ? pathname === ROUTES.ADMIN
+                    : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
                 return (
                   <SheetClose asChild key={item.href}>
                     <Link
                       href={item.href}
                       className={cn(
-                        "flex items-center gap-3 rounded-none px-3 py-3 font-sans text-sm font-medium transition-all",
+                        "flex items-center gap-3 rounded-lg px-3 py-3 font-sans text-sm font-medium transition-all",
                         isActive
                           ? "bg-sidebar-primary text-sidebar-primary-foreground"
                           : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
@@ -141,14 +102,25 @@ export function AdminMobileNav({ open, onOpenChange }: AdminMobileNavProps) {
           {/* Footer */}
           <div className="space-y-4 p-4">
             {/* Theme Toggle */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="flex w-full items-center gap-3 px-3 py-2 font-sans text-sm font-medium text-sidebar-foreground transition-colors hover:text-sidebar-accent-foreground"
+              className="w-full justify-start gap-3 px-3 py-2 text-sidebar-foreground hover:text-sidebar-accent-foreground"
+              aria-label="Toggle theme"
             >
               <Sun className="h-5 w-5 dark:hidden" />
               <Moon className="hidden h-5 w-5 dark:block" />
-              {theme === "dark" ? "Light Mode" : "Dark Mode"}
-            </button>
+            </Button>
+
+            <Link
+              href={ROUTES.HOME}
+              onClick={() => onOpenChange(false)}
+              className="flex items-center gap-2 text-xs text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Back to Store
+            </Link>
 
             <div>
               <p className="font-sans text-xs text-sidebar-foreground/60">

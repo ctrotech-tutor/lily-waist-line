@@ -1,26 +1,35 @@
 "use client";
 
 import { useCallback, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Upload, X, FileImage, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ROUTES } from "@/lib/constants/routes";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { OptimizedImage } from "@/components/shared/optimized-image";
+import { orderKeys } from "@/lib/react-query/query-keys";
 
 export interface PaymentProofDropzoneProps {
+  orderId: string;
   className?: string;
   paymentMethod?: "cashapp" | "paypal";
 }
 
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 export function PaymentProofDropzone({
+  orderId,
   className,
   paymentMethod = "cashapp",
 }: PaymentProofDropzoneProps) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -32,34 +41,25 @@ export function PaymentProofDropzone({
 
   const handleFile = useCallback((selectedFile: File) => {
     setError(null);
-
     if (!ALLOWED_TYPES.includes(selectedFile.type)) {
       setError("Please upload an image file (PNG, JPG, JPEG, or WebP)");
       return;
     }
-
     if (selectedFile.size > MAX_FILE_SIZE) {
       setError("File size must be less than 10MB");
       return;
     }
-
     setFile(selectedFile);
     const objectUrl = URL.createObjectURL(selectedFile);
     setPreview(objectUrl);
   }, []);
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragging(false);
-
-      const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile) {
-        handleFile(droppedFile);
-      }
-    },
-    [handleFile]
-  );
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile) handleFile(droppedFile);
+  }, [handleFile]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -75,39 +75,47 @@ export function PaymentProofDropzone({
     inputRef.current?.click();
   }, []);
 
-  const handleInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const selectedFile = e.target.files?.[0];
-      if (selectedFile) {
-        handleFile(selectedFile);
-      }
-    },
-    [handleFile]
-  );
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) handleFile(selectedFile);
+  }, [handleFile]);
 
   const handleRemove = useCallback(() => {
-    if (preview) {
-      URL.revokeObjectURL(preview);
-    }
+    if (preview) URL.revokeObjectURL(preview);
     setFile(null);
     setPreview(null);
     setError(null);
-    if (inputRef.current) {
-      inputRef.current.value = "";
-    }
+    if (inputRef.current) inputRef.current.value = "";
   }, [preview]);
 
   const handleSubmit = useCallback(async () => {
     if (!file) return;
-
     setIsSubmitting(true);
+    setError(null);
 
-    // Simulate upload delay (UI only - no actual upload)
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("orderId", orderId);
 
-    setIsSubmitting(false);
-    setIsSuccess(true);
-  }, [file]);
+      const response = await fetch(ROUTES.API_UPLOADS_PAYMENT_PROOF, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Upload failed");
+      }
+
+      queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) });
+      setIsSubmitting(false);
+      setIsSuccess(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
+      setIsSubmitting(false);
+    }
+  }, [file, orderId, queryClient]);
 
   const paymentMethodLabel = paymentMethod === "cashapp" ? "Cash App" : "PayPal";
 
@@ -115,8 +123,8 @@ export function PaymentProofDropzone({
     return (
       <div className={cn("text-center py-8", className)}>
         <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 flex items-center justify-center border-2 border-[#d4af37]/30 bg-[#d4af37]/10">
-            <CheckCircle className="w-8 h-8 text-[#d4af37]" />
+          <div className="w-16 h-16 flex items-center justify-center border-2 border-primary/30 bg-primary/10 rounded-lg">
+            <CheckCircle className="w-8 h-8 text-primary" />
           </div>
         </div>
         <h3 className="font-heading text-xl md:text-2xl font-semibold text-foreground mb-3">
@@ -127,8 +135,8 @@ export function PaymentProofDropzone({
         </p>
         <Button
           variant="outline"
-          className="border-[#d4af37]/50 text-foreground hover:bg-[#d4af37]/10 hover:border-[#d4af37] rounded-none"
-          onClick={() => window.location.href = "/orders"}
+          className="border-primary/30 text-foreground hover:bg-primary/10 rounded-lg"
+          onClick={() => router.push(ROUTES.ORDERS)}
         >
           Back To Orders
         </Button>
@@ -138,7 +146,6 @@ export function PaymentProofDropzone({
 
   return (
     <div className={cn("space-y-8", className)}>
-      {/* Upload Dropzone */}
       <div className="space-y-4">
         {!file ? (
           <div
@@ -147,11 +154,11 @@ export function PaymentProofDropzone({
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             className={cn(
-              "relative cursor-pointer border-2 border-dashed transition-all duration-300",
+              "relative cursor-pointer border-2 border-dashed transition-all duration-300 rounded-lg",
               "p-8 md:p-12 text-center",
               isDragging
-                ? "border-[#d4af37] bg-[#d4af37]/10"
-                : "border-border hover:border-[#d4af37]/50 hover:bg-muted/50"
+                ? "border-primary bg-primary/10"
+                : "border-border hover:border-primary/50 hover:bg-muted/50"
             )}
           >
             <input
@@ -161,12 +168,10 @@ export function PaymentProofDropzone({
               onChange={handleInputChange}
               className="hidden"
             />
-
             <div className="flex flex-col items-center gap-4">
-              <div className="w-12 h-12 flex items-center justify-center border border-[#d4af37]/30 bg-[#d4af37]/10">
-                <Upload className="w-6 h-6 text-[#d4af37]" />
+              <div className="w-12 h-12 flex items-center justify-center border border-primary/30 bg-primary/10 rounded-lg">
+                <Upload className="w-6 h-6 text-primary" />
               </div>
-
               <div className="space-y-2">
                 <p className="font-sans text-sm md:text-base text-foreground font-medium">
                   Drop your payment screenshot here
@@ -178,24 +183,23 @@ export function PaymentProofDropzone({
             </div>
           </div>
         ) : (
-          <Card className="border-border bg-card rounded-none overflow-hidden">
+          <Card className="border-border bg-card rounded-lg overflow-hidden">
             <CardContent className="p-4 md:p-6">
               <div className="flex flex-col md:flex-row gap-4 items-start">
-                {/* Preview Image */}
-                <div className="relative w-full md:w-32 h-32 shrink-0 border border-border overflow-hidden">
+                <div className="relative w-full md:w-32 h-32 shrink-0 border border-border rounded-lg overflow-hidden">
                   {preview && (
-                    <img
+                    <OptimizedImage
                       src={preview}
                       alt="Payment proof preview"
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="128px"
                     />
                   )}
                 </div>
-
-                {/* File Info */}
                 <div className="flex-1 min-w-0 space-y-2">
                   <div className="flex items-center gap-2">
-                    <FileImage className="w-4 h-4 text-[#d4af37]" />
+                    <FileImage className="w-4 h-4 text-primary shrink-0" />
                     <p className="font-sans text-sm text-foreground font-medium truncate">
                       {file.name}
                     </p>
@@ -204,13 +208,11 @@ export function PaymentProofDropzone({
                     {(file.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
-
-                {/* Remove Button */}
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleRemove}
-                  className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-none"
+                  className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -219,25 +221,19 @@ export function PaymentProofDropzone({
           </Card>
         )}
 
-        {/* Error Message */}
         {error && (
           <p className="font-sans text-sm text-destructive text-center">{error}</p>
         )}
       </div>
 
-      {/* Additional Payment Details */}
       {file && (
         <div className="space-y-6">
-          {/* Payment Method Display */}
           <div className="space-y-2">
             <Label className="font-sans text-xs uppercase tracking-wider text-muted-foreground">
               Payment Method Used
             </Label>
-            <div className="flex items-center gap-3 p-3 border border-border bg-muted/30">
-              <Badge
-                variant="outline"
-                className="rounded-none border-[#d4af37]/50 text-[#d4af37] bg-[#d4af37]/10"
-              >
+            <div className="flex items-center gap-3 p-3 border border-border bg-muted/30 rounded-lg">
+              <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10 rounded-lg">
                 {paymentMethodLabel}
               </Badge>
               <span className="font-sans text-sm text-muted-foreground">
@@ -246,12 +242,8 @@ export function PaymentProofDropzone({
             </div>
           </div>
 
-          {/* Transaction Reference Input */}
           <div className="space-y-2">
-            <Label
-              htmlFor="transaction-ref"
-              className="font-sans text-xs uppercase tracking-wider text-muted-foreground"
-            >
+            <Label htmlFor="transaction-ref" className="font-sans text-xs uppercase tracking-wider text-muted-foreground">
               Transaction Reference (Optional)
             </Label>
             <Input
@@ -260,48 +252,30 @@ export function PaymentProofDropzone({
               placeholder={`${paymentMethodLabel} transaction ID or reference number`}
               value={transactionRef}
               onChange={(e) => setTransactionRef(e.target.value)}
-              className="rounded-none border-0 border-b border-border bg-transparent focus:border-[#d4af37] focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/50"
+              className="border-0 border-b border-border bg-transparent focus:border-primary focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/50 rounded-none px-0"
             />
             <p className="font-sans text-xs text-muted-foreground">
               Adding a reference helps us verify your payment faster
             </p>
           </div>
 
-          {/* Trust Messaging */}
-          <div className="p-4 border border-[#d4af37]/20 bg-[#d4af37]/5">
+          <div className="p-4 border border-primary/20 bg-primary/3 rounded-lg">
             <p className="font-sans text-sm text-foreground leading-relaxed">
               Your order will be verified manually before shipping begins. Our team typically reviews payment proofs within 24 hours.
             </p>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="flex-1 bg-[#d4af37] text-black hover:bg-[#ffd700] rounded-none font-sans font-semibold uppercase tracking-wider disabled:opacity-50"
+              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg font-sans font-semibold uppercase tracking-wider disabled:opacity-50"
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
-                  <svg
-                    className="animate-spin h-4 w-4"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
                   Submitting...
                 </span>
@@ -309,11 +283,10 @@ export function PaymentProofDropzone({
                 "Submit Proof"
               )}
             </Button>
-
             <Button
               variant="outline"
-              onClick={() => window.location.href = "/orders"}
-              className="flex-1 border-[#d4af37]/50 text-foreground hover:bg-[#d4af37]/10 hover:border-[#d4af37] rounded-none"
+              onClick={() => router.push(ROUTES.ORDERS)}
+              className="flex-1 border-primary/30 text-foreground hover:bg-primary/10 rounded-lg"
             >
               Back To Orders
             </Button>
@@ -321,13 +294,12 @@ export function PaymentProofDropzone({
         </div>
       )}
 
-      {/* Back to Orders - shown when no file */}
       {!file && (
         <div className="text-center pt-4">
           <Button
             variant="outline"
-            onClick={() => window.location.href = "/orders"}
-            className="border-[#d4af37]/50 text-foreground hover:bg-[#d4af37]/10 hover:border-[#d4af37] rounded-none"
+            onClick={() => router.push(ROUTES.ORDERS)}
+            className="border-primary/30 text-foreground hover:bg-primary/10 rounded-lg"
           >
             Back To Orders
           </Button>

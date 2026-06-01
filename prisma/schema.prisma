@@ -49,13 +49,16 @@ enum PaymentProofStatus {
 
 // Models
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  fullName      String
-  role          Role     @default(CUSTOMER)
-  emailVerified Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                String   @id @default(cuid())
+  email             String   @unique
+  fullName          String
+  phone             String?
+  avatarUrl         String?
+  avatarStoragePath String?
+  role              Role     @default(CUSTOMER)
+  emailVerified     Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
   cartItems     CartItem[]
@@ -69,7 +72,7 @@ model User {
 }
 
 model Product {
-  id               String        @id @default(cuid())
+  id               String        @id @default(uuid()) // Keep UUID for products (not auth-related)
   name             String
   slug             String        @unique
   shortDescription String
@@ -94,7 +97,7 @@ model Product {
 }
 
 model ProductVariant {
-  id               String   @id @default(cuid())
+  id               String   @id @default(uuid()) // Keep UUID for variants
   productId        String
   size             String
   compressionLevel String
@@ -120,7 +123,7 @@ model ProductVariant {
 }
 
 model ProductImage {
-  id          String   @id @default(cuid())
+  id          String   @id @default(uuid()) // Keep UUID for images
   productId   String
   url         String
   storagePath String // Storage path in Supabase Storage
@@ -143,7 +146,7 @@ model ProductImage {
 }
 
 model WishlistItem {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid()) // Keep UUID for wishlist items
   userId    String
   productId String
   createdAt DateTime @default(now())
@@ -159,7 +162,7 @@ model WishlistItem {
 }
 
 model CartItem {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid()) // Keep UUID for cart items
   userId    String
   variantId String
   quantity  Int      @default(1)
@@ -178,7 +181,7 @@ model CartItem {
 }
 
 model Address {
-  id           String   @id @default(cuid())
+  id           String   @id @default(uuid()) // Keep UUID for addresses
   userId       String
   firstName    String
   lastName     String
@@ -203,7 +206,8 @@ model Address {
 }
 
 model Order {
-  id                String            @id @default(cuid())
+  id                String            @id @default(uuid())
+  orderNumber       String?           @unique
   userId            String
   addressId         String
   subtotal          Decimal
@@ -232,7 +236,7 @@ model Order {
 }
 
 model OrderItem {
-  id        String  @id @default(cuid())
+  id        String  @id @default(uuid()) // Keep UUID for order items
   orderId   String
   productId String
   variantId String
@@ -251,7 +255,7 @@ model OrderItem {
 }
 
 model PaymentProof {
-  id         String             @id @default(cuid())
+  id         String             @id @default(uuid()) // Keep UUID for payment proofs
   orderId    String
   imageUrl   String
   status     PaymentProofStatus @default(PENDING)
@@ -265,7 +269,7 @@ model PaymentProof {
 }
 
 model Shipment {
-  id             String    @id @default(cuid())
+  id             String    @id @default(uuid()) // Keep UUID for shipments
   orderId        String
   carrier        String
   trackingNumber String?
@@ -281,7 +285,7 @@ model Shipment {
 }
 
 model PaymentConfiguration {
-  id            String        @id @default(cuid())
+  id            String        @id @default(uuid()) // Keep UUID for payment configs
   paymentMethod PaymentMethod @unique
   enabled       Boolean       @default(true)
   cashAppHandle String?       // For CASH_APP

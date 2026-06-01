@@ -4,20 +4,9 @@ import { MapPin, Star, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import type { AddressCardData } from "@/types/address";
 
-export interface AddressCardData {
-  id: string;
-  firstName: string;
-  lastName: string;
-  addressLine1: string;
-  addressLine2?: string;
-  city: string;
-  state?: string;
-  postalCode?: string;
-  country: string;
-  phone?: string;
-  isDefault: boolean;
-}
+export type { AddressCardData };
 
 interface CheckoutAddressCardProps {
   address: AddressCardData;
@@ -45,11 +34,11 @@ export function CheckoutAddressCard({
     <Card
       onClick={() => onSelect(address.id)}
       className={cn(
-        "relative p-5 md:p-6 cursor-pointer",
+        "relative p-5 md:p-6 cursor-pointer rounded-xl",
         "border transition-all duration-300",
-        "hover:border-[#d4af37]/50",
+        "hover:border-primary/50",
         isSelected
-          ? "border-[#d4af37] bg-[#d4af37]/5 ring-1 ring-[#d4af37]/30"
+          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
           : "border-border bg-card",
         className
       )}
@@ -60,11 +49,11 @@ export function CheckoutAddressCard({
           "absolute top-4 right-4 w-6 h-6 flex items-center justify-center",
           "border transition-all duration-300",
           isSelected
-            ? "bg-[#d4af37] border-[#d4af37]"
+            ? "bg-primary border-primary"
             : "bg-transparent border-border"
         )}
       >
-        {isSelected && <Check className="w-4 h-4 text-black" />}
+        {isSelected && <Check className="w-4 h-4 text-primary-foreground" />}
       </div>
 
       {/* Default Badge */}
@@ -72,7 +61,7 @@ export function CheckoutAddressCard({
         <div className="absolute top-4 left-4">
           <Badge
             variant="secondary"
-            className="bg-[#d4af37] text-black font-sans text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5"
+            className="bg-primary text-primary-foreground font-sans text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5"
           >
             <Star className="w-3 h-3 mr-1 fill-current" />
             Default
@@ -88,14 +77,14 @@ export function CheckoutAddressCard({
             className={cn(
               "w-10 h-10 flex items-center justify-center border transition-colors duration-300",
               isSelected
-                ? "border-[#d4af37] bg-[#d4af37]/10"
-                : "border-[#d4af37]/20"
+                ? "border-primary bg-primary/10"
+                : "border-primary/20"
             )}
           >
             <MapPin
               className={cn(
                 "w-5 h-5 transition-colors duration-300",
-                isSelected ? "text-[#d4af37]" : "text-[#d4af37]/70"
+                isSelected ? "text-primary" : "text-primary/70"
               )}
             />
           </div>

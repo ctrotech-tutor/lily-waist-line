@@ -1,46 +1,41 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { forgotPasswordSchema, type ForgotPasswordFormData } from '@/lib/validators/auth'
 import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
+import { sendCustomVerificationEmail } from '@/lib/services/email/email-triggers'
+import prisma from '@/lib/prisma'
 
-export async function resendVerification(formData: ForgotPasswordFormData) {
+const resendVerificationSchema = z.object({
+  email: z.string().email('Invalid email address'),
+})
+
+export async function resendVerification(formData: { email: string }) {
   try {
-    // Validate input
-    const validatedData = forgotPasswordSchema.parse(formData)
+    const validatedData = resendVerificationSchema.parse(formData)
 
-    // Create Supabase client
-    const supabase = await createClient()
+    // Get user's first name for personalization
+    const user = await prisma.user.findUnique({
+      where: { email: validatedData.email },
+      select: { fullName: true },
+    })
 
-    // Try to reset password for the email - this will send verification if needed
-    const { error } = await supabase.auth.resetPasswordForEmail(
-      validatedData.email,
-      {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`
-      }
-    )
+    const firstName = user ? user.fullName.split(' ')[0] || 'there' : 'there'
 
-    if (error) {
-      console.error('Resend verification error:', error)
-      // Don't reveal specific errors for security
-      return {
-        success: true,
-        message: 'If an account with this email exists, you will receive a verification email.'
-      }
-    }
+    // Send custom verification email with our branded template
+    sendCustomVerificationEmail(firstName, validatedData.email)
 
     revalidatePath('/verify-email')
-    
+
     return {
       success: true,
-      message: 'If an account with this email exists, you will receive a verification email.'
+      message: 'If an account with this email exists, a verification email has been sent.',
     }
 
   } catch (error) {
     console.error('Resend verification error:', error)
     return {
       success: false,
-      error: 'An unexpected error occurred. Please try again.'
+      error: 'An unexpected error occurred. Please try again.',
     }
   }
 }

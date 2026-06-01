@@ -1,34 +1,35 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import prisma from '@/lib/prisma'
+import { z } from 'zod'
 import { signupSchema, type SignupFormData } from '@/lib/validators/auth'
-import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { getAppUrl } from '@/lib/utils/app-url'
 import { sendWelcomeEmail } from '@/lib/services/email/email-triggers'
 
 export async function signup(formData: SignupFormData) {
   try {
-    // Validate input
     const validatedData = signupSchema.parse(formData)
 
-    // Create Supabase client
-    const supabase = await createClient()
+    const appUrl = getAppUrl()
 
-    // Step 1: Create Supabase Auth user
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+    // Step 1: Create user via admin API + generate verification link
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'signup',
       email: validatedData.email,
       password: validatedData.password,
       options: {
         data: {
           first_name: validatedData.firstName,
           last_name: validatedData.lastName,
-        }
-      }
+        },
+        redirectTo: `${appUrl}/auth/callback`,
+      },
     })
 
-    if (signUpError) {
-      if (signUpError.message.includes('User already registered')) {
+    if (linkError) {
+      if (linkError.message.includes('already exists') || linkError.message.includes('already registered')) {
         return {
           success: false,
           error: 'An account with this email already exists. Please sign in instead.'
@@ -40,18 +41,20 @@ export async function signup(formData: SignupFormData) {
       }
     }
 
+    const authUserId = linkData.user?.id
+
     // Step 2: Create or upsert Prisma User
-    if (authData.user?.id) {
+    if (authUserId) {
       try {
         await prisma.user.upsert({
-          where: { id: authData.user.id },
+          where: { id: authUserId },
           update: {
             email: validatedData.email,
             fullName: `${validatedData.firstName} ${validatedData.lastName}`,
             updatedAt: new Date()
           },
           create: {
-            id: authData.user.id,
+            id: authUserId,
             email: validatedData.email,
             fullName: `${validatedData.firstName} ${validatedData.lastName}`,
             role: 'CUSTOMER'
@@ -64,11 +67,20 @@ export async function signup(formData: SignupFormData) {
     }
 
     // Step 3: Send welcome email (non-blocking)
-    // Send welcome email immediately after successful signup
     sendWelcomeEmail(validatedData.firstName, validatedData.email)
 
-    // Step 4: Email verification is handled automatically by Supabase
-    // The user will receive a verification email
+    // Step 4: Send branded verification email with the action_link from generateLink
+    if (linkData?.properties?.action_link) {
+      const template = await import('@/lib/email/templates').then(m =>
+        m.getVerificationEmailTemplate({
+          firstName: validatedData.firstName,
+          email: validatedData.email,
+          verificationLink: linkData.properties.action_link,
+        })
+      )
+      const { sendEmailAsync } = await import('@/lib/services/email/email-service')
+      await sendEmailAsync({ to: validatedData.email, subject: template.subject, html: template.html, text: template.text })
+    }
 
     revalidatePath('/')
     
@@ -80,11 +92,11 @@ export async function signup(formData: SignupFormData) {
 
   } catch (error) {
     console.error('Signup error:', error)
-    
-    if (error instanceof Error && error.message.includes('Passwords do not match')) {
+
+    if (error instanceof z.ZodError) {
       return {
         success: false,
-        error: 'Passwords do not match'
+        error: error.issues[0]?.message || 'Validation failed'
       }
     }
 

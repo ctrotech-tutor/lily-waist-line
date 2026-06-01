@@ -19,22 +19,22 @@ export function AdminCustomersStats({ stats }: AdminCustomersStatsProps) {
       label: "Total Customers",
       value: stats.totalCustomers.toLocaleString(),
       icon: Users,
-      color: "bg-slate-500/10 text-slate-600",
-      borderColor: "border-slate-500/20",
+      color: "bg-muted/50 text-muted-foreground",
+      borderColor: "border-border/50",
     },
     {
       label: "Active Customers",
       value: stats.activeCustomers.toLocaleString(),
       icon: UserCheck,
-      color: "bg-green-500/10 text-green-600",
-      borderColor: "border-green-500/20",
+      color: "bg-success/10 text-success",
+      borderColor: "border-success/20",
     },
     {
       label: "Returning Customers",
       value: stats.returningCustomers.toLocaleString(),
       icon: Repeat,
-      color: "bg-[#d4af37]/10 text-[#b8952e]",
-      borderColor: "border-[#d4af37]/20",
+      color: "bg-secondary/10 text-primary/80",
+      borderColor: "border-secondary/20",
     },
   ];
 
@@ -45,7 +45,7 @@ export function AdminCustomersStats({ stats }: AdminCustomersStatsProps) {
         return (
           <Card
             key={item.label}
-            className="rounded-none border border-border/50"
+            className="border border-border/50"
           >
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
@@ -53,7 +53,7 @@ export function AdminCustomersStats({ stats }: AdminCustomersStatsProps) {
                   <p className="font-[family-name:var(--font-montserrat)] text-sm text-muted-foreground">
                     {item.label}
                   </p>
-                  <p className="font-[family-name:var(--font-bodoni)] text-2xl font-semibold mt-1">
+                  <p className="font-[family-name:var(--font-bodoni-moda)] text-2xl font-semibold mt-1">
                     {item.value}
                   </p>
                 </div>

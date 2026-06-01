@@ -11,10 +11,10 @@ interface AdminCustomerNotesProps {
 
 export function AdminCustomerNotes({ notes }: AdminCustomerNotesProps) {
   return (
-    <Card className="rounded-none border-border/50">
+    <Card className="border-border/50">
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
-          <StickyNote className="h-5 w-5 text-[#d4af37]" />
+          <StickyNote className="h-5 w-5 text-secondary" />
           <CardTitle className="font-[family-name:var(--font-bodoni-moda)] text-lg font-semibold">
             Admin Notes
           </CardTitle>
@@ -22,10 +22,9 @@ export function AdminCustomerNotes({ notes }: AdminCustomerNotesProps) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 px-2 font-[family-name:var(--font-montserrat)] text-xs hover:text-[#d4af37]"
+          className="h-8 px-2 font-[family-name:var(--font-montserrat)] text-xs hover:text-secondary"
           onClick={() => {
             // UI only - no backend integration
-            console.log("Add note clicked");
           }}
         >
           <Plus className="mr-1.5 h-3.5 w-3.5" />

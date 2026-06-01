@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { OptimizedImage } from "@/components/shared/optimized-image";
 import Link from "next/link";
+import { ROUTES } from "@/lib/constants/routes";
 
 interface AuthShellProps {
   children: React.ReactNode;
@@ -24,7 +25,7 @@ export function AuthShell({
 
       {/* LEFT PANEL */}
       {showBrandPanel && (
-        <div className="hidden lg:flex lg:w-1/2 relative bg-[#1b1b1b] overflow-hidden">
+        <div className="hidden lg:flex lg:w-1/2 relative bg-card overflow-hidden">
 
           {/* Background Image (OPTIMIZED) */}
           <OptimizedImage
@@ -44,7 +45,7 @@ export function AuthShell({
 
             {/* Logo */}
             <div className="relative z-10">
-              <Link href="/">
+              <Link href={ROUTES.HOME}>
                 <OptimizedImage
                   src="/logo.png"
                   alt="Lily Waist Line"

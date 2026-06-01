@@ -54,8 +54,8 @@ export function AddressCard({
     <Card
       className={cn(
         "relative p-6 md:p-8 transition-all duration-300",
-        "border border-border hover:border-[#d4af37]/50",
-        address.isDefault && "border-[#d4af37]/30 bg-[#d4af37]/5",
+        "border border-border hover:border-primary/50",
+        address.isDefault && "border-primary/30 bg-primary/5",
         className
       )}
     >
@@ -64,7 +64,7 @@ export function AddressCard({
         <div className="absolute top-4 right-4">
           <Badge
             variant="secondary"
-            className="bg-[#d4af37] text-black font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1"
+            className="bg-primary text-primary-foreground font-sans text-xs font-semibold uppercase tracking-wider px-3 py-1"
           >
             <Star className="w-3 h-3 mr-1 fill-current" />
             Default
@@ -76,8 +76,8 @@ export function AddressCard({
       <div className="flex items-start gap-4">
         {/* Icon */}
         <div className="shrink-0">
-          <div className="w-12 h-12 border border-[#d4af37]/20 flex items-center justify-center">
-            <MapPin className="w-5 h-5 text-[#d4af37]" />
+          <div className="w-12 h-12 border border-primary/20 flex items-center justify-center">
+            <MapPin className="w-5 h-5 text-primary" />
           </div>
         </div>
 
@@ -105,7 +105,7 @@ export function AddressCard({
           variant="outline"
           size="sm"
           onClick={() => onEdit?.(address.id)}
-          className="flex-1 text-xs font-button tracking-wide uppercase border-border hover:border-[#d4af37] hover:text-[#d4af37] transition-colors"
+          className="flex-1 text-xs font-button tracking-wide uppercase border-border hover:border-primary hover:text-primary transition-colors"
         >
           <Pencil className="w-4 h-4 mr-2" />
           Edit
@@ -117,7 +117,7 @@ export function AddressCard({
             size="sm"
             onClick={() => onSetDefault?.(address.id)}
             disabled={isSettingDefault}
-            className="flex-1 text-xs font-button tracking-wide uppercase border-border hover:border-[#d4af37] hover:text-[#d4af37] transition-colors"
+            className="flex-1 text-xs font-button tracking-wide uppercase border-border hover:border-primary hover:text-primary transition-colors"
           >
             {isSettingDefault ? (
               <>

@@ -4,8 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Package, Loader2, Check } from "lucide-react";
+import { ArrowLeft, Package, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCreateProduct, useUpdateProduct } from "@/hooks/admin/use-admin-products";
+import { ROUTES } from "@/lib/constants/routes";
 import { ProductBasicInfo } from "./product-basic-info";
 import { ProductPricing } from "./product-pricing";
 import { ProductInventory } from "./product-inventory";
@@ -49,6 +51,14 @@ const defaultFormData: ProductFormData = {
   images: [],
 };
 
+function mapSizes(sizes: string[]): ('XS' | 'S' | 'M' | 'L' | 'XL')[] {
+  return sizes.filter(s => ['XS', 'S', 'M', 'L', 'XL'].includes(s.toUpperCase())) as ('XS' | 'S' | 'M' | 'L' | 'XL')[]
+}
+
+function mapCompression(levels: string[]): ('LIGHT' | 'MEDIUM' | 'HIGH')[] {
+  return levels.filter(l => ['light', 'medium', 'high'].includes(l.toLowerCase())).map(l => l.toUpperCase() as 'LIGHT' | 'MEDIUM' | 'HIGH')
+}
+
 export function AdminProductFormShell({
   mode,
   productId,
@@ -56,7 +66,6 @@ export function AdminProductFormShell({
   className,
 }: AdminProductFormShellProps) {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [formData, setFormData] = useState<ProductFormData>({
     ...defaultFormData,
@@ -64,7 +73,11 @@ export function AdminProductFormShell({
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const createProduct = useCreateProduct()
+  const updateProduct = useUpdateProduct()
+
   const isEditMode = mode === "edit";
+  const isSubmitting = createProduct.isPending || updateProduct.isPending
   const pageTitle = isEditMode ? "Edit Product" : "Add New Product";
   const pageSubtitle = isEditMode
     ? "Update product details, pricing, and availability"
@@ -98,27 +111,49 @@ export function AdminProductFormShell({
       return;
     }
 
-    setIsSubmitting(true);
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    setIsSubmitting(false);
-    setShowSuccess(true);
-
-    // Hide success after 2 seconds
-    setTimeout(() => {
-      setShowSuccess(false);
-    }, 2000);
+    if (isEditMode && productId) {
+      const result = await updateProduct.mutateAsync({
+        productId,
+        name: formData.name,
+        shortDescription: formData.shortDescription || undefined,
+        description: formData.fullDescription || undefined,
+        basePrice: parseFloat(formData.price),
+        compareAtPrice: formData.compareAtPrice ? parseFloat(formData.compareAtPrice) : null,
+        status: formData.status.toUpperCase() as 'DRAFT' | 'ACTIVE' | 'ARCHIVED',
+      })
+      if (result) {
+        setShowSuccess(true)
+      }
+    } else {
+      const result = await createProduct.mutateAsync({
+        name: formData.name,
+        shortDescription: formData.shortDescription || '',
+        description: formData.fullDescription || '',
+        basePrice: parseFloat(formData.price),
+        compareAtPrice: formData.compareAtPrice ? parseFloat(formData.compareAtPrice) : null,
+        sizes: mapSizes(formData.sizes),
+        compressionLevels: mapCompression(formData.compressionLevels),
+        stockQuantity: parseInt(formData.stockQuantity) || 0,
+        status: formData.status.toUpperCase() as 'DRAFT' | 'ACTIVE' | 'ARCHIVED',
+        imageUrls: formData.images.map((url, i) => ({
+          url,
+          storagePath: url,
+          imageType: i === 0 ? 'main' : 'gallery' as const,
+          sortOrder: i,
+        })),
+      })
+      if (result) {
+        setShowSuccess(true)
+      }
+    }
   };
 
   const handleCancel = () => {
-    router.push("/admin/products");
+    router.push(ROUTES.ADMIN_PRODUCTS);
   };
 
   const updateFormData = (field: keyof ProductFormData, value: unknown) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error when field is updated
     if (errors[field]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -132,26 +167,26 @@ export function AdminProductFormShell({
     <div className={cn("w-full max-w-5xl mx-auto", className)}>
       {/* Page Header */}
       <div className="mb-8">
-        {/* Back Link */}
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={handleCancel}
-          className="flex items-center gap-2 text-muted-foreground hover:text-[#d4af37] transition-colors mb-6 group"
+          className="text-muted-foreground hover:text-secondary"
         >
-          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+          <ArrowLeft className="w-4 h-4" />
           <span className="font-sans text-xs uppercase tracking-wider font-semibold">
             Back to Products
           </span>
-        </button>
+        </Button>
 
-        {/* Title Section */}
         <div className="flex items-start gap-4">
           <div className="shrink-0">
-            <div className="w-12 h-12 border border-[#d4af37]/30 flex items-center justify-center bg-[#d4af37]/5">
-              <Package className="w-5 h-5 text-[#d4af37]" />
+            <div className="w-12 h-12 border border-secondary/30 flex items-center justify-center bg-secondary/5">
+              <Package className="w-5 h-5 text-secondary" />
             </div>
           </div>
           <div>
-            <h1 className="font-[family-name:var(--font-bodoni)] text-2xl sm:text-3xl md:text-4xl text-foreground leading-tight mb-2">
+            <h1 className="font-[family-name:var(--font-bodoni-moda)] text-2xl sm:text-3xl md:text-4xl text-foreground leading-tight mb-2">
               {pageTitle}
             </h1>
             <p className="text-muted-foreground text-sm md:text-base leading-relaxed max-w-lg">
@@ -165,19 +200,16 @@ export function AdminProductFormShell({
           </div>
         </div>
 
-        {/* Gold Divider */}
-        <div className="w-16 h-px bg-[#d4af37] mt-6" />
+        <div className="w-16 h-px bg-secondary mt-6" />
       </div>
 
-      {/* Form Card */}
       <Card className="border border-border bg-card">
         {showSuccess ? (
-          /* Success State */
           <div className="flex flex-col items-center justify-center py-16 text-center px-6">
-            <div className="w-16 h-16 border border-[#d4af37] flex items-center justify-center mb-6">
-              <Check className="w-8 h-8 text-[#d4af37]" />
+            <div className="w-16 h-16 border border-secondary flex items-center justify-center mb-6">
+              <Check className="w-8 h-8 text-secondary" />
             </div>
-            <h2 className="font-[family-name:var(--font-bodoni)] text-xl md:text-2xl text-foreground mb-2">
+            <h2 className="font-[family-name:var(--font-bodoni-moda)] text-xl md:text-2xl text-foreground mb-2">
               Product {isEditMode ? "Updated" : "Created"}
             </h2>
             <p className="text-muted-foreground text-sm max-w-md">
@@ -186,15 +218,13 @@ export function AdminProductFormShell({
             </p>
             <Button
               onClick={handleCancel}
-              className="mt-6 bg-[#d4af37] text-black hover:bg-[#d4af37]/90 text-xs uppercase tracking-wider rounded-none transition-all duration-300"
+              className="mt-6 bg-secondary text-foreground hover:bg-secondary/90 text-xs uppercase tracking-wider transition-all duration-300"
             >
               Return to Products
             </Button>
           </div>
         ) : (
-          /* Form */
           <form onSubmit={handleSubmit} className="divide-y divide-border">
-            {/* Basic Info Section */}
             <div className="p-6 sm:p-8">
               <ProductBasicInfo
                 data={formData}
@@ -203,7 +233,6 @@ export function AdminProductFormShell({
               />
             </div>
 
-            {/* Pricing Section */}
             <div className="p-6 sm:p-8">
               <ProductPricing
                 data={formData}
@@ -212,7 +241,6 @@ export function AdminProductFormShell({
               />
             </div>
 
-            {/* Inventory Section */}
             <div className="p-6 sm:p-8">
               <ProductInventory
                 data={formData}
@@ -221,7 +249,6 @@ export function AdminProductFormShell({
               />
             </div>
 
-            {/* Variants Section */}
             <div className="p-6 sm:p-8">
               <ProductVariants
                 data={formData}
@@ -230,7 +257,6 @@ export function AdminProductFormShell({
               />
             </div>
 
-            {/* Media Section */}
             <div className="p-6 sm:p-8">
               <ProductMedia
                 data={formData}
@@ -238,7 +264,6 @@ export function AdminProductFormShell({
               />
             </div>
 
-            {/* Status Section */}
             <div className="p-6 sm:p-8">
               <ProductStatus
                 data={formData}
@@ -246,7 +271,6 @@ export function AdminProductFormShell({
               />
             </div>
 
-            {/* Actions Section */}
             <div className="p-6 sm:p-8 bg-muted/30">
               <ProductFormActions
                 isSubmitting={isSubmitting}

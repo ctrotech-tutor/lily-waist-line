@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import type { PaymentMethod } from '@/lib/generated/prisma/enums'
+import type { PaymentConfig } from '@/types/payment'
 
 // Validation schema for payment configuration update
 const updatePaymentConfigSchema = z.object({
@@ -26,7 +27,7 @@ export interface UpdatePaymentConfigInput {
  */
 export async function updatePaymentConfiguration(input: UpdatePaymentConfigInput): Promise<{
   success: boolean
-  data?: any
+  data?: PaymentConfig
   error?: string
 }> {
   try {
@@ -45,13 +46,12 @@ export async function updatePaymentConfiguration(input: UpdatePaymentConfigInput
     }
 
     // Get user role from database
-    const { data: userData } = await supabase
-      .from('User')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true }
+    })
 
-    if (!userData || userData.role !== 'ADMIN') {
+    if (!dbUser || dbUser.role !== 'ADMIN') {
       return {
         success: false,
         error: 'Access denied. Admin access required.'

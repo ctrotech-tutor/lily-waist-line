@@ -36,11 +36,10 @@ export async function addToCart(formData: { variantId: string; quantity: number 
     // Get variant details for response
     const variant = await prisma.productVariant.findUnique({
       where: { id: validatedData.variantId },
-      include: { 
-        product: {
-          select: { name: true }
-        }
-      }
+      select: {
+        id: true, size: true, compressionLevel: true, stockQuantity: true,
+        product: { select: { name: true } },
+      },
     })
 
     if (!variant) {
