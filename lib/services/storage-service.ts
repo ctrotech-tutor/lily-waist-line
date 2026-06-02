@@ -83,6 +83,54 @@ export class StorageService {
   }
 
   /**
+   * Upload a temp image before product creation
+   * Uses userId + timestamp for path since productId isn't known yet
+   */
+  async uploadTempImage({
+    file,
+    userId,
+  }: {
+    file: File
+    userId: string
+  }): Promise<UploadResult> {
+    try {
+      if (!this.isValidImageFile(file)) {
+        return { success: false, url: '', path: '', error: 'Invalid file type. Only images are allowed.' }
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        return { success: false, url: '', path: '', error: 'File size must be less than 5MB.' }
+      }
+
+      const timestamp = Date.now()
+      const fileParts = file.name.split('.')
+      const extension = fileParts.length > 1 ? fileParts.pop()! : 'jpg'
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '').slice(0, -extension.length - 1)
+      const uniqueFileName = `${sanitizedName}-${timestamp}.${extension}`
+      const path = `temp/uploads/${userId}/${uniqueFileName}`
+
+      const { data, error } = await supabaseAdmin.storage
+        .from(this.bucketName)
+        .upload(path, file, {
+          cacheControl: '3600',
+          contentType: file.type,
+          upsert: true
+        })
+
+      if (error) {
+        return { success: false, url: '', path: '', error: error.message }
+      }
+
+      const { data: { publicUrl } } = supabaseAdmin.storage
+        .from(this.bucketName)
+        .getPublicUrl(path)
+
+      return { success: true, url: publicUrl, path: data.path }
+    } catch (error) {
+      return { success: false, url: '', path: '', error: error instanceof Error ? error.message : 'Upload failed' }
+    }
+  }
+
+  /**
    * Delete a product image from Supabase Storage
    */
   async deleteProductImage(path: string): Promise<{ success: boolean; error?: string }> {

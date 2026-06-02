@@ -13,6 +13,13 @@ const updateProductSchema = z.object({
   basePrice: z.number().min(0).optional(),
   compareAtPrice: z.number().min(0).nullable().optional(),
   status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).optional(),
+  imageUrls: z.array(z.object({
+    url: z.string(),
+    storagePath: z.string(),
+    imageType: z.enum(['main', 'gallery', 'variant']).default('gallery'),
+    sortOrder: z.number().int().min(0).default(0),
+  })).optional(),
+  imageIdsToRemove: z.array(z.string()).optional(),
 })
 
 export type UpdateProductInput = z.infer<typeof updateProductSchema>
@@ -44,24 +51,49 @@ export async function updateProduct(input: UpdateProductInput) {
       return { success: false as const, error: 'Product not found' }
     }
 
-    const data: Record<string, unknown> = {}
-    if (validated.name !== undefined) data.name = validated.name
-    if (validated.shortDescription !== undefined) data.shortDescription = validated.shortDescription
-    if (validated.description !== undefined) data.description = validated.description
-    if (validated.basePrice !== undefined) data.basePrice = validated.basePrice
-    if (validated.compareAtPrice !== undefined) data.compareAtPrice = validated.compareAtPrice
-    if (validated.status !== undefined) data.status = validated.status
+    const result = await prisma.$transaction(async (tx) => {
+      // Delete removed images from DB
+      if (validated.imageIdsToRemove && validated.imageIdsToRemove.length > 0) {
+        await tx.productImage.deleteMany({
+          where: { id: { in: validated.imageIdsToRemove } }
+        })
+      }
 
-    const updated = await prisma.product.update({
-      where: { id: validated.productId },
-      data
+      // Create new image records
+      if (validated.imageUrls && validated.imageUrls.length > 0) {
+        for (const img of validated.imageUrls) {
+          await tx.productImage.create({
+            data: {
+              productId: validated.productId,
+              url: img.url,
+              storagePath: img.storagePath,
+              imageType: img.imageType,
+              sortOrder: img.sortOrder,
+            }
+          })
+        }
+      }
+
+      // Update product scalar fields
+      const data: Record<string, unknown> = {}
+      if (validated.name !== undefined) data.name = validated.name
+      if (validated.shortDescription !== undefined) data.shortDescription = validated.shortDescription
+      if (validated.description !== undefined) data.description = validated.description
+      if (validated.basePrice !== undefined) data.basePrice = validated.basePrice
+      if (validated.compareAtPrice !== undefined) data.compareAtPrice = validated.compareAtPrice
+      if (validated.status !== undefined) data.status = validated.status
+
+      return tx.product.update({
+        where: { id: validated.productId },
+        data
+      })
     })
 
     revalidatePath('/admin/products')
 
     return {
       success: true as const,
-      data: { id: updated.id }
+      data: { id: result.id }
     }
 
   } catch (error) {

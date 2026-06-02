@@ -41,6 +41,7 @@ export const getProductById = tryAction(async (input: z.infer<typeof getProductB
       },
       images: {
         select: {
+          id: true,
           url: true,
           storagePath: true,
           imageType: true,

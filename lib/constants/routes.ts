@@ -1,37 +1,3 @@
-// export const ROUTE_ACCESS = {
-//   public: [
-//     "/shop",
-//     "/product",
-//   ],
-
-//   guestOnly: [
-//     "/login",
-//     "/signup",
-//     "/forgot-password",
-//     "/reset-password",
-//   ],
-
-//   user: [
-//     "/cart",
-//     "/checkout",
-//     "/orders",
-//     "/order",
-//     "/wishlist",
-//     "/address",
-//     "/account",
-//     "/verify-email",
-//     "/reset-password",
-//   ],
-
-//   admin: [
-//     "/admin",
-//   ],
-
-//   apiPublic: [
-//     "/api/webhooks",
-//   ],
-// } as const;
-
 export const ROUTES = {
   HOME: '/',
   SHOP: '/shop',
@@ -69,11 +35,20 @@ export const ROUTES = {
 } as const
 
 export const ROUTE_BUILDERS = {
-  product: (id: string, slug: string) => `/product/${id}/${slug}` as const,
-  adminOrder: (orderId: string) => `/admin/orders/${orderId}` as const,
-  adminCustomer: (customerId: string) => `/admin/customers/${customerId}` as const,
-  orderConfirmation: (orderId: string) => `/order/confirmation/${orderId}` as const,
-  orderPaymentProof: (orderId: string) => `/order/payment-proof/${orderId}` as const,
+  product: (id: string, slug: string) =>
+    `/product/${id}/${slug}` as const,
+
+  adminOrder: (orderId: string) =>
+    `/admin/orders/${orderId}` as const,
+
+  adminCustomer: (customerId: string) =>
+    `/admin/customers/${customerId}` as const,
+
+  orderConfirmation: (orderId: string) =>
+    `/order/confirmation/${orderId}` as const,
+
+  orderPaymentProof: (orderId: string) =>
+    `/order/payment-proof/${orderId}` as const,
 } as const
 
 export const ROUTE_ACCESS = {
@@ -99,7 +74,6 @@ export const ROUTE_ACCESS = {
     ROUTES.WISHLIST,
     ROUTES.ADDRESS,
     ROUTES.ACCOUNT,
-    ROUTES.RESET_PASSWORD,
   ],
 
   admin: [
@@ -109,4 +83,4 @@ export const ROUTE_ACCESS = {
   apiPublic: [
     ROUTES.API_WEBHOOKS,
   ],
-} as const;
+} as const

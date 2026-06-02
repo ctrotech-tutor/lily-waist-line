@@ -23,3 +23,13 @@ export interface UploadProductImageResult {
   path?: string
   error?: string
 }
+
+// Image entry in the product form state
+export interface ProductImageEntry {
+  id?: string
+  url: string
+  storagePath: string
+  imageType: 'main' | 'gallery' | 'variant'
+  sortOrder: number
+  existing: boolean
+}

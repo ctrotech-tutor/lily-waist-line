@@ -13,7 +13,7 @@ function mapProductToFormData(product: {
   compareAtPrice: number | null;
   status: string;
   variants: { size: string; compressionLevel: string; stockQuantity: number }[];
-  images: { url: string }[];
+  images: { id: string; url: string; storagePath: string; imageType: string; sortOrder: number }[];
 }): Partial<ProductFormData> {
   const uniqueSizes = [...new Set(product.variants.map(v => v.size))]
   const uniqueCompressions = [...new Set(product.variants.map(v => v.compressionLevel.toLowerCase()))]
@@ -34,7 +34,15 @@ function mapProductToFormData(product: {
     sizes: uniqueSizes,
     compressionLevels: uniqueCompressions,
     status: product.status.toLowerCase() as 'draft' | 'active' | 'archived',
-    images: product.images.map(i => i.url),
+    images: product.images.map(i => ({
+      id: i.id,
+      url: i.url,
+      storagePath: i.storagePath,
+      imageType: i.imageType as 'main' | 'gallery' | 'variant',
+      sortOrder: i.sortOrder,
+      existing: true,
+    })),
+    removedImageIds: [],
   }
 }
 

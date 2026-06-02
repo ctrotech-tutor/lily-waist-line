@@ -1,40 +1,142 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { ImagePlus, X, GripVertical, Upload } from "lucide-react";
+import { ImagePlus, X, GripVertical, Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OptimizedImage } from "@/components/shared/optimized-image";
+import { toast } from "sonner";
+import { uploadTempImage } from "@/server/actions/media/upload-temp-image";
+import { uploadProductImage, deleteProductImage } from "@/server/actions/media/upload-product-image";
 import type { ProductFormData } from "./admin-product-form-shell";
+import type { ProductImageEntry } from "@/types/media";
 
 interface ProductMediaProps {
   data: ProductFormData;
-  onChange: (field: keyof ProductFormData, value: string[]) => void;
+  onChange: (field: keyof ProductFormData, value: unknown) => void;
+  productId?: string;
 }
 
-// Mock images for demonstration
-const MOCK_IMAGES = [
-  "/img-1.png",
-  "/img-p-1.png",
-  "/auth-1.png",
-];
-
-export function ProductMedia({ data, onChange }: ProductMediaProps) {
+export function ProductMedia({ data, onChange, productId }: ProductMediaProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [uploadingIndexes, setUploadingIndexes] = useState<Set<number>>(new Set());
 
-  // Simulate file upload (UI only)
-  const handleFileSelect = useCallback(() => {
-    // In a real implementation, this would open a file picker
-    // For now, we'll add a mock image
-    const randomMock = MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)];
-    onChange("images", [...data.images, randomMock]);
-  }, [data.images, onChange]);
+  const handleFiles = useCallback(async (files: FileList) => {
+    const fileArray = Array.from(files);
 
-  const removeImage = (index: number) => {
+    for (const file of fileArray) {
+      if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+        toast.error(`${file.name}: Invalid file type. Only JPEG, PNG, WebP, and GIF allowed.`);
+        continue;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name}: File must be less than 5MB.`);
+        continue;
+      }
+    }
+
+    const validFiles = fileArray.filter(f =>
+      ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'].includes(f.type) &&
+      f.size <= 5 * 1024 * 1024
+    );
+
+    const startIndex = data.images.length;
+    const placeholders: ProductImageEntry[] = validFiles.map(() => ({
+      url: '',
+      storagePath: '',
+      imageType: 'gallery',
+      sortOrder: startIndex,
+      existing: false,
+    }));
+
+    let updatedImages = [...data.images, ...placeholders];
+    onChange("images", updatedImages);
+
+    const uploading = new Set<number>();
+    for (let i = 0; i < validFiles.length; i++) {
+      uploading.add(startIndex + i);
+    }
+    setUploadingIndexes(uploading);
+
+    for (let i = 0; i < validFiles.length; i++) {
+      const file = validFiles[i];
+      const fileIndex = startIndex + i;
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        let result;
+        if (productId) {
+          formData.append('productId', productId);
+          formData.append('type', 'gallery');
+          result = await uploadProductImage(formData);
+        } else {
+          result = await uploadTempImage(formData);
+        }
+
+        if (result.success && result.url && result.path) {
+          updatedImages[fileIndex] = {
+            url: result.url,
+            storagePath: result.path,
+            imageType: fileIndex === 0 ? 'main' : 'gallery',
+            sortOrder: fileIndex,
+            existing: false,
+          };
+          onChange("images", [...updatedImages]);
+        } else {
+          toast.error(result.error || `Failed to upload ${file.name}`);
+          updatedImages.splice(fileIndex, 1);
+          onChange("images", [...updatedImages]);
+        }
+      } catch {
+        toast.error(`Failed to upload ${file.name}`);
+        updatedImages.splice(fileIndex, 1);
+        onChange("images", [...updatedImages]);
+      } finally {
+        setUploadingIndexes((prev) => {
+          const next = new Set(prev);
+          next.delete(fileIndex);
+          return next;
+        });
+      }
+    }
+
+    if (inputRef.current) inputRef.current.value = '';
+  }, [data.images, onChange, productId]);
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    handleFiles(files);
+  }, [handleFiles]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+    handleFiles(files);
+  }, [handleFiles]);
+
+  const removeImage = useCallback(async (index: number) => {
+    const image = data.images[index];
+    if (!image) return;
+
+    if (image.existing && image.storagePath) {
+      const result = await deleteProductImage(image.storagePath);
+      if (!result.success) {
+        toast.error('Failed to delete image from storage');
+      }
+      if (image.id) {
+        onChange("removedImageIds", [...data.removedImageIds, image.id]);
+      }
+    }
+
     const newImages = data.images.filter((_, i) => i !== index);
     onChange("images", newImages);
-  };
+  }, [data.images, data.removedImageIds, onChange]);
 
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
@@ -67,17 +169,10 @@ export function ProductMedia({ data, onChange }: ProductMediaProps) {
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    // Simulate drop - add mock image
-    const randomMock = MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)];
-    onChange("images", [...data.images, randomMock]);
-  };
+  const isUploading = uploadingIndexes.size > 0;
 
   return (
     <div className="space-y-6">
-      {/* Section Header */}
       <div className="flex items-center gap-3 pb-2 border-b border-border/50">
         <div className="w-1.5 h-1.5 bg-secondary" />
         <h2 className="font-sans text-xs uppercase tracking-[0.15em] text-muted-foreground font-semibold">
@@ -85,9 +180,8 @@ export function ProductMedia({ data, onChange }: ProductMediaProps) {
         </h2>
       </div>
 
-      {/* Upload Dropzone */}
       <div
-        onClick={handleFileSelect}
+        onClick={() => inputRef.current?.click()}
         onDragOver={handleDropZoneDragOver}
         onDragLeave={handleDropZoneDragLeave}
         onDrop={handleDrop}
@@ -115,22 +209,31 @@ export function ProductMedia({ data, onChange }: ProductMediaProps) {
               Click to upload or drag and drop
             </p>
             <p className="font-sans text-xs text-muted-foreground mt-1">
-              PNG, JPG up to 10MB (UI Demo Only)
+              PNG, JPG, WebP up to 5MB
             </p>
           </div>
           <Button
             type="button"
             variant="outline"
             size="sm"
+            disabled={isUploading}
             className="mt-2 border-secondary/50 text-secondary hover:bg-secondary/10"
           >
             <ImagePlus className="w-4 h-4 mr-2" />
-            Select Images
+            {isUploading ? 'Uploading...' : 'Select Images'}
           </Button>
         </div>
       </div>
 
-      {/* Image Grid */}
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+
       {data.images.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -145,8 +248,8 @@ export function ProductMedia({ data, onChange }: ProductMediaProps) {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {data.images.map((image, index) => (
               <div
-                key={`${image}-${index}`}
-                draggable
+                key={`${image.storagePath || image.url}-${index}`}
+                draggable={!uploadingIndexes.has(index)}
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
@@ -155,49 +258,53 @@ export function ProductMedia({ data, onChange }: ProductMediaProps) {
                   draggedIndex === index && "opacity-50 border-secondary"
                 )}
               >
-                {/* Drag Handle */}
                 <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="w-6 h-6 flex items-center justify-center bg-background/60 text-foreground">
                     <GripVertical className="w-3 h-3" />
                   </div>
                 </div>
 
-                {/* Remove Button */}
-                <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeImage(index);
-                    }}
-                    className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <div className="w-6 h-6 flex items-center justify-center bg-destructive/90 text-destructive-foreground hover:bg-destructive">
-                      <X className="w-3 h-3" />
-                    </div>
-                  </button>
-
-                {/* Image */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  {image.startsWith("/") ? (
-                    <OptimizedImage
-                      src={image}
-                      alt={`Product ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 50vw, 160px"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-muted flex items-center justify-center">
-                      <span className="text-xs text-muted-foreground">IMG</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* First Image Badge */}
-                {index === 0 && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-secondary text-foreground text-[10px] font-semibold uppercase tracking-wider py-1 text-center">
-                    Main Image
+                {uploadingIndexes.has(index) ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/80">
+                    <Loader2 className="w-6 h-6 animate-spin text-secondary" />
                   </div>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeImage(index);
+                      }}
+                      className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <div className="w-6 h-6 flex items-center justify-center bg-destructive/90 text-destructive-foreground hover:bg-destructive">
+                        <X className="w-3 h-3" />
+                      </div>
+                    </button>
+
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      {image.url ? (
+                        <OptimizedImage
+                          src={image.url}
+                          alt={`Product ${index + 1}`}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 50vw, 160px"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <span className="text-xs text-muted-foreground">IMG</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {index === 0 && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-secondary text-foreground text-[10px] font-semibold uppercase tracking-wider py-1 text-center">
+                        Main Image
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             ))}

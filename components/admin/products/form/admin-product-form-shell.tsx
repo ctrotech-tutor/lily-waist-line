@@ -15,6 +15,7 @@ import { ProductVariants } from "./product-variants";
 import { ProductMedia } from "./product-media";
 import { ProductStatus } from "./product-status";
 import { ProductFormActions } from "./product-form-actions";
+import type { ProductImageEntry } from "@/types/media";
 
 export interface ProductFormData {
   name: string;
@@ -27,7 +28,8 @@ export interface ProductFormData {
   sizes: string[];
   compressionLevels: string[];
   status: "draft" | "active" | "archived";
-  images: string[];
+  images: ProductImageEntry[];
+  removedImageIds: string[];
 }
 
 interface AdminProductFormShellProps {
@@ -49,6 +51,7 @@ const defaultFormData: ProductFormData = {
   compressionLevels: ["medium"],
   status: "draft",
   images: [],
+  removedImageIds: [],
 };
 
 function mapSizes(sizes: string[]): ('XS' | 'S' | 'M' | 'L' | 'XL')[] {
@@ -112,6 +115,15 @@ export function AdminProductFormShell({
     }
 
     if (isEditMode && productId) {
+      const newImages = formData.images
+        .filter(img => !img.existing)
+        .map((img, i) => ({
+          url: img.url,
+          storagePath: img.storagePath,
+          imageType: i === 0 ? 'main' as const : 'gallery' as const,
+          sortOrder: formData.images.indexOf(img),
+        }))
+
       const result = await updateProduct.mutateAsync({
         productId,
         name: formData.name,
@@ -120,6 +132,8 @@ export function AdminProductFormShell({
         basePrice: parseFloat(formData.price),
         compareAtPrice: formData.compareAtPrice ? parseFloat(formData.compareAtPrice) : null,
         status: formData.status.toUpperCase() as 'DRAFT' | 'ACTIVE' | 'ARCHIVED',
+        imageUrls: newImages,
+        imageIdsToRemove: formData.removedImageIds,
       })
       if (result) {
         setShowSuccess(true)
@@ -135,9 +149,9 @@ export function AdminProductFormShell({
         compressionLevels: mapCompression(formData.compressionLevels),
         stockQuantity: parseInt(formData.stockQuantity) || 0,
         status: formData.status.toUpperCase() as 'DRAFT' | 'ACTIVE' | 'ARCHIVED',
-        imageUrls: formData.images.map((url, i) => ({
-          url,
-          storagePath: url,
+        imageUrls: formData.images.map((img, i) => ({
+          url: img.url,
+          storagePath: img.storagePath,
           imageType: i === 0 ? 'main' : 'gallery' as const,
           sortOrder: i,
         })),
@@ -261,6 +275,7 @@ export function AdminProductFormShell({
               <ProductMedia
                 data={formData}
                 onChange={updateFormData}
+                productId={isEditMode ? productId : undefined}
               />
             </div>
 
