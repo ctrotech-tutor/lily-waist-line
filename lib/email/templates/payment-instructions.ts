@@ -1,9 +1,12 @@
 export interface PaymentInstructionsData {
+  appUrl: string
   firstName: string
   email: string
   orderNumber: string
+  orderId: string
   paymentMethod: string
-  paymentDetails: string
+  paymentLink: string
+  paymentLabel: string
   amount: string
   items: Array<{
     name: string
@@ -12,7 +15,9 @@ export interface PaymentInstructionsData {
 }
 
 export const getPaymentInstructionsTemplate = (data: PaymentInstructionsData) => {
-  const { firstName, email, orderNumber, paymentMethod, paymentDetails, amount, items } = data
+  const { appUrl, firstName, email, orderNumber, orderId, paymentMethod, paymentLink, paymentLabel, amount, items } = data
+
+  const uploadUrl = `${appUrl}/order/payment-proof/${orderId}`
 
   return {
     subject: `Payment Instructions - ${orderNumber}`,
@@ -159,22 +164,22 @@ export const getPaymentInstructionsTemplate = (data: PaymentInstructionsData) =>
             <div class="logo">LILY WAIST LINE</div>
             <div>Payment Instructions</div>
           </div>
-          
+
           <div class="content">
             <h1 class="title">Complete Your Payment</h1>
-            
+
             <div class="info-badge">
               Order #${orderNumber}
             </div>
-            
+
             <p style="font-size: 16px; margin-bottom: 20px;">
               Dear ${firstName},
             </p>
-            
+
             <p style="font-size: 14px; color: #666; margin-bottom: 30px;">
-              Thank you for your order! To complete your purchase, please follow the payment instructions below.
+              Thank you for your order! To complete your purchase, please send your payment using the details below.
             </p>
-            
+
             <div class="section">
               <div class="section-title">Payment Details</div>
               <div class="payment-details">
@@ -183,8 +188,8 @@ export const getPaymentInstructionsTemplate = (data: PaymentInstructionsData) =>
                   <span><strong>${paymentMethod}</strong></span>
                 </div>
                 <div class="detail-row">
-                  <span>${paymentMethod} Details</span>
-                  <span class="gold-accent"><strong>${paymentDetails}</strong></span>
+                  <span>Send To</span>
+                  <span class="gold-accent"><strong><a href="${paymentLink}" style="color: #d4af37; text-decoration: underline;">${paymentLabel}</a></strong></span>
                 </div>
                 <div class="detail-row">
                   <span>Amount Due</span>
@@ -192,25 +197,25 @@ export const getPaymentInstructionsTemplate = (data: PaymentInstructionsData) =>
                 </div>
               </div>
             </div>
-            
+
             <div class="section">
               <div class="section-title">Payment Instructions</div>
               <div class="instructions">
                 <ol>
-                  <li>Open your ${paymentMethod} app or website</li>
-                  <li>Send <strong>${amount}</strong> to <strong>${paymentDetails}</strong></li>
+                  <li>Click the link below to open ${paymentMethod}:<br><a href="${paymentLink}" style="color: #d4af37; font-weight: 600; text-decoration: underline;">${paymentLabel}</a></li>
+                  <li>Send <strong>${amount}</strong> to the account above</li>
                   <li>Include your order number <strong>${orderNumber}</strong> in the payment note/reference</li>
-                  <li>Take a screenshot of your payment confirmation</li>
-                  <li>Upload the screenshot using the link below</li>
+                  <li>Take a screenshot of your payment confirmation showing the transaction details</li>
+                  <li>Upload the screenshot below so we can verify your payment</li>
                 </ol>
               </div>
               <div style="text-align: center;">
-                <a href="https://lilywaistline.com/order/payment-proof/${orderNumber}" class="button">
+                <a href="${uploadUrl}" class="button">
                   Upload Payment Proof
                 </a>
               </div>
             </div>
-            
+
             <div class="section">
               <div class="section-title">Order Items</div>
               <div class="items-list">
@@ -222,7 +227,7 @@ export const getPaymentInstructionsTemplate = (data: PaymentInstructionsData) =>
                 `).join('')}
               </div>
             </div>
-            
+
             <div class="section">
               <div class="section-title">Important Notes</div>
               <ul style="font-size: 14px; color: #666; line-height: 1.8;">
@@ -232,13 +237,13 @@ export const getPaymentInstructionsTemplate = (data: PaymentInstructionsData) =>
                 <li>If you have any questions, please contact our support team</li>
               </ul>
             </div>
-            
+
             <p style="font-size: 14px; color: #666; margin-top: 30px;">
-              This email was sent to ${email}. If you have any questions about your order, 
+              This email was sent to ${email}. If you have any questions about your order,
               please contact our support team.
             </p>
           </div>
-          
+
           <div class="footer">
             <div class="gold-accent">© 2026 Lily Waist Line</div>
             <div>Luxury • Confidence • Transformation</div>
@@ -252,21 +257,21 @@ Payment Instructions - Lily Waist Line
 
 Dear ${firstName},
 
-Thank you for your order! To complete your purchase, please follow the payment instructions below.
+Thank you for your order! To complete your purchase, please send your payment using the details below.
 
 Order #${orderNumber}
 
 Payment Details:
 Payment Method: ${paymentMethod}
-${paymentMethod} Details: ${paymentDetails}
+Send To: ${paymentLabel} (${paymentLink})
 Amount Due: ${amount}
 
 Payment Instructions:
-1. Open your ${paymentMethod} app or website
-2. Send ${amount} to ${paymentDetails}
+1. Open this link to pay: ${paymentLink}
+2. Send ${amount} to the account above
 3. Include your order number ${orderNumber} in the payment note/reference
-4. Take a screenshot of your payment confirmation
-5. Upload the screenshot at: https://lilywaistline.com/order/payment-proof/${orderNumber}
+4. Take a screenshot of your payment confirmation showing the transaction details
+5. Upload your proof at: ${uploadUrl}
 
 Order Items:
 ${items.map(item => `${item.name} (Quantity: ${item.quantity})`).join('\n')}

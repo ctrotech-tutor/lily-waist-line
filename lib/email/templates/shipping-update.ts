@@ -1,4 +1,5 @@
 export interface ShippingUpdateData {
+  appUrl: string
   firstName: string
   email: string
   orderNumber: string

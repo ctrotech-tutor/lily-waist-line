@@ -1,4 +1,5 @@
 export interface OrderConfirmationData {
+  appUrl: string
   firstName: string
   email: string
   orderNumber: string

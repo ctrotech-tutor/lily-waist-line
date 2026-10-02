@@ -1,10 +1,11 @@
 export interface PasswordResetSuccessEmailData {
+  appUrl: string
   firstName: string
   email: string
 }
 
 export const getPasswordResetSuccessEmailTemplate = (data: PasswordResetSuccessEmailData) => {
-  const { firstName, email } = data
+  const { appUrl, firstName, email } = data
 
   return {
     subject: 'Your password has been updated — Lily Waist Line',
@@ -99,7 +100,7 @@ export const getPasswordResetSuccessEmailTemplate = (data: PasswordResetSuccessE
             </p>
 
             <div style="text-align: center; margin: 30px 0;">
-              <a href="https://lilywaistline.com/login" class="cta-button">
+              <a href="${appUrl}/login" class="cta-button">
                 Sign In
               </a>
             </div>
@@ -128,7 +129,7 @@ Password updated, ${firstName}
 
 Your password has been successfully updated. You can now sign in with your new password.
 
-Sign In: https://lilywaistline.com/login
+Sign In: ${appUrl}/login
 
 If you did not make this change, please contact our support team immediately.
 

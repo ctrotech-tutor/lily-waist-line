@@ -1,4 +1,5 @@
 export interface LoginAlertData {
+  appUrl: string
   firstName: string
   email: string
   loginTime: string
@@ -7,7 +8,7 @@ export interface LoginAlertData {
 }
 
 export const getLoginAlertTemplate = (data: LoginAlertData) => {
-  const { firstName, email, loginTime, loginLocation, device } = data
+  const { appUrl, firstName, email, loginTime, loginLocation, device } = data
 
   return {
     subject: 'New Login to Your Lily Waist Line Account',
@@ -115,15 +116,15 @@ export const getLoginAlertTemplate = (data: LoginAlertData) => {
             <div class="logo">LILY WAIST LINE</div>
             <div>Account Security</div>
           </div>
-          
+
           <div class="content">
             <h1 class="title">New Login Detected</h1>
-            
+
             <div class="alert-box">
               <strong>Hi ${firstName},</strong><br>
               We detected a new login to your Lily Waist Line account.
             </div>
-            
+
             <div class="section">
               <div class="section-title">Login Details</div>
               <div class="login-details">
@@ -149,35 +150,35 @@ export const getLoginAlertTemplate = (data: LoginAlertData) => {
                 </div>
               </div>
             </div>
-            
+
             <div class="security-tips">
-              <h4>🔐 Security Tips</h4>
+              <h4>Security Tips</h4>
               <ul>
                 <li>If this was you, no action is needed</li>
-                <li>If you don't recognize this login, 
-                  <a href="https://lilywaistline.com/reset-password" class="security-link">reset your password immediately</a>
+                <li>If you don't recognize this login,
+                  <a href="${appUrl}/reset-password" class="security-link">reset your password immediately</a>
                 </li>
                 <li>Never share your login credentials with anyone</li>
                 <li>Use a unique, strong password for your account</li>
               </ul>
             </div>
-            
+
             <div class="section">
               <div class="section-title">Account Actions</div>
               <p>
                 <strong>Need help?</strong><br>
-                • <a href="https://lilywaistline.com/reset-password" class="security-link">Reset Password</a><br>
-                • <a href="https://lilywaistline.com/contact" class="security-link">Contact Support</a><br>
-                • <a href="https://lilywaistline.com/account" class="security-link">Manage Account</a>
+                • <a href="${appUrl}/reset-password" class="security-link">Reset Password</a><br>
+                • <a href="${appUrl}/contact" class="security-link">Contact Support</a><br>
+                • <a href="${appUrl}/account" class="security-link">Manage Account</a>
               </p>
             </div>
-            
+
             <p style="font-size: 14px; color: #666; margin-top: 30px;">
-              This email was sent to ${email}. If you didn't attempt to log in, 
+              This email was sent to ${email}. If you didn't attempt to log in,
               please secure your account immediately.
             </p>
           </div>
-          
+
           <div class="footer">
             <div class="gold-accent">© 2026 Lily Waist Line</div>
             <div>Luxury • Confidence • Transformation</div>
@@ -199,16 +200,16 @@ ${loginLocation ? `Location: ${loginLocation}` : ''}
 ${device ? `Device: ${device}` : ''}
 Account: ${email}
 
-🔐 Security Tips:
+Security Tips:
 • If this was you, no action is needed
-• If you don't recognize this login, reset your password immediately: https://lilywaistline.com/reset-password
+• If you don't recognize this login, reset your password immediately: ${appUrl}/reset-password
 • Never share your login credentials with anyone
 • Use a unique, strong password for your account
 
 Account Actions:
-• Reset Password: https://lilywaistline.com/reset-password
-• Contact Support: https://lilywaistline.com/contact
-• Manage Account: https://lilywaistline.com/account
+• Reset Password: ${appUrl}/reset-password
+• Contact Support: ${appUrl}/contact
+• Manage Account: ${appUrl}/account
 
 This email was sent to ${email}. If you didn't attempt to log in, please secure your account immediately.
 

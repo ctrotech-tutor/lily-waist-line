@@ -20,7 +20,8 @@ import {
 
 export const sendWelcomeEmail = async (firstName: string, email: string) => {
   try {
-    const template = getWelcomeEmailTemplate({ firstName, email })
+    const appUrl = getAppUrl()
+    const template = getWelcomeEmailTemplate({ appUrl, firstName, email })
     
     await sendEmailAsync({
       to: email,
@@ -32,7 +33,6 @@ export const sendWelcomeEmail = async (firstName: string, email: string) => {
     console.log('Welcome email sent successfully to:', email)
   } catch (error) {
     console.error('Failed to send welcome email:', error)
-    // Don't throw - email failure shouldn't break business flow
   }
 }
 
@@ -60,7 +60,9 @@ export const sendOrderConfirmationEmail = async (
   }
 ) => {
   try {
+    const appUrl = getAppUrl()
     const template = getOrderConfirmationTemplate({
+      appUrl,
       firstName,
       email,
       orderNumber,
@@ -81,7 +83,6 @@ export const sendOrderConfirmationEmail = async (
     console.log('Order confirmation email sent successfully to:', email)
   } catch (error) {
     console.error('Failed to send order confirmation email:', error)
-    // Don't throw - email failure shouldn't break business flow
   }
 }
 
@@ -97,7 +98,9 @@ export const sendPaymentReceivedEmail = async (
   }>
 ) => {
   try {
+    const appUrl = getAppUrl()
     const template = getPaymentReceivedTemplate({
+      appUrl,
       firstName,
       email,
       orderNumber,
@@ -116,7 +119,6 @@ export const sendPaymentReceivedEmail = async (
     console.log('Payment received email sent successfully to:', email)
   } catch (error) {
     console.error('Failed to send payment received email:', error)
-    // Don't throw - email failure shouldn't break business flow
   }
 }
 
@@ -124,23 +126,31 @@ export const sendPaymentRejectedEmail = async (
   firstName: string,
   email: string,
   orderNumber: string,
+  orderId: string,
   paymentMethod: string,
   amount: string,
   items: Array<{
     name: string
     quantity: number
   }>,
-  reason?: string
+  reason?: string,
+  paymentLink?: string,
+  paymentLabel?: string,
 ) => {
   try {
+    const appUrl = getAppUrl()
     const template = getPaymentRejectedTemplate({
+      appUrl,
       firstName,
       email,
       orderNumber,
+      orderId,
       paymentMethod,
       amount,
       items,
       reason,
+      paymentLink,
+      paymentLabel,
     })
     
     await sendEmailAsync({
@@ -153,7 +163,6 @@ export const sendPaymentRejectedEmail = async (
     console.log('Payment rejected email sent successfully to:', email)
   } catch (error) {
     console.error('Failed to send payment rejected email:', error)
-    // Don't throw - email failure shouldn't break business flow
   }
 }
 
@@ -170,7 +179,9 @@ export const sendShippingUpdateEmail = async (
   }>
 ) => {
   try {
+    const appUrl = getAppUrl()
     const template = getShippingUpdateTemplate({
+      appUrl,
       firstName,
       email,
       orderNumber,
@@ -190,7 +201,6 @@ export const sendShippingUpdateEmail = async (
     console.log('Shipping update email sent successfully to:', email)
   } catch (error) {
     console.error('Failed to send shipping update email:', error)
-    // Don't throw - email failure shouldn't break business flow
   }
 }
 
@@ -202,7 +212,9 @@ export const sendLoginAlertEmail = async (
   device?: string
 ) => {
   try {
+    const appUrl = getAppUrl()
     const template = getLoginAlertTemplate({
+      appUrl,
       firstName,
       email,
       loginTime,
@@ -220,7 +232,6 @@ export const sendLoginAlertEmail = async (
     console.log('Login alert email sent successfully to:', email)
   } catch (error) {
     console.error('Failed to send login alert email:', error)
-    // Don't throw - email failure shouldn't break business flow
   }
 }
 
@@ -247,6 +258,7 @@ export const sendCustomVerificationEmail = async (
     }
 
     const template = getVerificationEmailTemplate({
+      appUrl,
       firstName,
       email,
       verificationLink: data.properties.action_link,
@@ -286,6 +298,7 @@ export const sendCustomPasswordResetEmail = async (
     }
 
     const template = getPasswordResetEmailTemplate({
+      appUrl,
       firstName,
       email,
       resetLink: data.properties.action_link,
@@ -309,7 +322,9 @@ export const sendPasswordResetConfirmationEmail = async (
   email: string
 ) => {
   try {
+    const appUrl = getAppUrl()
     const template = getPasswordResetSuccessEmailTemplate({
+      appUrl,
       firstName,
       email,
     })
@@ -331,8 +346,10 @@ export const sendPaymentInstructionsEmail = async (
   firstName: string,
   email: string,
   orderNumber: string,
+  orderId: string,
   paymentMethod: string,
-  paymentDetails: string,
+  paymentLink: string,
+  paymentLabel: string,
   amount: string,
   items: Array<{
     name: string
@@ -340,12 +357,16 @@ export const sendPaymentInstructionsEmail = async (
   }>
 ) => {
   try {
+    const appUrl = getAppUrl()
     const template = getPaymentInstructionsTemplate({
+      appUrl,
       firstName,
       email,
       orderNumber,
+      orderId,
       paymentMethod,
-      paymentDetails,
+      paymentLink,
+      paymentLabel,
       amount,
       items,
     })
@@ -360,7 +381,6 @@ export const sendPaymentInstructionsEmail = async (
     console.log('Payment instructions email sent successfully to:', email)
   } catch (error) {
     console.error('Failed to send payment instructions email:', error)
-    // Don't throw - email failure shouldn't break business flow
   }
 }
 
@@ -371,7 +391,8 @@ export const sendOrderProcessingEmail = async (
   items: Array<{ name: string; quantity: number }>
 ) => {
   try {
-    const template = getOrderProcessingTemplate({ firstName, email, orderNumber, items })
+    const appUrl = getAppUrl()
+    const template = getOrderProcessingTemplate({ appUrl, firstName, email, orderNumber, items })
     await sendEmailAsync({ to: email, subject: template.subject, html: template.html, text: template.text })
     console.log('Order processing email sent successfully to:', email)
   } catch (error) {
@@ -386,7 +407,8 @@ export const sendOrderShippedEmail = async (
   items: Array<{ name: string; quantity: number }>
 ) => {
   try {
-    const template = getOrderShippedTemplate({ firstName, email, orderNumber, items })
+    const appUrl = getAppUrl()
+    const template = getOrderShippedTemplate({ appUrl, firstName, email, orderNumber, items })
     await sendEmailAsync({ to: email, subject: template.subject, html: template.html, text: template.text })
     console.log('Order shipped email sent successfully to:', email)
   } catch (error) {
@@ -400,7 +422,8 @@ export const sendOrderDeliveredEmail = async (
   orderNumber: string
 ) => {
   try {
-    const template = getOrderDeliveredTemplate({ firstName, email, orderNumber })
+    const appUrl = getAppUrl()
+    const template = getOrderDeliveredTemplate({ appUrl, firstName, email, orderNumber })
     await sendEmailAsync({ to: email, subject: template.subject, html: template.html, text: template.text })
     console.log('Order delivered email sent successfully to:', email)
   } catch (error) {
@@ -415,7 +438,8 @@ export const sendOrderCancelledEmail = async (
   reason?: string
 ) => {
   try {
-    const template = getOrderCancelledTemplate({ firstName, email, orderNumber, reason })
+    const appUrl = getAppUrl()
+    const template = getOrderCancelledTemplate({ appUrl, firstName, email, orderNumber, reason })
     await sendEmailAsync({ to: email, subject: template.subject, html: template.html, text: template.text })
     console.log('Order cancelled email sent successfully to:', email)
   } catch (error) {

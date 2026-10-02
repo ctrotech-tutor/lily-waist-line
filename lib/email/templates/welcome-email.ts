@@ -1,10 +1,11 @@
 export interface WelcomeEmailData {
+  appUrl: string
   firstName: string
   email: string
 }
 
 export const getWelcomeEmailTemplate = (data: WelcomeEmailData) => {
-  const { firstName, email } = data
+  const { appUrl, firstName, email } = data
 
   return {
     subject: 'Welcome to Lily Waist Line',
@@ -91,37 +92,37 @@ export const getWelcomeEmailTemplate = (data: WelcomeEmailData) => {
             <div class="logo">LILY WAIST LINE</div>
             <div>Premium Body Sculpting</div>
           </div>
-          
+
           <div class="content">
             <h1 class="title">Welcome, ${firstName}!</h1>
             <p class="subtitle">
               Thank you for joining Lily Waist Line. Your journey to confidence and transformation begins today.
             </p>
-            
+
             <p>
-              We're thrilled to have you as part of our exclusive community. Our premium waist trainers are designed 
+              We're thrilled to have you as part of our exclusive community. Our premium waist trainers are designed
               to sculpt your silhouette and boost your confidence with every wear.
             </p>
-            
+
             <p>
               <strong>What's next?</strong><br>
               • Explore our curated collection of premium waist trainers<br>
               • Discover your perfect size and compression level<br>
               • Join thousands of satisfied customers worldwide
             </p>
-            
+
             <div style="text-align: center; margin: 30px 0;">
-              <a href="https://lilywaistline.com/shop" class="cta-button">
+              <a href="${appUrl}/shop" class="cta-button">
                 Shop Now
               </a>
             </div>
-            
+
             <p style="font-size: 14px; color: #666; margin-top: 30px;">
-              This email was sent to ${email}. If you didn't create an account, 
+              This email was sent to ${email}. If you didn't create an account,
               please contact our support team.
             </p>
           </div>
-          
+
           <div class="footer">
             <div class="gold-accent">© 2026 Lily Waist Line</div>
             <div>Luxury • Confidence • Transformation</div>
@@ -141,10 +142,10 @@ We're thrilled to have you as part of our exclusive community. Our premium waist
 
 What's next?
 • Explore our curated collection of premium waist trainers
-• Discover your perfect size and compression level  
+• Discover your perfect size and compression level
 • Join thousands of satisfied customers worldwide
 
-Shop Now: https://lilywaistline.com/shop
+Shop Now: ${appUrl}/shop
 
 This email was sent to ${email}. If you didn't create an account, please contact our support team.
 

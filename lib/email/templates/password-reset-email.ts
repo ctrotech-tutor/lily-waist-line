@@ -1,4 +1,5 @@
 export interface PasswordResetEmailData {
+  appUrl: string
   firstName: string
   email: string
   resetLink: string

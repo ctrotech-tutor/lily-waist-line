@@ -1,4 +1,5 @@
 export interface VerificationEmailData {
+  appUrl: string
   firstName: string
   email: string
   verificationLink: string

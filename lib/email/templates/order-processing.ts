@@ -1,4 +1,5 @@
 export interface OrderProcessingData {
+  appUrl: string
   firstName: string
   email: string
   orderNumber: string

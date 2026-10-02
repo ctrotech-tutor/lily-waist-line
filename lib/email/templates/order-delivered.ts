@@ -1,4 +1,5 @@
 export interface OrderDeliveredData {
+  appUrl: string
   firstName: string
   email: string
   orderNumber: string

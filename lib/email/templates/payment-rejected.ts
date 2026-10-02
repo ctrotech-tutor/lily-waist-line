@@ -1,8 +1,12 @@
 export interface PaymentRejectedData {
+  appUrl: string
   firstName: string
   email: string
   orderNumber: string
+  orderId: string
   paymentMethod: string
+  paymentLink?: string
+  paymentLabel?: string
   amount: string
   reason?: string
   items: Array<{
@@ -12,7 +16,9 @@ export interface PaymentRejectedData {
 }
 
 export const getPaymentRejectedTemplate = (data: PaymentRejectedData) => {
-  const { firstName, email, orderNumber, paymentMethod, amount, reason, items } = data
+  const { appUrl, firstName, email, orderNumber, orderId, paymentMethod, paymentLink, paymentLabel, amount, reason, items } = data
+
+  const orderUrl = `${appUrl}/order/payment-proof/${orderId}`
 
   return {
     subject: `Payment Not Approved - ${orderNumber}`,
@@ -150,14 +156,14 @@ export const getPaymentRejectedTemplate = (data: PaymentRejectedData) => {
             <div class="logo">LILY WAIST LINE</div>
             <div>Payment Update</div>
           </div>
-          
+
           <div class="content">
             <h1 class="title">Payment Not Approved</h1>
-            
+
             <div class="alert-badge">
-              ✕ Your payment was not approved
+              Your payment was not approved
             </div>
-            
+
             <div class="order-number">Order Number: ${orderNumber}</div>
 
             ${reason ? `
@@ -166,7 +172,7 @@ export const getPaymentRejectedTemplate = (data: PaymentRejectedData) => {
               ${reason}
             </div>
             ` : ''}
-            
+
             <div class="section">
               <div class="section-title">Payment Details</div>
               <div class="payment-details">
@@ -184,7 +190,7 @@ export const getPaymentRejectedTemplate = (data: PaymentRejectedData) => {
                 </div>
               </div>
             </div>
-            
+
             <div class="section">
               <div class="section-title">Order Items</div>
               <div class="items-list">
@@ -196,31 +202,36 @@ export const getPaymentRejectedTemplate = (data: PaymentRejectedData) => {
                 `).join('')}
               </div>
             </div>
-            
+
             <div class="section">
               <div class="section-title">What Happens Next?</div>
               <p>
-                Your payment could not be verified. This may be due to an unclear screenshot, 
+                Your payment could not be verified. This may be due to an unclear screenshot,
                 incorrect amount, or missing transaction reference.
               </p>
+              ${paymentLink ? `
+              <p style="margin-bottom: 16px;">
+                <strong>Pay again here:</strong><br>
+                <a href="${paymentLink}" style="color: #d4af37; font-weight: 600; text-decoration: underline;">${paymentLabel || paymentLink}</a>
+              </p>
+              ` : ''}
               <p>
-                <strong>You can submit a new payment proof</strong> from your order page. 
+                <strong>You can submit a new payment proof</strong> from your order page.
                 Please ensure your screenshot clearly shows:
               </p>
               <ul>
                 <li>The payment amount matching your order total</li>
-                <li>The payment recipient details (${paymentMethod} handle/email)</li>
-                <li>The transaction reference/confirmation</li>
+                <li>The transaction reference or confirmation ID</li>
               </ul>
-              <a href="{{orderUrl}}" class="cta-button">Upload New Proof</a>
+              <a href="${orderUrl}" class="cta-button">Upload New Proof</a>
             </div>
-            
+
             <p style="font-size: 14px; color: #666; margin-top: 30px;">
-              This email was sent to ${email}. If you have any questions, 
+              This email was sent to ${email}. If you have any questions,
               please contact our support team.
             </p>
           </div>
-          
+
           <div class="footer">
             <div class="gold-accent">© 2026 Lily Waist Line</div>
             <div>Luxury • Confidence • Transformation</div>
@@ -247,14 +258,14 @@ Order Items:
 ${items.map(item => `${item.name} (Quantity: ${item.quantity})`).join('\n')}
 
 What Happens Next?
-Your payment could not be verified. You can submit a new payment proof from your order page.
+Your payment could not be verified. You can submit a new payment proof from the link below.
+${paymentLink ? `Pay again here: ${paymentLink}` : ''}
 
 Please ensure your screenshot clearly shows:
 - The payment amount matching your order total
-- The payment recipient details
-- The transaction reference/confirmation
+- The transaction reference or confirmation ID
 
-Upload a new proof at: {{orderUrl}}
+Upload a new proof at: ${orderUrl}
 
 This email was sent to ${email}. If you have any questions, please contact our support team.
 
