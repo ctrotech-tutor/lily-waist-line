@@ -7,6 +7,7 @@ import { signupSchema, type SignupFormData } from '@/lib/validators/auth'
 import { revalidatePath } from 'next/cache'
 import { getAppUrl } from '@/lib/utils/app-url'
 import { sendWelcomeEmail } from '@/lib/services/email/email-triggers'
+import { syncUserRoleToAuth } from '@/lib/auth/sync-role'
 
 export async function signup(formData: SignupFormData) {
   try {
@@ -60,6 +61,8 @@ export async function signup(formData: SignupFormData) {
             role: 'CUSTOMER'
           }
         })
+
+        await syncUserRoleToAuth(authUserId, 'CUSTOMER')
       } catch (prismaError) {
         console.error('Prisma user sync error:', prismaError)
         // Continue with auth flow even if Prisma sync fails temporarily
@@ -71,13 +74,16 @@ export async function signup(formData: SignupFormData) {
 
     // Step 4: Send branded verification email with the action_link from generateLink
     if (linkData?.properties?.action_link) {
-      const template = await import('@/lib/email/templates').then(m =>
-        m.getVerificationEmailTemplate({
-          firstName: validatedData.firstName,
-          email: validatedData.email,
-          verificationLink: linkData.properties.action_link,
-        })
-      )
+      const [{ getVerificationEmailTemplate }, { getAppUrl }] = await Promise.all([
+        import('@/lib/email/templates'),
+        import('@/lib/utils/app-url'),
+      ])
+      const template = getVerificationEmailTemplate({
+        appUrl: getAppUrl(),
+        firstName: validatedData.firstName,
+        email: validatedData.email,
+        verificationLink: linkData.properties.action_link,
+      })
       const { sendEmailAsync } = await import('@/lib/services/email/email-service')
       await sendEmailAsync({ to: validatedData.email, subject: template.subject, html: template.html, text: template.text })
     }

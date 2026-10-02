@@ -3,6 +3,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { ROUTE_ACCESS, ROUTES } from "@/lib/constants/routes";
 
 export async function updateSession(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // Skip static assets and auth callback
+  if (
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/static/") ||
+    pathname.startsWith("/images/") ||
+    pathname.startsWith("/fonts/") ||
+    pathname.startsWith("/favicon") ||
+    pathname === "/sw.js" ||
+    pathname === "/logo.png" ||
+    pathname === "/logo.svg" ||
+    pathname === "/og-img.png" ||
+    pathname.startsWith(ROUTES.AUTH_CALLBACK)
+  ) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -29,20 +47,12 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  /**
-   * AUTH CHECK (must stay immediately after client creation)
-   */
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   const isAuthenticated = !!user;
   const isEmailVerified = !!user?.email_confirmed_at;
-
-  const role = user?.app_metadata?.role ?? "CUSTOMER";
-  const isAdmin = role === "ADMIN";
-
-  const pathname = request.nextUrl.pathname;
 
   const isRootPath = pathname === ROUTES.HOME;
 
@@ -54,59 +64,39 @@ export async function updateSession(request: NextRequest) {
     (route) => pathname === route
   );
 
-  const isUserRoute = ROUTE_ACCESS.user.some((route) =>
-    pathname.startsWith(route)
-  );
+  const isProtectedRoute =
+    ROUTE_ACCESS.user.some((route) => pathname.startsWith(route)) ||
+    ROUTE_ACCESS.admin.some((route) => pathname.startsWith(route));
 
-  const isAdminRoute = ROUTE_ACCESS.admin.some((route) =>
-    pathname.startsWith(route)
-  );
-
-  /**
-   * PUBLIC ACCESS
-   */
+  // Public routes
   if (isRootPath || isPublicRoute) {
     return response;
   }
 
-  /**
-   * GUEST ONLY (login/signup/reset)
-   */
+  // Prevent logged-in users from accessing auth pages
   if (isGuestOnlyRoute && isAuthenticated) {
     const url = request.nextUrl.clone();
     url.pathname = ROUTES.HOME;
     return NextResponse.redirect(url);
   }
 
-  /**
-   * PROTECTED ROUTES (user + admin)
-   */
-  if ((isUserRoute || isAdminRoute) && !isAuthenticated) {
+  // Require authentication
+  if (isProtectedRoute && !isAuthenticated) {
     const url = request.nextUrl.clone();
     url.pathname = ROUTES.LOGIN;
     url.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(url);
   }
 
-  /**
-   * EMAIL VERIFICATION ENFORCEMENT
-   */
+  // Require verified email
   if (
-    (isUserRoute || isAdminRoute) &&
+    isProtectedRoute &&
+    isAuthenticated &&
     !isEmailVerified &&
     pathname !== ROUTES.VERIFY_EMAIL
   ) {
     const url = request.nextUrl.clone();
     url.pathname = ROUTES.VERIFY_EMAIL;
-    return NextResponse.redirect(url);
-  }
-
-  /**
-   * ADMIN PROTECTION (CRITICAL ADDITION)
-   */
-  if (isAdminRoute && !isAdmin) {
-    const url = request.nextUrl.clone();
-    url.pathname = ROUTES.HOME;
     return NextResponse.redirect(url);
   }
 

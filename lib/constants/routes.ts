@@ -23,6 +23,7 @@ export const ROUTES = {
   VERIFY_EMAIL: '/verify-email',
   AUTH_CALLBACK: '/auth/callback',
   ADMIN: '/admin',
+  ACCESS_DENIED: '/access-denied',
   ADMIN_ORDERS: '/admin/orders',
   ADMIN_PRODUCTS: '/admin/products',
   ADMIN_PRODUCTS_NEW: '/admin/products/new',

@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
+import { syncUserRoleToAuth } from '@/lib/auth/sync-role'
 
 export async function exchangeCode(code: string) {
   try {
@@ -40,6 +41,13 @@ export async function exchangeCode(code: string) {
         emailVerified: !!authUser.email_confirmed_at,
       },
     })
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: authUser.id },
+      select: { role: true }
+    })
+    const role = dbUser?.role ?? 'CUSTOMER'
+    await syncUserRoleToAuth(authUser.id, role)
 
     return { success: true as const }
   } catch (error) {

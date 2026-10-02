@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
+import { syncUserRoleToAuth } from '@/lib/auth/sync-role'
 
 export async function syncAuthUser() {
   try {
@@ -24,7 +25,7 @@ export async function syncAuthUser() {
       authUser.email?.split('@')[0] ||
       'User'
 
-    await prisma.user.upsert({
+    const dbUser = await prisma.user.upsert({
       where: { id: authUser.id },
       update: {
         email: authUser.email!,
@@ -39,6 +40,8 @@ export async function syncAuthUser() {
         emailVerified: !!authUser.email_confirmed_at,
       },
     })
+
+    await syncUserRoleToAuth(dbUser.id, dbUser.role as 'CUSTOMER' | 'ADMIN')
 
     return { success: true as const }
   } catch (error) {
