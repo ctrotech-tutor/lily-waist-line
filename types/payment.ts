@@ -10,4 +10,5 @@ export interface PaymentConfig {
   enabled: boolean
   cashAppHandle?: string | null
   paypalEmail?: string | null
+  paypalHandle?: string | null
 }

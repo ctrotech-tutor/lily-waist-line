@@ -63,7 +63,7 @@ export default function OrderConfirmationClient({ orderId }: OrderConfirmationCl
   }
 
   const paymentMethod = orderData.paymentMethod?.toLowerCase() === "cash_app" ? "cashapp" : "paypal";
-  const orderNumber = orderData.orderNumber ?? "LWL-XXXX-XXXX";
+  const orderNumber = orderData.orderNumber ?? "LWL-????-????";
   const orderDate = orderData.createdAt
     ? new Date(orderData.createdAt).toLocaleDateString("en-US", {
         year: "numeric",

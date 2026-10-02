@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { AdminService } from '@/lib/services/admin-service'
 import { tryAction } from '@/lib/security/error-handling'
-import { formatOrderNumber } from '@/lib/utils/order'
 
 export const getDashboardMetrics = tryAction(async () => {
   const supabase = await createClient()
@@ -28,7 +27,7 @@ export const getDashboardMetrics = tryAction(async () => {
     ...metrics,
     recentOrders: metrics.recentOrders.map(order => ({
       id: order.id,
-      orderNumber: formatOrderNumber(order.id, order.createdAt),
+      orderNumber: order.orderNumber,
       customerName: order.user.fullName,
       customerEmail: order.user.email,
       amount: order.total,

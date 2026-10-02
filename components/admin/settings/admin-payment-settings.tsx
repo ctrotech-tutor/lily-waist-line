@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CreditCard, DollarSign, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,22 +24,20 @@ function AdminPaymentSettingsForm({ configs }: { configs: PaymentConfig[] }) {
   const [cashAppHandle, setCashAppHandle] = useState(cashAppDefaults?.cashAppHandle ?? "");
   const [paypalEnabled, setPaypalEnabled] = useState(paypalDefaults?.enabled ?? true);
   const [paypalEmail, setPaypalEmail] = useState(paypalDefaults?.paypalEmail ?? "");
+  const [paypalHandle, setPaypalHandle] = useState(paypalDefaults?.paypalHandle ?? "");
 
   const handleSave = () => {
     if (cashAppEnabled && cashAppHandle && !cashAppHandle.startsWith("$")) {
+      toast.error("Cash App handle must start with $");
       return;
     }
 
     updateMutation.mutate({
-      paymentMethod: "CASH_APP",
-      enabled: cashAppEnabled,
+      cashAppEnabled,
       cashAppHandle: cashAppEnabled ? cashAppHandle.trim() : undefined,
-    });
-
-    updateMutation.mutate({
-      paymentMethod: "PAYPAL",
-      enabled: paypalEnabled,
+      paypalEnabled,
       paypalEmail: paypalEnabled ? paypalEmail.trim() : undefined,
+      paypalHandle: paypalEnabled ? paypalHandle.trim() : undefined,
     });
   };
 
@@ -127,6 +126,22 @@ function AdminPaymentSettingsForm({ configs }: { configs: PaymentConfig[] }) {
                 }
                 placeholder="merchant@example.com"
               />
+
+              <Label htmlFor="paypal-handle">
+                PayPal.me Handle
+              </Label>
+
+              <Input
+                id="paypal-handle"
+                value={paypalHandle}
+                onChange={(event) =>
+                  setPaypalHandle(event.target.value)
+                }
+                placeholder="yourusername"
+              />
+              <p className="font-sans text-xs text-muted-foreground">
+                Your PayPal.me URL will be: https://www.paypal.me/yourusername
+              </p>
             </div>
           )}
         </div>

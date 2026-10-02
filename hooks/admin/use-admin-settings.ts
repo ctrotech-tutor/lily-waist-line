@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getPaymentConfiguration } from '@/server/actions/payment/get-payment-config'
-import { updatePaymentConfiguration } from '@/server/actions/admin/payment/update-payment-config'
+import { updatePaymentConfigurations } from '@/server/actions/admin/payment/update-payment-config'
 import { adminKeys } from '@/lib/react-query/query-keys'
 import { toast } from 'sonner'
 
@@ -23,12 +23,13 @@ export function useUpdatePaymentConfig() {
 
   return useMutation({
     mutationFn: async (input: {
-      paymentMethod: 'CASH_APP' | 'PAYPAL'
-      enabled: boolean
+      cashAppEnabled: boolean
       cashAppHandle?: string
+      paypalEnabled: boolean
       paypalEmail?: string
+      paypalHandle?: string
     }) => {
-      const result = await updatePaymentConfiguration(input)
+      const result = await updatePaymentConfigurations(input)
       if (!result.success) {
         throw new Error(result.error ?? 'Failed to update payment configuration')
       }

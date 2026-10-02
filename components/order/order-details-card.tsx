@@ -12,7 +12,7 @@ export interface OrderDetailsCardProps {
 }
 
 export function OrderDetailsCard({
-  orderNumber = "LWL-2024-XXXX",
+  orderNumber = "LWL-????-????",
   orderDate = new Date().toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",

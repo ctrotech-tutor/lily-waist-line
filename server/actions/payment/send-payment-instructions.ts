@@ -3,7 +3,6 @@
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
-import { formatOrderNumber } from '@/lib/utils/order'
 
 const sendPaymentInstructionsSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
@@ -25,6 +24,7 @@ export async function sendPaymentInstructions(input: z.infer<typeof sendPaymentI
       where: { id: orderId },
       select: {
         id: true,
+        orderNumber: true,
         paymentMethod: true,
         total: true,
         userId: true,
@@ -71,12 +71,24 @@ export async function sendPaymentInstructions(input: z.infer<typeof sendPaymentI
     // Determine payment details based on method
     const isCashApp = order.paymentMethod === 'CASH_APP'
     const paymentMethodLabel = isCashApp ? 'Cash App' : 'PayPal'
-    const paymentDetails = isCashApp 
-      ? paymentConfig.cashAppHandle || '$LilyWaistLine'
-      : paymentConfig.paypalEmail || 'payments@lilywaistline.com'
+    const amount = Number(order.total).toFixed(2)
+    const amountFormatted = `$${amount}`
 
-    // Generate order number from ID
-    const orderNumber = formatOrderNumber(orderId)
+    let paymentLink: string
+    let paymentLabel: string
+
+    if (isCashApp) {
+      const handle = paymentConfig.cashAppHandle || '$LilyWaistLine'
+      paymentLink = `https://cash.app/${handle.replace('$', '')}`
+      paymentLabel = handle
+    } else {
+      const handle = paymentConfig.paypalHandle || 'lilywaistline'
+      paymentLink = `https://www.paypal.me/${handle}/${amount}`
+      paymentLabel = handle
+    }
+
+    // Read stored order number from DB
+    const orderNumber = order.orderNumber
 
     // Prepare email data
     const emailData = {
@@ -84,8 +96,9 @@ export async function sendPaymentInstructions(input: z.infer<typeof sendPaymentI
       email: order.user.email,
       orderNumber,
       paymentMethod: paymentMethodLabel,
-      paymentDetails,
-      amount: `$${Number(order.total).toFixed(2)}`,
+      paymentLink,
+      paymentLabel,
+      amount: amountFormatted,
       items: order.orderItems.map(item => ({
         name: item.product.name,
         quantity: item.quantity,
@@ -100,8 +113,10 @@ export async function sendPaymentInstructions(input: z.infer<typeof sendPaymentI
       emailData.firstName,
       emailData.email,
       emailData.orderNumber,
+      orderId,
       emailData.paymentMethod,
-      emailData.paymentDetails,
+      emailData.paymentLink,
+      emailData.paymentLabel,
       emailData.amount,
       emailData.items
     )

@@ -3,7 +3,6 @@
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
-import { formatOrderNumber } from '@/lib/utils/order'
 
 const orderDetailsSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required')
@@ -33,6 +32,7 @@ export async function getOrderDetails(orderId: string) {
       },
       select: {
         id: true,
+        orderNumber: true,
         createdAt: true,
         updatedAt: true,
         subtotal: true,
@@ -71,7 +71,7 @@ export async function getOrderDetails(orderId: string) {
         },
         paymentProofs: {
           orderBy: { uploadedAt: 'desc' },
-          select: { id: true, status: true, uploadedAt: true, imageUrl: true },
+          select: { id: true, status: true, uploadedAt: true, imageUrl: true, transactionRef: true },
         },
         shipments: {
           orderBy: { shippedAt: 'desc' },
@@ -91,7 +91,7 @@ export async function getOrderDetails(orderId: string) {
     // Transform order into UI-ready format
     const transformedOrder = {
       id: order.id,
-      orderNumber: formatOrderNumber(order.id, order.createdAt),
+      orderNumber: order.orderNumber,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       // Pricing snapshot (immutable)
@@ -142,7 +142,8 @@ export async function getOrderDetails(orderId: string) {
         id: proof.id,
         status: proof.status,
         uploadedAt: proof.uploadedAt,
-        imageUrl: proof.imageUrl // Note: This would need signed URL generation for actual display
+        imageUrl: proof.imageUrl, // Note: This would need signed URL generation for actual display
+        transactionRef: proof.transactionRef,
       })),
       // Shipping and tracking information
       shipments: order.shipments.map(shipment => ({

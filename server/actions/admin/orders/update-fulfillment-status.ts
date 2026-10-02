@@ -11,7 +11,6 @@ import {
   sendOrderDeliveredEmail,
   sendOrderCancelledEmail,
 } from '@/lib/services/email/email-triggers'
-import { formatOrderNumber } from '@/lib/utils/order'
 
 const updateFulfillmentStatusSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
@@ -51,6 +50,7 @@ export async function updateFulfillmentStatus(input: z.infer<typeof updateFulfil
         where: { id: orderId },
         select: {
           id: true,
+          orderNumber: true,
           userId: true,
           paymentStatus: true,
           fulfillmentStatus: true,
@@ -122,7 +122,7 @@ export async function updateFulfillmentStatus(input: z.infer<typeof updateFulfil
 
       if (userData) {
         const firstName = userData.fullName.split(' ')[0] || 'there'
-        const orderNumber = formatOrderNumber(orderId)
+        const orderNumber = result.order.orderNumber
 
         if (newStatus === 'PROCESSING') {
           const items = await prisma.orderItem.findMany({

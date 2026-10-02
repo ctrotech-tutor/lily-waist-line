@@ -81,6 +81,7 @@ export interface AdminOrderResult {
 // Type for recent order with selected fields
 type RecentOrder = {
   id: string
+  orderNumber: string
   total: number
   paymentStatus: string
   fulfillmentStatus: string
@@ -298,6 +299,7 @@ export class AdminService {
       prisma.order.findMany({
         select: {
           id: true,
+          orderNumber: true,
           total: true,
           paymentStatus: true,
           fulfillmentStatus: true,
@@ -666,7 +668,7 @@ export class AdminService {
       
       let stockStatus = 'IN_STOCK'
       if (totalStock === 0) stockStatus = 'OUT_OF_STOCK'
-      else if (totalStock < 10) stockStatus = 'LOW_STOCK'
+      else if (totalStock <= 5) stockStatus = 'LOW_STOCK'
 
       return {
         ...product,

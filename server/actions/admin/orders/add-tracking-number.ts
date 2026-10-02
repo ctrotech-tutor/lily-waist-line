@@ -5,7 +5,6 @@ import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { sendShippingUpdateEmail } from '@/lib/services/email/email-triggers'
-import { formatOrderNumber } from '@/lib/utils/order'
 
 const addTrackingNumberSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
@@ -38,6 +37,7 @@ export async function addTrackingNumber(input: z.infer<typeof addTrackingNumberS
         where: { id: orderId },
         select: {
           id: true,
+          orderNumber: true,
           paymentStatus: true,
           fulfillmentStatus: true,
           userId: true,
@@ -105,7 +105,7 @@ export async function addTrackingNumber(input: z.infer<typeof addTrackingNumberS
 
       if (userData) {
         const firstName = userData.fullName.split(' ')[0] || 'there'
-        const orderNumber = formatOrderNumber(orderId)
+        const orderNumber = result.order.orderNumber
         const estimatedDelivery = '3-5 business days'
 
         const emailItems = result.order.orderItems.map(item => ({

@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { usePaymentConfig } from "@/hooks/use-payment-config";
 import { sendPaymentInstructions } from "@/server/actions/payment/send-payment-instructions";
 import { toast } from "sonner";
 
@@ -23,16 +22,9 @@ export function PaymentNextStep({
   orderId,
   className,
 }: PaymentNextStepProps) {
-  const { data: configs, isLoading: configLoading } = usePaymentConfig();
   const [isLoading, setIsLoading] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-
-  const config = method
-    ? configs?.find(
-        (c) => c.paymentMethod.toLowerCase() === method.toLowerCase()
-      ) ?? null
-    : null;
 
   const handleCompletePayment = async () => {
     if (!orderId) {
@@ -70,19 +62,7 @@ export function PaymentNextStep({
     );
   }
 
-  if (configLoading) {
-    return (
-      <Card className={cn("p-6 md:p-8 border border-border bg-muted/30 rounded-lg", className)}>
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </div>
-      </Card>
-    );
-  }
-
   const isCashApp = method.toLowerCase() === "cashapp";
-  const cashAppHandle = isCashApp ? config?.cashAppHandle : null;
-  const paypalEmail = !isCashApp ? config?.paypalEmail : null;
 
   return (
     <Card className={cn("p-6 md:p-8 border border-primary/30 bg-primary/[0.03] rounded-lg", className)}>
@@ -103,28 +83,12 @@ export function PaymentNextStep({
       <div className="mb-6 h-px w-full bg-border/50" />
 
       <div className="mb-6 space-y-5">
-        <div>
-          <p className="mb-2 font-sans text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {isCashApp ? "Cash App Handle" : "PayPal Email"}
-          </p>
-          <div className="flex items-center gap-2 border border-primary/20 bg-card p-3 rounded-lg">
-            {isCashApp ? (
-              <>
-                <span className="font-sans text-lg font-semibold text-primary">$</span>
-                <span className="font-sans text-sm text-foreground">{cashAppHandle || "Not Configured"}</span>
-              </>
-            ) : (
-              <span className="font-sans text-sm text-foreground">{paypalEmail || "Not Configured"}</span>
-            )}
-          </div>
-        </div>
-
         <div className="flex items-start gap-3">
           <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <p className="font-sans text-sm leading-relaxed text-foreground">
             {isCashApp
-              ? "Send your payment using the Cash App details below."
-              : "Complete your payment securely through PayPal."}
+              ? "Send your payment using the details provided in the email."
+              : "Complete your payment using the link sent to your email."}
           </p>
         </div>
       </div>

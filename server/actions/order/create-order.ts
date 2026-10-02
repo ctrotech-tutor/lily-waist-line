@@ -12,6 +12,7 @@ import { formatOrderNumber } from '@/lib/utils/order'
 interface OrderCreationResult {
   order: {
     id: string
+    orderNumber: string
     userId: string
     addressId: string
     subtotal: number
@@ -84,7 +85,7 @@ export async function createOrder(formData: { addressId: string; paymentMethod: 
           id: true, variantId: true, quantity: true, userId: true,
           variant: {
             select: {
-              id: true, stockQuantity: true, productId: true,
+              id: true, stockQuantity: true, productId: true, price: true,
               product: { select: { name: true, basePrice: true } },
             },
           },
@@ -117,7 +118,8 @@ export async function createOrder(formData: { addressId: string; paymentMethod: 
       // Calculate totals using live database values
       let subtotal = 0
       for (const cartItem of cartItems) {
-        const itemTotal = Number(cartItem.variant.product.basePrice) * cartItem.quantity
+        const unitPrice = cartItem.variant.price ?? cartItem.variant.product.basePrice
+        const itemTotal = Number(unitPrice) * cartItem.quantity
         subtotal += itemTotal
       }
 
@@ -125,9 +127,14 @@ export async function createOrder(formData: { addressId: string; paymentMethod: 
       const shippingFee = 10
       const total = subtotal + shippingFee
 
-      // Create order
+      // Pre-generate UUID and order number for consistency
+      const orderId = crypto.randomUUID()
+      const orderNumber = formatOrderNumber(orderId)
+
+      // Create order with orderNumber set on creation
       const order = await tx.order.create({
         data: {
+          id: orderId,
           userId: user.id,
           addressId: validatedData.addressId,
           subtotal,
@@ -135,14 +142,9 @@ export async function createOrder(formData: { addressId: string; paymentMethod: 
           total,
           paymentMethod: validatedData.paymentMethod,
           paymentStatus: 'PENDING',
-          fulfillmentStatus: 'PENDING'
+          fulfillmentStatus: 'PENDING',
+          orderNumber,
         }
-      })
-
-      // Set order number after creation since ID is auto-generated
-      await tx.order.update({
-        where: { id: order.id },
-        data: { orderNumber: formatOrderNumber(order.id) }
       })
 
       // Create order items with snapshot data
@@ -154,7 +156,7 @@ export async function createOrder(formData: { addressId: string; paymentMethod: 
               productId: cartItem.variant.productId,
               variantId: cartItem.variantId,
               quantity: cartItem.quantity,
-              unitPrice: cartItem.variant.product.basePrice
+              unitPrice: cartItem.variant.price ?? cartItem.variant.product.basePrice
             },
             include: {
               product: {
@@ -197,7 +199,7 @@ export async function createOrder(formData: { addressId: string; paymentMethod: 
 
     // Send order confirmation email (non-blocking)
     try {
-      const orderNumber = formatOrderNumber(result.order.id)
+      const orderNumber = result.order.orderNumber
       const firstName = result.address.firstName
       const email = user.email || ''
       
@@ -221,7 +223,7 @@ export async function createOrder(formData: { addressId: string; paymentMethod: 
       }
       
       // Send order confirmation email asynchronously
-      sendOrderConfirmationEmail(
+      await sendOrderConfirmationEmail(
         firstName,
         email,
         orderNumber,
@@ -246,7 +248,7 @@ export async function createOrder(formData: { addressId: string; paymentMethod: 
       message: 'Order created successfully',
       data: {
         orderId: result.order.id,
-        orderNumber: formatOrderNumber(result.order.id),
+        orderNumber: result.order.orderNumber,
         total: Number(result.order.total),
         paymentMethod: result.order.paymentMethod,
         paymentStatus: result.order.paymentStatus,

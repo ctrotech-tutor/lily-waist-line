@@ -6,7 +6,6 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import type { PaymentStatus, PaymentProofStatus } from '@/lib/generated/prisma/enums'
 import { sendPaymentReceivedEmail, sendPaymentRejectedEmail, sendOrderCancelledEmail } from '@/lib/services/email/email-triggers'
-import { formatOrderNumber } from '@/lib/utils/order'
 
 const verifyPaymentSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
@@ -40,6 +39,7 @@ export async function verifyPayment(input: z.infer<typeof verifyPaymentSchema>) 
         where: { id: orderId },
         select: {
           id: true,
+          orderNumber: true,
           paymentStatus: true,
           paymentMethod: true,
           total: true,
@@ -100,7 +100,7 @@ export async function verifyPayment(input: z.infer<typeof verifyPaymentSchema>) 
 
         if (userData) {
           const firstName = userData.fullName.split(' ')[0] || 'there'
-          const orderNumber = formatOrderNumber(orderId)
+          const orderNumber = result.order.orderNumber
           const paymentMethod = result.order.paymentMethod === 'CASH_APP' ? 'Cash App' : 'PayPal'
           const amount = `$${Number(result.order.total).toFixed(2)}`
 
@@ -132,7 +132,7 @@ export async function verifyPayment(input: z.infer<typeof verifyPaymentSchema>) 
 
         if (userData) {
           const firstName = userData.fullName.split(' ')[0] || 'there'
-          const orderNumber = formatOrderNumber(orderId)
+          const orderNumber = result.order.orderNumber
           const paymentMethod = result.order.paymentMethod === 'CASH_APP' ? 'Cash App' : 'PayPal'
           const amount = `$${Number(result.order.total).toFixed(2)}`
 
@@ -145,9 +145,11 @@ export async function verifyPayment(input: z.infer<typeof verifyPaymentSchema>) 
             firstName,
             userData.email,
             orderNumber,
+            orderId,
             paymentMethod,
             amount,
             emailItems,
+            input.reason,
           )
           sendOrderCancelledEmail(firstName, userData.email, orderNumber, 'Payment was not approved')
         }

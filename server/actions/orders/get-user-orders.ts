@@ -3,7 +3,6 @@
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
-import { formatOrderNumber } from '@/lib/utils/order'
 
 const paginationSchema = z.object({
   page: z.coerce.number().min(1).default(1),
@@ -38,6 +37,7 @@ export async function getUserOrders(params?: {
         where: { userId: user.id },
         select: {
           id: true,
+          orderNumber: true,
           createdAt: true,
           total: true,
           subtotal: true,
@@ -111,7 +111,7 @@ export async function getUserOrders(params?: {
       
       return {
         id: order.id,
-        orderNumber: formatOrderNumber(order.id, order.createdAt),
+        orderNumber: order.orderNumber,
         orderDate: order.createdAt.toISOString().split('T')[0],
         total: order.total.toNumber(),
         subtotal: order.subtotal.toNumber(),

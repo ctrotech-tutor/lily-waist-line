@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ROUTES } from "@/lib/constants/routes";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { OptimizedImage } from "@/components/shared/optimized-image";
 import { orderKeys } from "@/lib/react-query/query-keys";
 
@@ -97,6 +96,9 @@ export function PaymentProofDropzone({
       const formData = new FormData();
       formData.append("file", file);
       formData.append("orderId", orderId);
+      if (transactionRef.trim()) {
+        formData.append("transactionRef", transactionRef.trim());
+      }
 
       const response = await fetch(ROUTES.API_UPLOADS_PAYMENT_PROOF, {
         method: "POST",
@@ -115,7 +117,7 @@ export function PaymentProofDropzone({
       setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
       setIsSubmitting(false);
     }
-  }, [file, orderId, queryClient]);
+  }, [file, orderId, transactionRef, queryClient]);
 
   const paymentMethodLabel = paymentMethod === "cashapp" ? "Cash App" : "PayPal";
 
@@ -228,20 +230,6 @@ export function PaymentProofDropzone({
 
       {file && (
         <div className="space-y-6">
-          <div className="space-y-2">
-            <Label className="font-sans text-xs uppercase tracking-wider text-muted-foreground">
-              Payment Method Used
-            </Label>
-            <div className="flex items-center gap-3 p-3 border border-border bg-muted/30 rounded-lg">
-              <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10 rounded-lg">
-                {paymentMethodLabel}
-              </Badge>
-              <span className="font-sans text-sm text-muted-foreground">
-                Selected at checkout
-              </span>
-            </div>
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="transaction-ref" className="font-sans text-xs uppercase tracking-wider text-muted-foreground">
               Transaction Reference (Optional)

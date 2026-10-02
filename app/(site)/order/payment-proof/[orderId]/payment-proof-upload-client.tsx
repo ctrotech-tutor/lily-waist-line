@@ -53,7 +53,8 @@ export default function PaymentProofUploadClient({ orderId }: { orderId: string 
   }
 
   const paymentStatus = orderData.paymentStatus;
-  const paymentMethod = orderData.paymentMethod?.toLowerCase() === "cash_app" ? "cashapp" : "paypal";
+  const isCashApp = orderData.paymentMethod === "CASH_APP";
+  const paymentMethod = isCashApp ? "cashapp" : "paypal";
 
   if (paymentStatus === "PAID") {
     return (
@@ -96,14 +97,13 @@ export default function PaymentProofUploadClient({ orderId }: { orderId: string 
       <PaymentProofHeader />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        {/* Left - Upload */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="p-6 md:p-8 border border-border bg-card rounded-lg">
             <h3 className="font-heading text-base font-semibold text-foreground mb-4">
               Payment Instructions
             </h3>
             <div className="space-y-3 text-sm text-muted-foreground">
-              <p>1. Complete your payment using the payment method selected during checkout.</p>
+              <p>1. Send your payment to the {isCashApp ? "Cash App handle" : "PayPal email"} shown below.</p>
               <p>2. Take a clear screenshot of your payment confirmation.</p>
               <p>3. Upload the screenshot below for verification.</p>
               <p className="font-semibold text-foreground">
@@ -112,10 +112,12 @@ export default function PaymentProofUploadClient({ orderId }: { orderId: string 
             </div>
           </Card>
 
-          <PaymentProofDropzone orderId={orderId} paymentMethod={paymentMethod} />
+          <PaymentProofDropzone
+            orderId={orderId}
+            paymentMethod={paymentMethod}
+          />
         </div>
 
-        {/* Right - Info */}
         <div className="lg:col-span-1">
           <Card className="p-4 border border-primary/20 bg-primary/[0.03] rounded-lg">
             <div className="flex items-start gap-3">

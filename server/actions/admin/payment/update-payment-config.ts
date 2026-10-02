@@ -4,126 +4,102 @@ import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import type { PaymentMethod } from '@/lib/generated/prisma/enums'
 import type { PaymentConfig } from '@/types/payment'
 
-// Validation schema for payment configuration update
-const updatePaymentConfigSchema = z.object({
-  paymentMethod: z.enum(['CASH_APP', 'PAYPAL']),
-  enabled: z.boolean(),
+const updatePaymentConfigsSchema = z.object({
+  cashAppEnabled: z.boolean(),
   cashAppHandle: z.string().optional(),
-  paypalEmail: z.string().email().optional()
+  paypalEnabled: z.boolean(),
+  paypalEmail: z.string().optional(),
+  paypalHandle: z.string().optional(),
 })
 
-export interface UpdatePaymentConfigInput {
-  paymentMethod: PaymentMethod
-  enabled: boolean
+export interface UpdatePaymentConfigsInput {
+  cashAppEnabled: boolean
   cashAppHandle?: string
+  paypalEnabled: boolean
   paypalEmail?: string
+  paypalHandle?: string
 }
 
-/**
- * Admin action to update payment configuration
- */
-export async function updatePaymentConfiguration(input: UpdatePaymentConfigInput): Promise<{
+export async function updatePaymentConfigurations(input: UpdatePaymentConfigsInput): Promise<{
   success: boolean
-  data?: PaymentConfig
+  data?: PaymentConfig[]
   error?: string
 }> {
   try {
-    // Validate input
-    const validatedData = updatePaymentConfigSchema.parse(input)
+    const validatedData = updatePaymentConfigsSchema.parse(input)
 
-    // Create Supabase client and validate admin session
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return {
-        success: false,
-        error: 'Unauthorized'
-      }
+      return { success: false, error: 'Unauthorized' }
     }
 
-    // Get user role from database
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
       select: { role: true }
     })
 
     if (!dbUser || dbUser.role !== 'ADMIN') {
-      return {
-        success: false,
-        error: 'Access denied. Admin access required.'
-      }
+      return { success: false, error: 'Access denied. Admin access required.' }
     }
 
-    // Validate payment method specific fields
-    if (validatedData.paymentMethod === 'CASH_APP') {
-      if (validatedData.enabled && !validatedData.cashAppHandle) {
-        return {
-          success: false,
-          error: 'Cash App handle is required when Cash App is enabled'
-        }
-      }
-      // Validate Cash App handle format (should start with $)
-      if (validatedData.cashAppHandle && !validatedData.cashAppHandle.startsWith('$')) {
-        return {
-          success: false,
-          error: 'Cash App handle must start with $'
-        }
-      }
+    if (validatedData.cashAppEnabled && !validatedData.cashAppHandle) {
+      return { success: false, error: 'Cash App handle is required when Cash App is enabled' }
     }
 
-    if (validatedData.paymentMethod === 'PAYPAL') {
-      if (validatedData.enabled && !validatedData.paypalEmail) {
-        return {
-          success: false,
-          error: 'PayPal email is required when PayPal is enabled'
-        }
-      }
+    if (validatedData.cashAppHandle && !validatedData.cashAppHandle.startsWith('$')) {
+      return { success: false, error: 'Cash App handle must start with $' }
     }
 
-    // Update or create payment configuration
-    const configuration = await prisma.paymentConfiguration.upsert({
-      where: {
-        paymentMethod: validatedData.paymentMethod
-      },
+    if (validatedData.paypalEnabled && !validatedData.paypalEmail && !validatedData.paypalHandle) {
+      return { success: false, error: 'PayPal email or handle is required when PayPal is enabled' }
+    }
+
+    const cashAppConfig = await prisma.paymentConfiguration.upsert({
+      where: { paymentMethod: 'CASH_APP' },
       update: {
-        enabled: validatedData.enabled,
-        cashAppHandle: validatedData.paymentMethod === 'CASH_APP' ? validatedData.cashAppHandle : null,
-        paypalEmail: validatedData.paymentMethod === 'PAYPAL' ? validatedData.paypalEmail : null,
-        updatedAt: new Date()
+        enabled: validatedData.cashAppEnabled,
+        cashAppHandle: validatedData.cashAppEnabled ? validatedData.cashAppHandle : null,
+        paypalEmail: null,
+        updatedAt: new Date(),
       },
       create: {
-        paymentMethod: validatedData.paymentMethod,
-        enabled: validatedData.enabled,
-        cashAppHandle: validatedData.paymentMethod === 'CASH_APP' ? validatedData.cashAppHandle : null,
-        paypalEmail: validatedData.paymentMethod === 'PAYPAL' ? validatedData.paypalEmail : null
-      }
+        paymentMethod: 'CASH_APP',
+        enabled: validatedData.cashAppEnabled,
+        cashAppHandle: validatedData.cashAppEnabled ? validatedData.cashAppHandle : null,
+      },
     })
 
-    // Revalidate admin settings page
+    const paypalConfig = await prisma.paymentConfiguration.upsert({
+      where: { paymentMethod: 'PAYPAL' },
+      update: {
+        enabled: validatedData.paypalEnabled,
+        paypalEmail: validatedData.paypalEnabled ? validatedData.paypalEmail : null,
+        paypalHandle: validatedData.paypalEnabled ? validatedData.paypalHandle : null,
+        cashAppHandle: null,
+        updatedAt: new Date(),
+      },
+      create: {
+        paymentMethod: 'PAYPAL',
+        enabled: validatedData.paypalEnabled,
+        paypalEmail: validatedData.paypalEnabled ? validatedData.paypalEmail : null,
+        paypalHandle: validatedData.paypalEnabled ? validatedData.paypalHandle : null,
+      },
+    })
+
     revalidatePath('/admin/settings')
 
-    return {
-      success: true,
-      data: configuration
-    }
+    return { success: true, data: [cashAppConfig, paypalConfig] }
   } catch (error) {
     console.error('Error updating payment configuration:', error)
-    
-    // Handle Zod validation errors
+
     if (error instanceof z.ZodError) {
-      return {
-        success: false,
-        error: error.issues[0].message
-      }
+      return { success: false, error: error.issues[0].message }
     }
 
-    return {
-      success: false,
-      error: 'Failed to update payment configuration'
-    }
+    return { success: false, error: 'Failed to update payment configuration' }
   }
 }
