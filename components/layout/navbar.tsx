@@ -1,155 +1,84 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { Heart, ShoppingBag, User, Menu, Sun, Moon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetClose,
-} from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
+  Heart,
+  ShoppingBag,
+  User,
+  Sun,
+  Moon,
+} from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import { OptimizedImage } from "../shared/optimized-image";
+import { MobileNav } from "./mobile-nav";
+import { SearchDialog } from "./search-dialog";
+import { ROUTES } from "@/lib/constants/routes";
+import { useCart } from "@/hooks/use-cart";
 
 const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/shop", label: "Shop" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
+  { href: ROUTES.HOME, label: "Home" },
+  { href: ROUTES.SHOP, label: "Shop" },
+  { href: ROUTES.ABOUT, label: "About" },
+  { href: ROUTES.CONTACT, label: "Contact" },
 ];
 
+/* ---------------- THEME TOGGLE ---------------- */
 function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className={cn("relative", className)}
+    <button
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      className={cn(
+        "relative flex h-10 w-10 items-center justify-center rounded-full",
+        "border border-border transition-colors hover:bg-muted",
+        className
+      )}
       aria-label="Toggle theme"
     >
-      <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-      <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-    </Button>
+      <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+
+      <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+    </button>
   );
 }
 
-function MobileNav({ className }: { className?: string }) {
-  const [open, setOpen] = React.useState(false);
-  const { theme, setTheme } = useTheme();
-
-  return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild className={className}>
-        <Button variant="ghost" size="icon" aria-label="Open menu">
-          <Menu className="h-5 w-5" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="w-full max-w-sm border-r border-border bg-background">
-        <SheetHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
-              <Image
-                src="/logo.png"
-                alt="Lily Waist Line"
-                width={40}
-                height={40}
-                className="h-10 w-auto object-contain"
-              />
-              <SheetTitle className="font-heading text-lg font-semibold tracking-tight">
-                Lily Waist Line
-              </SheetTitle>
-            </Link>
-          </div>
-        </SheetHeader>
-
-        <Separator className="bg-border" />
-
-        <nav className="flex flex-col gap-1 py-6">
-          {navLinks.map((link) => (
-            <SheetClose asChild key={link.href}>
-              <Link
-                href={link.href}
-                className="px-4 py-3 font-heading text-lg font-medium text-foreground transition-colors hover:text-primary"
-              >
-                {link.label}
-              </Link>
-            </SheetClose>
-          ))}
-        </nav>
-
-        <Separator className="bg-border" />
-
-        <div className="flex flex-col gap-1 py-6">
-          <SheetClose asChild>
-            <Link
-              href="/wishlist"
-              className="flex items-center gap-3 px-4 py-3 font-sans text-sm font-medium text-foreground transition-colors hover:text-primary"
-            >
-              <Heart className="h-5 w-5" />
-              Wishlist
-            </Link>
-          </SheetClose>
-          <SheetClose asChild>
-            <Link
-              href="/cart"
-              className="flex items-center gap-3 px-4 py-3 font-sans text-sm font-medium text-foreground transition-colors hover:text-primary"
-            >
-              <ShoppingBag className="h-5 w-5" />
-              Cart
-            </Link>
-          </SheetClose>
-          <SheetClose asChild>
-            <Link
-              href="/account"
-              className="flex items-center gap-3 px-4 py-3 font-sans text-sm font-medium text-foreground transition-colors hover:text-primary"
-            >
-              <User className="h-5 w-5" />
-              Account
-            </Link>
-          </SheetClose>
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex items-center gap-3 px-4 py-3 font-sans text-sm font-medium text-foreground transition-colors hover:text-primary"
-          >
-            <Sun className="h-5 w-5 dark:hidden" />
-            <Moon className="hidden h-5 w-5 dark:block" />
-            {theme === "dark" ? "Light Mode" : "Dark Mode"}
-          </button>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
+/* ---------------- NAVBAR ---------------- */
 export function Navbar() {
+  const { data: cart } = useCart();
+  const totalItems = cart?.summary?.totalItems ?? 0;
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full bg-transparent backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-360 items-center justify-between px-5 md:px-12 lg:px-20">
+
+        {/* LEFT */}
         <div className="flex items-center gap-6">
           <MobileNav className="lg:hidden" />
-          <Link href="/" className="flex items-center gap-3">
-            <Image
+
+          <Link
+            href={ROUTES.HOME}
+            className="flex items-center gap-3"
+          >
+            <OptimizedImage
               src="/logo.png"
               alt="Lily Waist Line"
               width={36}
-              height={36}
-              className="h-9 w-auto object-contain"
+              height={32}
               priority
+              className="h-9 w-auto object-contain"
             />
-            <span className="hidden font-heading text-base font-semibold tracking-tight sm:inline-block">
+
+            <span className="hidden sm:inline-block font-heading text-base font-semibold tracking-tight">
               Lily Waist Line
             </span>
           </Link>
         </div>
 
+        {/* CENTER NAV */}
         <nav className="hidden items-center gap-8 lg:flex">
           {navLinks.map((link) => (
             <Link
@@ -162,35 +91,46 @@ export function Navbar() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-1">
+        {/* RIGHT */}
+        <div className="flex items-center gap-2">
+
+          <SearchDialog />
+
           <ThemeToggle className="hidden lg:flex" />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative hidden lg:flex"
+
+          <Link
+            href={ROUTES.WISHLIST}
+            className="hidden lg:flex h-10 w-10 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
             aria-label="Wishlist"
           >
-            <Heart className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative hidden lg:flex"
-            aria-label="Cart"
+            <Heart className="h-4 w-4" />
+          </Link>
+
+          <Link
+            href={ROUTES.CART}
+            className="relative hidden lg:flex h-10 w-10 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+            aria-label="Shopping Cart"
           >
-            <ShoppingBag className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative hidden lg:flex"
+            <ShoppingBag className="h-4 w-4" />
+            {totalItems > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                {totalItems > 99 ? "99+" : totalItems}
+              </span>
+            )}
+          </Link>
+
+          <Link
+            href={ROUTES.ACCOUNT}
+            className="hidden lg:flex h-10 w-10 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
             aria-label="Account"
           >
-            <User className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-1 lg:hidden">
+            <User className="h-4 w-4" />
+          </Link>
+
+          <div className="lg:hidden">
             <ThemeToggle />
           </div>
+
         </div>
       </div>
     </header>

@@ -1,0 +1,57 @@
+import { z } from 'zod'
+
+export const createAddressSchema = z.object({
+  firstName: z.string()
+    .min(1, 'First name is required')
+    .max(50, 'First name must be 50 characters or less')
+    .trim(),
+  
+  lastName: z.string()
+    .min(1, 'Last name is required')
+    .max(50, 'Last name must be 50 characters or less')
+    .trim(),
+  
+  company: z.string()
+    .max(100, 'Company name must be 100 characters or less')
+    .trim()
+    .optional(),
+  
+  addressLine1: z.string()
+    .min(1, 'Address line 1 is required')
+    .max(200, 'Address line 1 must be 200 characters or less')
+    .trim(),
+  
+  addressLine2: z.string()
+    .max(200, 'Address line 2 must be 200 characters or less')
+    .trim()
+    .optional(),
+  
+  city: z.string()
+    .min(1, 'City is required')
+    .max(100, 'City must be 100 characters or less')
+    .trim(),
+  
+  state: z.string()
+    .min(1, 'State is required')
+    .max(100, 'State must be 100 characters or less')
+    .trim(),
+  
+  postalCode: z.string()
+    .min(1, 'Postal code is required')
+    .max(20, 'Postal code must be 20 characters or less')
+    .trim(),
+  
+  country: z.string()
+    .min(1, 'Country is required')
+    .max(100, 'Country must be 100 characters or less')
+    .trim(),
+  
+  phone: z.string()
+    .max(20, 'Phone number must be 20 characters or less')
+    .trim()
+    .optional(),
+  
+  isDefault: z.boolean().default(false)
+})
+
+export type CreateAddressInput = z.infer<typeof createAddressSchema>

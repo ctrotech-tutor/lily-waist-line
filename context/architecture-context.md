@@ -10,7 +10,7 @@
 | Database         | Supabase PostgreSQL + Prisma   | Supabase = DB layer, Prisma = ORM for structured server access      |
 | Payments | Cash App (Manual) | Client-provided payment link for manual customer payments |
 | Email Service | Nodemailer (SMTP-based) | Order notifications, payment instructions, admin alerts |
-| Storage          | Supabase Storage               | Product images and media assets                                      |
+| Storage | Supabase Storage | Product images, media assets, and payment proof uploads |
 
 ---
 
@@ -98,8 +98,8 @@ Handles:
 
 Supabase stores:
 * Order records
-* Payment status (updated via webhook)
-* payment proof (image/file)
+* Payment status (updated by admin after verification)
+* Payment proof (image/file)
 
 Payment flow:
 * Customer places order

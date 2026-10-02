@@ -1,0 +1,60 @@
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Plus, List, Truck } from "lucide-react";
+import Link from "next/link";
+import { ROUTES } from "@/lib/constants/routes";
+
+const quickActions = [
+  {
+    label: "Add Product",
+    href: ROUTES.ADMIN_PRODUCTS_NEW,
+    icon: Plus,
+    description: "Create a new product listing",
+  },
+  {
+    label: "View Orders",
+    href: ROUTES.ADMIN_ORDERS,
+    icon: List,
+    description: "Manage customer orders",
+  },
+  {
+    label: "Manage Shipping",
+    href: ROUTES.ADMIN_SHIPPING,
+    icon: Truck,
+    description: "Update shipment statuses",
+  },
+];
+
+export function AdminQuickActions() {
+  return (
+    <Card className="border-border/50">
+      <CardHeader>
+        <CardTitle className="font-[family-name:var(--font-bodoni-moda)] text-xl">
+          Quick Actions
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {quickActions.map((action) => (
+          <Link key={action.label} href={action.href} className="block">
+            <Button
+              variant="outline"
+              className="h-auto w-full justify-start gap-3 border-border/50 py-3 hover:border-secondary/50 hover:bg-secondary/5"
+            >
+              <action.icon className="h-4 w-4 text-secondary" />
+              <div className="text-left">
+                <div className="font-[family-name:var(--font-montserrat)] text-sm font-medium">
+                  {action.label}
+                </div>
+                <div className="font-[family-name:var(--font-montserrat)] text-xs text-muted-foreground">
+                  {action.description}
+                </div>
+              </div>
+            </Button>
+          </Link>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}

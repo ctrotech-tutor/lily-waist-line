@@ -38,6 +38,7 @@ If a change cannot be verified end to end quickly, the scope is too broad — sp
 * If a requirement is missing, add it as an open question in `progress-tracker.md` before continuing.
 * Payment behavior must always follow the current phase architecture. Phase one uses manual Cash App payment and admin verification only.
 * Shipping behavior must follow the current fulfillment model. Phase one uses manual carrier fulfillment and manual tracking updates.
+* Product discovery state (search, filters, sorting, pagination) must follow URL-driven state architecture unless explicitly changed in context files.
 
 ---
 
@@ -47,7 +48,7 @@ Do not modify generated third-party foundation components unless explicitly inst
 
 This includes:
 
- * `components/ui/* ` (UI library components)
+* `components/ui/` (UI library components)
 * third-party library internals
 * framework internals (Next.js, Supabase SDK)
 

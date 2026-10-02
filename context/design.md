@@ -50,23 +50,23 @@ colors:
   surface-variant: '#353535'
 typography:
   display-xl:
-    fontFamily: Bodoni Moda
+    fontFamily: Poppins
     fontSize: 72px
     fontWeight: '700'
     lineHeight: 80px
     letterSpacing: -0.02em
   headline-lg:
-    fontFamily: Bodoni Moda
+    fontFamily: Poppins
     fontSize: 48px
     fontWeight: '600'
     lineHeight: 56px
   headline-lg-mobile:
-    fontFamily: Bodoni Moda
+    fontFamily: Poppins
     fontSize: 32px
     fontWeight: '600'
     lineHeight: 40px
   headline-md:
-    fontFamily: Bodoni Moda
+    fontFamily: Poppins
     fontSize: 32px
     fontWeight: '500'
     lineHeight: 40px
@@ -121,9 +121,9 @@ Metallic effects should be implemented using a subtle linear gradient (45-degree
 
 ## Typography
 
-The typography strategy pairs the dramatic, high-contrast strokes of **Bodoni Moda** with the athletic, geometric precision of **Montserrat**.
+The typography strategy pairs the clean, geometric modernity of **Poppins** with the versatile, athletic precision of **Montserrat**.
 
-- **Headings:** Large-scale serif headlines create an editorial feel. Use `display-xl` for hero sections with tight letter spacing.
+- **Headings:** Large-scale geometric headlines create a modern, athletic feel. Use `display-xl` for hero sections with tight letter spacing.
 - **Body:** Montserrat provides the "fitness-tech" balance, ensuring technical product details and workout instructions are highly legible.
 - **Labels & Buttons:** All functional labels use uppercase Montserrat with increased letter spacing to evoke the feeling of luxury branding and modern athletic wear.
 

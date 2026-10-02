@@ -1,27 +1,39 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { Heart, ShoppingBag, User, Menu, X, Sun, Moon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetClose,
-} from "@/components/ui/sheet";
+  Heart,
+  ShoppingBag,
+  User,
+  Menu,
+  Sun,
+  Moon,
+} from "lucide-react";
+
+import { cn } from "@/lib/utils";
+
+import {
+  Drawer,
+  DrawerTrigger,
+  DrawerContent,
+  DrawerClose,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+
 import { Separator } from "@/components/ui/separator";
 
+import { OptimizedImage } from "../shared/optimized-image";
+import { ROUTES } from "@/lib/constants/routes";
+import { useCart } from "@/hooks/use-cart";
+
 const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/shop", label: "Shop" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
+  { href: ROUTES.HOME, label: "Home" },
+  { href: ROUTES.SHOP, label: "Shop" },
+  { href: ROUTES.ABOUT, label: "About" },
+  { href: ROUTES.CONTACT, label: "Contact" },
 ];
 
 interface MobileNavProps {
@@ -30,101 +42,125 @@ interface MobileNavProps {
 
 export function MobileNav({ className }: MobileNavProps) {
   const [open, setOpen] = React.useState(false);
+
   const { theme, setTheme } = useTheme();
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild className={className}>
-        <Button variant="ghost" size="icon" aria-label="Open menu">
+    <Drawer open={open} onOpenChange={setOpen}>
+      {/* Trigger */}
+      <DrawerTrigger asChild>
+        <button
+          aria-label="Open menu"
+          className={cn(
+            "flex h-10 w-10 items-center justify-center",
+            "rounded-full border border-border",
+            "transition-colors hover:bg-muted",
+            className
+          )}
+        >
           <Menu className="h-5 w-5" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent 
-        side="left" 
-        className="w-full max-w-sm border-r border-border bg-background p-0"
-      >
-        <SheetHeader className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link 
-              href="/" 
-              className="flex items-center gap-3" 
-              onClick={() => setOpen(false)}
-            >
-              <Image
-                src="/logo.png"
-                alt="Lily Waist Line"
-                width={40}
-                height={40}
-                className="h-10 w-auto object-contain"
-              />
-              <SheetTitle className="font-heading text-lg font-semibold tracking-tight text-foreground">
-                Lily Waist Line
-              </SheetTitle>
-            </Link>
-            <SheetClose asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <X className="h-5 w-5" />
-                <span className="sr-only">Close menu</span>
-              </Button>
-            </SheetClose>
-          </div>
-        </SheetHeader>
+        </button>
+      </DrawerTrigger>
 
-        <Separator className="bg-border" />
+      {/* Drawer */}
+      <DrawerContent className="h-[92vh] border-border bg-background p-0">
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4">
+          <Link
+            href={ROUTES.HOME}
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-3"
+          >
+            <OptimizedImage
+              src="/logo.png"
+              alt="Lily Waist Line"
+              width={40}
+              height={36}
+              priority
+              className="h-10 w-auto object-contain"
+            />
 
+            <span className="font-heading text-lg font-semibold tracking-tight">
+              Lily Waist Line
+            </span>
+          </Link>
+          <DrawerTitle className="sr-only">
+            Navigation Menu
+          </DrawerTitle>
+        </div>
+
+        <Separator />
+
+        {/* Main Nav */}
         <nav className="flex flex-col py-6">
           {navLinks.map((link) => (
-            <SheetClose asChild key={link.href}>
+            <DrawerClose asChild key={link.href}>
               <Link
                 href={link.href}
-                className="px-6 py-4 font-heading text-xl font-medium text-foreground transition-colors hover:bg-muted hover:text-primary"
+                className={cn(
+                  "px-6 py-4",
+                  "font-heading text-xl font-medium",
+                  "text-foreground",
+                  "transition-colors hover:bg-muted hover:text-primary"
+                )}
               >
                 {link.label}
               </Link>
-            </SheetClose>
+            </DrawerClose>
           ))}
         </nav>
 
-        <Separator className="bg-border" />
+        <Separator />
 
+        {/* Utility Nav */}
         <div className="flex flex-col py-6">
-          <SheetClose asChild>
+          <DrawerClose asChild>
             <Link
-              href="/wishlist"
-              className="flex items-center gap-4 px-6 py-4 font-sans text-sm font-medium uppercase tracking-wide text-foreground transition-colors hover:bg-muted hover:text-primary"
+              href={ROUTES.WISHLIST}
+              className="flex items-center gap-4 px-6 py-4 font-sans text-sm font-medium uppercase tracking-wide transition-colors hover:bg-muted hover:text-primary"
             >
               <Heart className="h-5 w-5" />
               Wishlist
             </Link>
-          </SheetClose>
-          <SheetClose asChild>
+          </DrawerClose>
+
+          <DrawerClose asChild>
             <Link
-              href="/cart"
-              className="flex items-center gap-4 px-6 py-4 font-sans text-sm font-medium uppercase tracking-wide text-foreground transition-colors hover:bg-muted hover:text-primary"
+              href={ROUTES.CART}
+              className="relative flex items-center gap-4 px-6 py-4 font-sans text-sm font-medium uppercase tracking-wide transition-colors hover:bg-muted hover:text-primary"
             >
               <ShoppingBag className="h-5 w-5" />
               Cart
             </Link>
-          </SheetClose>
-          <SheetClose asChild>
+          </DrawerClose>
+
+          <DrawerClose asChild>
             <Link
-              href="/account"
-              className="flex items-center gap-4 px-6 py-4 font-sans text-sm font-medium uppercase tracking-wide text-foreground transition-colors hover:bg-muted hover:text-primary"
+              href={ROUTES.ACCOUNT}
+              className="flex items-center gap-4 px-6 py-4 font-sans text-sm font-medium uppercase tracking-wide transition-colors hover:bg-muted hover:text-primary"
             >
               <User className="h-5 w-5" />
               Account
             </Link>
-          </SheetClose>
+          </DrawerClose>
+
+          {/* Theme Toggle */}
           <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex items-center gap-4 px-6 py-4 font-sans text-sm font-medium uppercase tracking-wide text-foreground transition-colors hover:bg-muted hover:text-primary"
+            onClick={() =>
+              setTheme(theme === "dark" ? "light" : "dark")
+            }
+            className="flex items-center gap-4 px-6 py-4 font-sans text-sm font-medium uppercase tracking-wide transition-colors hover:bg-muted hover:text-primary"
           >
             <Sun className="h-5 w-5 dark:hidden" />
+
             <Moon className="hidden h-5 w-5 dark:block" />
-            {theme === "dark" ? "Light Mode" : "Dark Mode"}
+
+            {theme === "dark"
+              ? "Light Mode"
+              : "Dark Mode"}
           </button>
         </div>
-      </SheetContent>
-    </Sheet>
+      </DrawerContent>
+    </Drawer>
   );
 }
