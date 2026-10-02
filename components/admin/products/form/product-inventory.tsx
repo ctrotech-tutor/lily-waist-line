@@ -10,72 +10,11 @@ interface ProductInventoryProps {
   data: ProductFormData;
   onChange: (field: keyof ProductFormData, value: string) => void;
   errors?: Record<string, string>;
+  disabled?: boolean;
 }
 
-// Form field with floating label pattern
-interface FloatingFieldProps {
-  id: string;
-  label: string;
-  type?: string;
-  required?: boolean;
-  value: string;
-  placeholder?: string;
-  onChange: (value: string) => void;
-  error?: string;
-}
-
-function FloatingField({
-  id,
-  label,
-  type = "text",
-  required = false,
-  value,
-  placeholder,
-  onChange,
-  error,
-}: FloatingFieldProps) {
-  return (
-    <div className="relative w-full group">
-      <Input
-        id={id}
-        name={id}
-        type={type}
-        required={required}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder || " "}
-        className={cn(
-          "peer w-full border-0 border-b border-border bg-transparent py-3 px-0 rounded-none h-auto text-sm",
-          "focus-visible:border-secondary focus-visible:ring-0 focus-visible:ring-offset-0",
-          "placeholder-transparent transition-colors",
-          "text-foreground",
-          error && "border-destructive focus-visible:border-destructive"
-        )}
-      />
-      <Label
-        htmlFor={id}
-        className={cn(
-          "absolute left-0 top-3 -translate-y-6 text-xs text-muted-foreground uppercase tracking-widest transition-all",
-          "peer-placeholder-shown:translate-y-0 peer-placeholder-shown:text-sm peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-placeholder-shown:text-muted-foreground/70",
-          "peer-focus:-translate-y-6 peer-focus:text-xs peer-focus:text-secondary peer-focus:uppercase peer-focus:tracking-widest",
-          required && "after:content-['*'] after:ml-1 after:text-destructive",
-          "cursor-text font-sans font-semibold pointer-events-none"
-        )}
-      >
-        {label}
-      </Label>
-      {/* Bottom border highlight on focus */}
-      <div className="absolute bottom-0 left-0 w-0 h-px bg-secondary transition-all duration-300 peer-focus:w-full" />
-      {error && (
-        <p className="text-xs text-destructive mt-1">{error}</p>
-      )}
-    </div>
-  );
-}
-
-// Stock status badge component
 function StockStatusBadge({ status }: { status: string }) {
-  const configs = {
+  const configs: Record<string, { icon: typeof CheckCircle2; label: string; className: string }> = {
     in_stock: {
       icon: CheckCircle2,
       label: "In Stock",
@@ -93,7 +32,7 @@ function StockStatusBadge({ status }: { status: string }) {
     },
   };
 
-  const config = configs[status as keyof typeof configs] || configs.in_stock;
+  const config = configs[status] || configs.in_stock;
   const Icon = config.icon;
 
   return (
@@ -107,10 +46,9 @@ function StockStatusBadge({ status }: { status: string }) {
   );
 }
 
-export function ProductInventory({ data, onChange }: ProductInventoryProps) {
+export function ProductInventory({ data, onChange, disabled }: ProductInventoryProps) {
   const quantity = parseInt(data.stockQuantity) || 0;
 
-  // Compute stock status based on quantity
   const computedStatus = quantity === 0
     ? "out_of_stock"
     : quantity <= 5
@@ -134,13 +72,17 @@ export function ProductInventory({ data, onChange }: ProductInventoryProps) {
             <Package className="w-4 h-4 text-muted-foreground" />
           </div>
           <div className="flex-1">
-            <FloatingField
+            <Label htmlFor="stockQuantity" className="font-sans text-xs font-semibold uppercase tracking-widest text-foreground mb-2 block">
+              Stock Quantity
+            </Label>
+            <Input
               id="stockQuantity"
-              label="Stock Quantity"
               type="number"
               value={data.stockQuantity}
-              onChange={(value) => onChange("stockQuantity", value)}
+              onChange={(e) => onChange("stockQuantity", e.target.value)}
               placeholder="0"
+              disabled={disabled}
+              className="border-border focus-visible:border-secondary focus-visible:ring-0"
             />
           </div>
         </div>
@@ -151,8 +93,8 @@ export function ProductInventory({ data, onChange }: ProductInventoryProps) {
             <AlertCircle className="w-4 h-4 text-muted-foreground" />
           </div>
           <div className="flex-1">
-            <Label className="block text-xs text-muted-foreground uppercase tracking-widest font-semibold mb-3">
-              Stock Status (Computed)
+            <Label className="block text-xs font-semibold uppercase tracking-widest text-foreground mb-3">
+              Stock Status <span className="text-muted-foreground font-normal normal-case tracking-normal">(Computed)</span>
             </Label>
             <StockStatusBadge status={computedStatus} />
             <p className="text-xs text-muted-foreground mt-2">

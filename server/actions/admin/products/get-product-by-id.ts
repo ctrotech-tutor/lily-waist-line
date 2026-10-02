@@ -37,6 +37,11 @@ export const getProductById = tryAction(async (input: z.infer<typeof getProductB
           compressionLevel: true,
           sku: true,
           stockQuantity: true,
+          price: true,
+          images: {
+            where: { imageType: 'variant' },
+            select: { id: true, url: true, storagePath: true, imageType: true, sortOrder: true },
+          },
         }
       },
       images: {
@@ -60,5 +65,9 @@ export const getProductById = tryAction(async (input: z.infer<typeof getProductB
     ...product,
     basePrice: product.basePrice.toNumber(),
     compareAtPrice: product.compareAtPrice?.toNumber() || null,
+    variants: product.variants.map(v => ({
+      ...v,
+      price: v.price?.toNumber() ?? null,
+    })),
   }
 })

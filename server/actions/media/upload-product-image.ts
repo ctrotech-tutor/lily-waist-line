@@ -53,8 +53,8 @@ export async function uploadProductImage(formData: FormData): Promise<UploadProd
     }
 
     // Validate file type and size
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
-    if (!allowedTypes.includes(file.type)) {
+    const { isAllowedImageType } = await import('@/lib/utils/file-validation')
+    if (!isAllowedImageType(file.type, file.name)) {
       return {
         success: false,
         error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF images are allowed.'

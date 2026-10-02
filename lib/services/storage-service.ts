@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../supabase/admin'
+import { isAllowedImageType } from '@/lib/utils/file-validation'
 import type { UploadResult, StorageError } from '@/types/media'
 
 export type { UploadResult, StorageError }
@@ -201,14 +202,7 @@ export class StorageService {
    * Validate if file is an image
    */
   private isValidImageFile(file: File): boolean {
-    const allowedTypes = [
-      'image/jpeg',
-      'image/jpg',
-      'image/png',
-      'image/webp',
-      'image/gif'
-    ]
-    return allowedTypes.includes(file.type)
+    return isAllowedImageType(file.type, file.name)
   }
 
   /**
@@ -232,7 +226,7 @@ export class StorageService {
         // Create bucket
         const { error: createError } = await supabaseAdmin.storage.createBucket(this.bucketName, {
           public: true,
-          allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'],
+          allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/x-png', 'image/webp', 'image/gif'],
           fileSizeLimit: 5242880 // 5MB
         })
 

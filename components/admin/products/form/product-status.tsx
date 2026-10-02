@@ -9,6 +9,7 @@ import type { ProductFormData } from "./admin-product-form-shell";
 interface ProductStatusProps {
   data: ProductFormData;
   onChange: (field: keyof ProductFormData, value: string) => void;
+  disabled?: boolean;
 }
 
 const STATUS_OPTIONS = [
@@ -41,7 +42,7 @@ const STATUS_OPTIONS = [
   },
 ];
 
-export function ProductStatus({ data, onChange }: ProductStatusProps) {
+export function ProductStatus({ data, onChange, disabled }: ProductStatusProps) {
   return (
     <div className="space-y-6">
       {/* Section Header */}
@@ -54,7 +55,8 @@ export function ProductStatus({ data, onChange }: ProductStatusProps) {
 
       <RadioGroup
         value={data.status}
-        onValueChange={(value) => onChange("status", value)}
+        onValueChange={(value) => !disabled && onChange("status", value)}
+        disabled={disabled}
         className="grid grid-cols-1 sm:grid-cols-3 gap-3"
       >
         {STATUS_OPTIONS.map((status) => {
@@ -65,7 +67,8 @@ export function ProductStatus({ data, onChange }: ProductStatusProps) {
             <Label
               key={status.value}
               className={cn(
-                "flex flex-col gap-3 p-4 border cursor-pointer transition-all duration-200",
+                "flex flex-col gap-3 p-4 border transition-all duration-200",
+                disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
                 isSelected
                   ? `border-secondary ${status.bgColor}`
                   : "border-border hover:border-secondary/50 hover:bg-muted/30"
@@ -92,6 +95,7 @@ export function ProductStatus({ data, onChange }: ProductStatusProps) {
                     <RadioGroupItem
                       value={status.value}
                       id={`status-${status.value}`}
+                      disabled={disabled}
                       className="sr-only"
                     />
                     <span

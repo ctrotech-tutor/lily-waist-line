@@ -27,7 +27,7 @@ export function AdminShell({ children }: AdminShellProps) {
   }, []);
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       {/* Desktop Sidebar */}
       <aside
         className={`fixed left-0 top-0 z-30 hidden h-screen overflow-hidden border-r border-border bg-sidebar transition-[width] duration-300 ease-in-out lg:block ${

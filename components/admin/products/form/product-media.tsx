@@ -8,6 +8,7 @@ import { OptimizedImage } from "@/components/shared/optimized-image";
 import { toast } from "sonner";
 import { uploadTempImage } from "@/server/actions/media/upload-temp-image";
 import { uploadProductImage, deleteProductImage } from "@/server/actions/media/upload-product-image";
+import { isAllowedImageType } from "@/lib/utils/file-validation";
 import type { ProductFormData } from "./admin-product-form-shell";
 import type { ProductImageEntry } from "@/types/media";
 
@@ -15,19 +16,24 @@ interface ProductMediaProps {
   data: ProductFormData;
   onChange: (field: keyof ProductFormData, value: unknown) => void;
   productId?: string;
+  disabled?: boolean;
 }
 
-export function ProductMedia({ data, onChange, productId }: ProductMediaProps) {
+export function ProductMedia({ data, onChange, productId, disabled }: ProductMediaProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [uploadingIndexes, setUploadingIndexes] = useState<Set<number>>(new Set());
 
+  const isUploading = uploadingIndexes.size > 0;
+  const isDisabled = disabled || isUploading;
+
   const handleFiles = useCallback(async (files: FileList) => {
+    if (disabled) return;
     const fileArray = Array.from(files);
 
     for (const file of fileArray) {
-      if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      if (!isAllowedImageType(file.type, file.name)) {
         toast.error(`${file.name}: Invalid file type. Only JPEG, PNG, WebP, and GIF allowed.`);
         continue;
       }
@@ -38,11 +44,11 @@ export function ProductMedia({ data, onChange, productId }: ProductMediaProps) {
     }
 
     const validFiles = fileArray.filter(f =>
-      ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'].includes(f.type) &&
+      isAllowedImageType(f.type, f.name) &&
       f.size <= 5 * 1024 * 1024
     );
 
-    const startIndex = data.images.length;
+    const startIndex = data.galleryImages.length;
     const placeholders: ProductImageEntry[] = validFiles.map(() => ({
       url: '',
       storagePath: '',
@@ -51,8 +57,8 @@ export function ProductMedia({ data, onChange, productId }: ProductMediaProps) {
       existing: false,
     }));
 
-    let updatedImages = [...data.images, ...placeholders];
-    onChange("images", updatedImages);
+    const updatedImages = [...data.galleryImages, ...placeholders];
+    onChange("galleryImages", updatedImages);
 
     const uploading = new Set<number>();
     for (let i = 0; i < validFiles.length; i++) {
@@ -60,6 +66,7 @@ export function ProductMedia({ data, onChange, productId }: ProductMediaProps) {
     }
     setUploadingIndexes(uploading);
 
+    let nextSortOrder = startIndex;
     for (let i = 0; i < validFiles.length; i++) {
       const file = validFiles[i];
       const fileIndex = startIndex + i;
@@ -80,20 +87,21 @@ export function ProductMedia({ data, onChange, productId }: ProductMediaProps) {
           updatedImages[fileIndex] = {
             url: result.url,
             storagePath: result.path,
-            imageType: fileIndex === 0 ? 'main' : 'gallery',
-            sortOrder: fileIndex,
+            imageType: 'gallery',
+            sortOrder: nextSortOrder++,
             existing: false,
           };
-          onChange("images", [...updatedImages]);
+          onChange("galleryImages", [...updatedImages]);
         } else {
           toast.error(result.error || `Failed to upload ${file.name}`);
           updatedImages.splice(fileIndex, 1);
-          onChange("images", [...updatedImages]);
+          onChange("galleryImages", [...updatedImages]);
+          nextSortOrder--;
         }
       } catch {
         toast.error(`Failed to upload ${file.name}`);
         updatedImages.splice(fileIndex, 1);
-        onChange("images", [...updatedImages]);
+        onChange("galleryImages", [...updatedImages]);
       } finally {
         setUploadingIndexes((prev) => {
           const next = new Set(prev);
@@ -104,7 +112,7 @@ export function ProductMedia({ data, onChange, productId }: ProductMediaProps) {
     }
 
     if (inputRef.current) inputRef.current.value = '';
-  }, [data.images, onChange, productId]);
+  }, [data.galleryImages, onChange, productId, disabled]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -113,15 +121,17 @@ export function ProductMedia({ data, onChange, productId }: ProductMediaProps) {
   }, [handleFiles]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
+    if (disabled) return;
     e.preventDefault();
     setIsDragging(false);
     const files = e.dataTransfer.files;
     if (!files || files.length === 0) return;
     handleFiles(files);
-  }, [handleFiles]);
+  }, [handleFiles, disabled]);
 
   const removeImage = useCallback(async (index: number) => {
-    const image = data.images[index];
+    if (disabled) return;
+    const image = data.galleryImages[index];
     if (!image) return;
 
     if (image.existing && image.storagePath) {
@@ -134,9 +144,9 @@ export function ProductMedia({ data, onChange, productId }: ProductMediaProps) {
       }
     }
 
-    const newImages = data.images.filter((_, i) => i !== index);
-    onChange("images", newImages);
-  }, [data.images, data.removedImageIds, onChange]);
+    const newImages = data.galleryImages.filter((_, i) => i !== index);
+    onChange("galleryImages", newImages);
+  }, [data.galleryImages, data.removedImageIds, onChange, disabled]);
 
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
@@ -146,12 +156,12 @@ export function ProductMedia({ data, onChange, productId }: ProductMediaProps) {
     e.preventDefault();
     if (draggedIndex === null || draggedIndex === index) return;
 
-    const newImages = [...data.images];
+    const newImages = [...data.galleryImages];
     const draggedImage = newImages[draggedIndex];
     newImages.splice(draggedIndex, 1);
     newImages.splice(index, 0, draggedImage);
 
-    onChange("images", newImages);
+    onChange("galleryImages", newImages);
     setDraggedIndex(index);
   };
 
@@ -169,29 +179,30 @@ export function ProductMedia({ data, onChange, productId }: ProductMediaProps) {
     setIsDragging(false);
   };
 
-  const isUploading = uploadingIndexes.size > 0;
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3 pb-2 border-b border-border/50">
         <div className="w-1.5 h-1.5 bg-secondary" />
         <h2 className="font-sans text-xs uppercase tracking-[0.15em] text-muted-foreground font-semibold">
-          Product Media
+          Gallery Images
         </h2>
       </div>
 
-      <div
-        onClick={() => inputRef.current?.click()}
-        onDragOver={handleDropZoneDragOver}
-        onDragLeave={handleDropZoneDragLeave}
-        onDrop={handleDrop}
-        className={cn(
-          "border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-200",
-          isDragging
-            ? "border-secondary bg-secondary/5"
-            : "border-border hover:border-secondary/50 hover:bg-muted/30"
-        )}
-      >
+        <div
+          onClick={() => !isDisabled && inputRef.current?.click()}
+          onDragOver={handleDropZoneDragOver}
+          onDragLeave={handleDropZoneDragLeave}
+          onDrop={isDisabled ? undefined : handleDrop}
+          className={cn(
+            "border-2 border-dashed p-8 text-center transition-all duration-200",
+            isDisabled
+              ? "opacity-50 cursor-not-allowed border-border"
+              : "cursor-pointer border-border hover:border-secondary/50 hover:bg-muted/30",
+            isDragging && !isDisabled
+              ? "border-secondary bg-secondary/5"
+              : ""
+          )}
+        >
         <div className="flex flex-col items-center gap-3">
           <div className={cn(
             "w-12 h-12 flex items-center justify-center border transition-colors",
@@ -216,7 +227,7 @@ export function ProductMedia({ data, onChange, productId }: ProductMediaProps) {
             type="button"
             variant="outline"
             size="sm"
-            disabled={isUploading}
+            disabled={isDisabled}
             className="mt-2 border-secondary/50 text-secondary hover:bg-secondary/10"
           >
             <ImagePlus className="w-4 h-4 mr-2" />
@@ -229,16 +240,17 @@ export function ProductMedia({ data, onChange, productId }: ProductMediaProps) {
         ref={inputRef}
         type="file"
         multiple
-        accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+        accept="image/jpeg,image/jpg,image/png,image/x-png,image/webp,image/gif"
         className="hidden"
         onChange={handleFileSelect}
+        disabled={isDisabled}
       />
 
-      {data.images.length > 0 && (
+      {data.galleryImages.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="font-sans text-sm font-medium text-foreground">
-              {data.images.length} {data.images.length === 1 ? "Image" : "Images"}
+              {data.galleryImages.length} {data.galleryImages.length === 1 ? "Image" : "Images"}
             </p>
             <p className="font-sans text-xs text-muted-foreground">
               Drag to reorder
@@ -246,7 +258,7 @@ export function ProductMedia({ data, onChange, productId }: ProductMediaProps) {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {data.images.map((image, index) => (
+            {data.galleryImages.map((image, index) => (
               <div
                 key={`${image.storagePath || image.url}-${index}`}
                 draggable={!uploadingIndexes.has(index)}
@@ -298,12 +310,6 @@ export function ProductMedia({ data, onChange, productId }: ProductMediaProps) {
                         </div>
                       )}
                     </div>
-
-                    {index === 0 && (
-                      <div className="absolute bottom-0 left-0 right-0 bg-secondary text-foreground text-[10px] font-semibold uppercase tracking-wider py-1 text-center">
-                        Main Image
-                      </div>
-                    )}
                   </>
                 )}
               </div>

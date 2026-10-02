@@ -21,8 +21,10 @@ export interface ProductWithDetails extends Omit<ProductModel, 'basePrice' | 'co
   inStock: boolean
 }
 
-export interface ProductVariantWithStock extends ProductVariantModel {
+export interface ProductVariantWithStock extends Omit<ProductVariantModel, 'price'> {
   inStock: boolean
+  images?: ProductImage[]
+  price: number | null
 }
 
 export type ProductImage = ProductImageModel
@@ -40,7 +42,6 @@ export enum SortOptionEnum {
 
 // Size options enum for backward compatibility (deprecated, use types/product instead)
 export enum SizeOptionEnum {
-  XS = 'XS',
   S = 'S',
   M = 'M',
   L = 'L',
@@ -223,8 +224,9 @@ export class ProductService {
     images: ProductImageModel[]
   }): ProductWithDetails {
     // Transform variants
-    const variants: ProductVariantWithStock[] = product.variants.map((variant: ProductVariantModel): ProductVariantWithStock => ({
+    const variants: ProductVariantWithStock[] = product.variants.map((variant): ProductVariantWithStock => ({
       ...variant,
+      price: variant.price?.toNumber() ?? null,
       inStock: variant.stockQuantity > 0
     }))
 
@@ -237,8 +239,10 @@ export class ProductService {
     const basePriceNumber = product.basePrice.toNumber()
     const compareAtPriceNumber = product.compareAtPrice ? product.compareAtPrice.toNumber() : null
 
-    // Calculate price range
-    const prices = variants.map(v => v.stockQuantity > 0 ? basePriceNumber : null).filter(Boolean)
+    // Calculate price range (respect per-variant prices)
+    const prices = variants
+      .map(v => v.stockQuantity > 0 ? (v.price ?? basePriceNumber) : null)
+      .filter(Boolean)
     const availablePrices = prices as number[]
     const minPrice = availablePrices.length > 0 ? Math.min(...availablePrices) : basePriceNumber
     const maxPrice = availablePrices.length > 0 ? Math.max(...availablePrices) : basePriceNumber

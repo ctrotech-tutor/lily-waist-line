@@ -10,10 +10,10 @@ interface ProductVariantsProps {
   data: ProductFormData;
   onChange: (field: keyof ProductFormData, value: string[]) => void;
   errors?: Record<string, string>;
+  disabled?: boolean;
 }
 
 const SIZE_OPTIONS = [
-  { value: "XS", label: "XS", description: "Extra Small" },
   { value: "S", label: "S", description: "Small" },
   { value: "M", label: "M", description: "Medium" },
   { value: "L", label: "L", description: "Large" },
@@ -26,8 +26,9 @@ const COMPRESSION_OPTIONS = [
   { value: "high", label: "High", description: "Maximum sculpting and support" },
 ];
 
-export function ProductVariants({ data, onChange, errors }: ProductVariantsProps) {
+export function ProductVariants({ data, onChange, errors, disabled }: ProductVariantsProps) {
   const toggleSize = (size: string) => {
+    if (disabled) return;
     const currentSizes = data.sizes;
     const newSizes = currentSizes.includes(size)
       ? currentSizes.filter((s) => s !== size)
@@ -36,6 +37,7 @@ export function ProductVariants({ data, onChange, errors }: ProductVariantsProps
   };
 
   const toggleCompression = (level: string) => {
+    if (disabled) return;
     const currentLevels = data.compressionLevels;
     const newLevels = currentLevels.includes(level)
       ? currentLevels.filter((l) => l !== level)
@@ -54,21 +56,22 @@ export function ProductVariants({ data, onChange, errors }: ProductVariantsProps
       </div>
 
       {/* Size Options */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
+      <fieldset className="space-y-4">
+        <legend className="flex items-center gap-2 mb-3">
           <Layers className="w-4 h-4 text-muted-foreground" />
-          <h3 className="font-sans text-sm font-medium text-foreground">
+          <span className="font-sans text-sm font-medium text-foreground">
             Size Options
             <span className="text-destructive ml-1">*</span>
-          </h3>
-        </div>
+          </span>
+        </legend>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {SIZE_OPTIONS.map((size) => (
             <Label
               key={size.value}
               className={cn(
-                "flex flex-col items-center gap-2 p-4 border cursor-pointer transition-all duration-200",
+                "flex flex-col items-center gap-2 p-4 border transition-all duration-200",
+                disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
                 data.sizes.includes(size.value)
                   ? "border-secondary bg-secondary/5"
                   : "border-border hover:border-secondary/50 hover:bg-muted/50"
@@ -77,6 +80,7 @@ export function ProductVariants({ data, onChange, errors }: ProductVariantsProps
               <Checkbox
                 checked={data.sizes.includes(size.value)}
                 onCheckedChange={() => toggleSize(size.value)}
+                disabled={disabled}
                 className="sr-only"
               />
               <span className="font-sans text-lg font-semibold text-foreground">
@@ -95,23 +99,24 @@ export function ProductVariants({ data, onChange, errors }: ProductVariantsProps
             {errors.sizes}
           </div>
         )}
-      </div>
+      </fieldset>
 
       {/* Compression Level Options */}
-      <div className="space-y-4 pt-4">
-        <div className="flex items-center gap-2">
+      <fieldset className="space-y-4 pt-4">
+        <legend className="flex items-center gap-2 mb-3">
           <Layers className="w-4 h-4 text-muted-foreground" />
-          <h3 className="font-sans text-sm font-medium text-foreground">
+          <span className="font-sans text-sm font-medium text-foreground">
             Compression Level
-          </h3>
-        </div>
+          </span>
+        </legend>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {COMPRESSION_OPTIONS.map((level) => (
             <Label
               key={level.value}
               className={cn(
-                "flex flex-col gap-2 p-4 border cursor-pointer transition-all duration-200",
+                "flex flex-col gap-2 p-4 border transition-all duration-200",
+                disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
                 data.compressionLevels.includes(level.value)
                   ? "border-secondary bg-secondary/5"
                   : "border-border hover:border-secondary/50 hover:bg-muted/50"
@@ -121,6 +126,7 @@ export function ProductVariants({ data, onChange, errors }: ProductVariantsProps
                 <Checkbox
                   checked={data.compressionLevels.includes(level.value)}
                   onCheckedChange={() => toggleCompression(level.value)}
+                  disabled={disabled}
                   className={cn(
                     "border-border data-[state=checked]:bg-secondary data-[state=checked]:border-secondary data-[state=checked]:text-foreground"
                   )}
@@ -135,7 +141,7 @@ export function ProductVariants({ data, onChange, errors }: ProductVariantsProps
             </Label>
           ))}
         </div>
-      </div>
+      </fieldset>
     </div>
   );
 }

@@ -32,7 +32,7 @@ export const SORT_OPTIONS = ['featured', 'newest', 'price_asc', 'price_desc'] as
 export type SortOption = typeof SORT_OPTIONS[number]
 
 // Unified size options
-export const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL'] as const
+export const SIZE_OPTIONS = ['S', 'M', 'L', 'XL'] as const
 export type SizeOption = typeof SIZE_OPTIONS[number]
 
 // Unified compression options

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,9 @@ import { ProductBasicInfo } from "./product-basic-info";
 import { ProductPricing } from "./product-pricing";
 import { ProductInventory } from "./product-inventory";
 import { ProductVariants } from "./product-variants";
+import { ProductVariantImages } from "./product-variant-images";
 import { ProductMedia } from "./product-media";
+import { ProductMainImage } from "./product-main-image";
 import { ProductStatus } from "./product-status";
 import { ProductFormActions } from "./product-form-actions";
 import type { ProductImageEntry } from "@/types/media";
@@ -27,8 +29,11 @@ export interface ProductFormData {
   stockStatus: "in_stock" | "low_stock" | "out_of_stock";
   sizes: string[];
   compressionLevels: string[];
+  variantPrices: Record<string, string>; // per-size price overrides: { "M": "49.99", "L": "54.99" }
   status: "draft" | "active" | "archived";
-  images: ProductImageEntry[];
+  mainImage: ProductImageEntry | null;
+  galleryImages: ProductImageEntry[];
+  variantImages: Record<string, ProductImageEntry | null>; // keyed by size: "S", "M", "L", "XL"
   removedImageIds: string[];
 }
 
@@ -36,6 +41,7 @@ interface AdminProductFormShellProps {
   mode: "create" | "edit";
   productId?: string;
   initialData?: Partial<ProductFormData>;
+  variantIdMap?: Record<string, string>; // size -> first variant ID, for edit mode
   className?: string;
 }
 
@@ -49,13 +55,16 @@ const defaultFormData: ProductFormData = {
   stockStatus: "in_stock",
   sizes: ["M"],
   compressionLevels: ["medium"],
+  variantPrices: {},
   status: "draft",
-  images: [],
+  mainImage: null,
+  galleryImages: [],
+  variantImages: {},
   removedImageIds: [],
 };
 
-function mapSizes(sizes: string[]): ('XS' | 'S' | 'M' | 'L' | 'XL')[] {
-  return sizes.filter(s => ['XS', 'S', 'M', 'L', 'XL'].includes(s.toUpperCase())) as ('XS' | 'S' | 'M' | 'L' | 'XL')[]
+function mapSizes(sizes: string[]): ('S' | 'M' | 'L' | 'XL')[] {
+  return sizes.filter(s => ['S', 'M', 'L', 'XL'].includes(s.toUpperCase())) as ('S' | 'M' | 'L' | 'XL')[]
 }
 
 function mapCompression(levels: string[]): ('LIGHT' | 'MEDIUM' | 'HIGH')[] {
@@ -66,14 +75,16 @@ export function AdminProductFormShell({
   mode,
   productId,
   initialData,
+  variantIdMap,
   className,
 }: AdminProductFormShellProps) {
   const router = useRouter();
   const [showSuccess, setShowSuccess] = useState(false);
-  const [formData, setFormData] = useState<ProductFormData>({
+  const [formData, setFormData] = useState<ProductFormData>(() => ({
     ...defaultFormData,
     ...initialData,
-  });
+    variantImages: { ...defaultFormData.variantImages, ...initialData?.variantImages },
+  }));
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const createProduct = useCreateProduct()
@@ -81,6 +92,21 @@ export function AdminProductFormShell({
 
   const isEditMode = mode === "edit";
   const isSubmitting = createProduct.isPending || updateProduct.isPending
+  const disabled = isSubmitting
+
+  const isDirty = useMemo(() => {
+    const fieldsToCompare: (keyof ProductFormData)[] = [
+      'name', 'shortDescription', 'fullDescription', 'price',
+      'compareAtPrice', 'stockQuantity', 'sizes', 'compressionLevels',
+      'variantPrices', 'status', 'mainImage', 'galleryImages', 'variantImages',
+    ]
+    return fieldsToCompare.some(field => {
+      const current = JSON.stringify(formData[field])
+      const initial = JSON.stringify(initialData?.[field] ?? defaultFormData[field])
+      return current !== initial
+    })
+  }, [formData, initialData])
+
   const pageTitle = isEditMode ? "Edit Product" : "Add New Product";
   const pageSubtitle = isEditMode
     ? "Update product details, pricing, and availability"
@@ -115,14 +141,36 @@ export function AdminProductFormShell({
     }
 
     if (isEditMode && productId) {
-      const newImages = formData.images
+      const mainImageInput = formData.mainImage && !formData.mainImage.existing
+        ? {
+            url: formData.mainImage.url,
+            storagePath: formData.mainImage.storagePath,
+            imageType: 'main' as const,
+            sortOrder: 0,
+          }
+        : undefined
+
+      const newGalleryImages = formData.galleryImages
         .filter(img => !img.existing)
         .map((img, i) => ({
           url: img.url,
           storagePath: img.storagePath,
-          imageType: i === 0 ? 'main' as const : 'gallery' as const,
-          sortOrder: formData.images.indexOf(img),
+          imageType: 'gallery' as const,
+          sortOrder: i,
         }))
+
+      const variantPrices = Object.fromEntries(
+        Object.entries(formData.variantPrices || {}).map(([size, price]) => [size, parseFloat(price)])
+      )
+
+      const variantImageInputs: Record<string, { url: string; storagePath: string; existing: boolean; id?: string } | null> = {}
+      for (const [size, img] of Object.entries(formData.variantImages)) {
+        if (img === null) {
+          variantImageInputs[size] = null
+        } else if (!img.existing) {
+          variantImageInputs[size] = { url: img.url, storagePath: img.storagePath, existing: false }
+        }
+      }
 
       const result = await updateProduct.mutateAsync({
         productId,
@@ -131,14 +179,49 @@ export function AdminProductFormShell({
         description: formData.fullDescription || undefined,
         basePrice: parseFloat(formData.price),
         compareAtPrice: formData.compareAtPrice ? parseFloat(formData.compareAtPrice) : null,
+        sizes: mapSizes(formData.sizes),
+        compressionLevels: mapCompression(formData.compressionLevels),
         status: formData.status.toUpperCase() as 'DRAFT' | 'ACTIVE' | 'ARCHIVED',
-        imageUrls: newImages,
+        stockQuantity: parseInt(formData.stockQuantity) || 0,
+        mainImage: mainImageInput,
+        imageUrls: newGalleryImages,
         imageIdsToRemove: formData.removedImageIds,
+        variantImages: Object.keys(variantImageInputs).length > 0 ? variantImageInputs : undefined,
+        ...(Object.keys(variantPrices).length > 0 ? { variantPrices } : {}),
       })
       if (result) {
         setShowSuccess(true)
       }
     } else {
+      const variantPrices = Object.fromEntries(
+        Object.entries(formData.variantPrices || {}).map(([size, price]) => [size, parseFloat(price)])
+      )
+
+      const mainImageInput = formData.mainImage
+        ? {
+            url: formData.mainImage.url,
+            storagePath: formData.mainImage.storagePath,
+            imageType: 'main' as const,
+            sortOrder: 0,
+          }
+        : undefined
+
+      const galleryImageInputs = formData.galleryImages.map((img, i) => ({
+        url: img.url,
+        storagePath: img.storagePath,
+        imageType: 'gallery' as const,
+        sortOrder: i,
+      }))
+
+      const variantImageInputs = Object.entries(formData.variantImages)
+        .filter(([, img]) => img !== null)
+        .map(([, img]) => ({
+          url: img!.url,
+          storagePath: img!.storagePath,
+          imageType: 'variant' as const,
+          sortOrder: 0,
+        }))
+
       const result = await createProduct.mutateAsync({
         name: formData.name,
         shortDescription: formData.shortDescription || '',
@@ -149,12 +232,14 @@ export function AdminProductFormShell({
         compressionLevels: mapCompression(formData.compressionLevels),
         stockQuantity: parseInt(formData.stockQuantity) || 0,
         status: formData.status.toUpperCase() as 'DRAFT' | 'ACTIVE' | 'ARCHIVED',
-        imageUrls: formData.images.map((img, i) => ({
-          url: img.url,
-          storagePath: img.storagePath,
-          imageType: i === 0 ? 'main' : 'gallery' as const,
-          sortOrder: i,
-        })),
+        mainImage: mainImageInput,
+        imageUrls: galleryImageInputs,
+        variantImages: Object.fromEntries(
+          Object.entries(formData.variantImages)
+            .filter(([, img]) => img !== null)
+            .map(([size, img]) => [size, { url: img!.url, storagePath: img!.storagePath }])
+        ),
+        ...(Object.keys(variantPrices).length > 0 ? { variantPrices } : {}),
       })
       if (result) {
         setShowSuccess(true)
@@ -244,6 +329,7 @@ export function AdminProductFormShell({
                 data={formData}
                 onChange={updateFormData}
                 errors={errors}
+                disabled={disabled}
               />
             </div>
 
@@ -252,14 +338,7 @@ export function AdminProductFormShell({
                 data={formData}
                 onChange={updateFormData}
                 errors={errors}
-              />
-            </div>
-
-            <div className="p-6 sm:p-8">
-              <ProductInventory
-                data={formData}
-                onChange={updateFormData}
-                errors={errors}
+                disabled={disabled}
               />
             </div>
 
@@ -268,6 +347,35 @@ export function AdminProductFormShell({
                 data={formData}
                 onChange={updateFormData}
                 errors={errors}
+                disabled={disabled}
+              />
+            </div>
+
+            <div className="p-6 sm:p-8">
+              <ProductInventory
+                data={formData}
+                onChange={updateFormData}
+                errors={errors}
+                disabled={disabled}
+              />
+            </div>
+
+            <div className="p-6 sm:p-8">
+              <ProductMainImage
+                mainImage={formData.mainImage}
+                onChange={(image) => updateFormData("mainImage", image)}
+                productId={isEditMode ? productId : undefined}
+                disabled={disabled}
+              />
+            </div>
+
+            <div className="p-6 sm:p-8">
+              <ProductVariantImages
+                data={formData}
+                onChange={updateFormData}
+                productId={isEditMode ? productId : undefined}
+                variantIdMap={variantIdMap || {}}
+                disabled={disabled}
               />
             </div>
 
@@ -276,6 +384,7 @@ export function AdminProductFormShell({
                 data={formData}
                 onChange={updateFormData}
                 productId={isEditMode ? productId : undefined}
+                disabled={disabled}
               />
             </div>
 
@@ -283,6 +392,7 @@ export function AdminProductFormShell({
               <ProductStatus
                 data={formData}
                 onChange={updateFormData}
+                disabled={disabled}
               />
             </div>
 
@@ -291,6 +401,7 @@ export function AdminProductFormShell({
                 isSubmitting={isSubmitting}
                 isEditMode={isEditMode}
                 onCancel={handleCancel}
+                canSave={isDirty}
               />
             </div>
           </form>

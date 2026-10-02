@@ -44,7 +44,7 @@ export function AdminMobileNav({ open, onOpenChange }: AdminMobileNavProps) {
                   src="/logo.png"
                   alt="Lily Waist Line"
                   width={36}
-                  height={36}
+                  height={32}
                   className="h-9 w-auto object-contain"
                   priority
                 />

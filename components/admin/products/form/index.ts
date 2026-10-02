@@ -3,6 +3,8 @@ export { ProductBasicInfo } from "./product-basic-info";
 export { ProductPricing } from "./product-pricing";
 export { ProductInventory } from "./product-inventory";
 export { ProductVariants } from "./product-variants";
+export { ProductMainImage } from "./product-main-image";
+export { ProductVariantImages } from "./product-variant-images";
 export { ProductMedia } from "./product-media";
 export { ProductStatus } from "./product-status";
 export { ProductFormActions } from "./product-form-actions";

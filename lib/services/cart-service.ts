@@ -117,10 +117,12 @@ export class CartService {
           sortOrder: number;
         }>;
       };
+      price: { toNumber: () => number } | null;
     };
   }>): CartItemWithDetails[] {
     return cartItems.map(item => {
-      const basePrice = item.variant.product.basePrice.toNumber()
+      const variantPrice = item.variant.price?.toNumber()
+      const basePrice = variantPrice ?? item.variant.product.basePrice.toNumber()
       const compareAtPrice = item.variant.product.compareAtPrice?.toNumber() || null
       const totalPrice = basePrice * item.quantity
 

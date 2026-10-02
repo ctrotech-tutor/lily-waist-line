@@ -32,7 +32,7 @@ export function AdminSidebar({ collapsed, onToggle }: AdminSidebarProps) {
           src="/logo.png"
           alt="Lily Waist Line"
           width={36}
-          height={36}
+          height={32}
           className="h-9 w-auto shrink-0 object-contain"
           priority
         />
