@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     url: ROUTES.SHOP,
     images: [
       {
-        url: "/og-img.jpg",
+        url: "/og-img.png",
         width: 1200,
         height: 630,
         alt: "Lily Waist Line Shop",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     title: "Shop | Lily Waist Line",
     description:
       "Discover premium waist trainers designed for confidence, sculpting, and transformation.",
-    images: ["/og-img.jpg"],
+    images: ["/og-img.png"],
   },
 };
 

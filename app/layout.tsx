@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/og-img.jpg",
+        url: "/og-img.png",
         width: 1200,
         height: 630,
         alt: "Lily Waist Line",
@@ -66,7 +66,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Lily Waist Line | Premium Waist Trainers",
     description: "Premium waist trainers and shapewear for the modern woman. Sculpt your silhouette with luxury and confidence.",
-    images: ["/og-img.jpg"],
+    images: ["/og-img.png"],
   },
   robots: {
     index: true,
