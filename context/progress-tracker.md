@@ -83,11 +83,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current
 
-- Final Production Audit + Deployment Readiness (next phase - system verification, cleanup, and launch preparation)
+- Product Size & Pricing Overhaul (Implemented per-size pricing, removed XS size, made compression dynamic, admin form refactor to shadcn, contact/social updates)
 
 ## Next Up
 
-- Admin System Wiring + Role Protection + Final Integration Layer
+- Final Production Audit + Deployment Readiness (system verification, cleanup, and launch preparation)
 
 ## Completed
 
@@ -109,6 +109,16 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Admin Product Image Upload System: Complete end-to-end product image upload integration. Created `types/media.ts` with `ProductImageEntry` type (id, url, storagePath, imageType, sortOrder, existing). Extended `StorageService` with `uploadTempImage()` method for create-mode uploads (no productId needed, stores in `temp/uploads/{userId}/`). Created `server/actions/media/upload-temp-image.ts` server action for admin-only temp uploads. Fully rewrote `components/admin/products/form/product-media.tsx` replacing mock uploads with real file upload flow (hidden file input, client-side validation, per-image loading states, drag-and-drop support, upload via server action with create/edit branching, proper remove handling with storage + DB cleanup). Updated `ProductFormData.images` from `string[]` to `ProductImageEntry[]`, added `removedImageIds` tracking. Updated `admin-product-form-shell.tsx` with correct create-mode `imageUrls` mapping (proper `storagePath`), edit-mode image management (new images + removed IDs passed to update). Extended `update-product.ts` server action with transaction-safe image management (delete removed images from DB, create new image records). Updated `edit/page.tsx` to map full image metadata (id, storagePath, imageType, sortOrder, existing=true). Added `id` to image select in `get-product-by-id.ts`. All uploads use Supabase Storage `product-images` bucket — temp path for create, product-scoped path for edit images. Backward compatible with existing mock image data.
 
+- **XS Size Removal**: Removed "XS" from all files — SIZES enum, mock admin-data, shop filters, admin product form variant checkboxes, seed data, product types, address/order mock data, mapSizes in admin form
+- **Admin Redirect Fix**: Synced DB role to Supabase Auth app_metadata via `lib/auth/sync-role.ts` helper, called from signup.ts, sync-user.ts, exchange-code.ts — middleware (proxy.ts) reads role from `user.app_metadata.role`
+- **Contact Page Social Update**: Removed WhatsApp card, added custom FacebookIcon/InstagramIcon/TikTokIcon SVGs with social channel cards linking to Facebook/Instagram/TikTok — matching existing design patterns
+- **Footer Social Update**: Removed WhatsApp/MessageCircle, added FacebookIcon + TikTokIcon SVGs, updated socialLinks array to [Instagram, Facebook, TikTok]
+- **Dynamic Compression in PDP**: Replaced hardcoded compressionLevels with `availableCompressions` derived from `product.variants` — PDP now shows only compression options available for the selected product
+- **Admin Form Refactor to shadcn**: Rewrote all 4 form components (product-basic-info, product-pricing, product-inventory, product-variants) using shadcn Label+Input/InputGroup+InputGroupInput with data-invalid/aria-invalid attributes — removed all floating-label patterns
+- **Per-Size Pricing**: Added `price Decimal?` to ProductVariant schema, regenerated Prisma client, updated admin form with per-size price inputs (ProductPricing), create-product passes variantPrices to variant creation, update-product accepts and applies variantPrices, edit page loads variant price data into form, PDP shows `selectedVariant.price ?? product.basePrice`, cart-service uses variant price for unitPrice, order creation uses variant price for subtotal and order items, product-service price range calculation uses variant prices, getProductById selects and converts variant price
+- **Admin Access Control**: Moved admin role enforcement from server-action level up to admin layout (`app/(admin)/layout.tsx`) for single-point route protection. Uses `getCurrentUser()` from `lib/auth/guards.ts` to check role server-side on every admin page load — non-admin users are redirected to `/access-denied`. Rebuilt access-denied page with gold-accented design (`ShieldAlert` icon, `secondary` theme tokens, editorial typography) and moved outside the admin route group to prevent AdminShell wrapping. Added `ROUTES.ACCESS_DENIED` constant to `lib/constants/routes.ts`. Deleted old typo-named `acess-denied/` directory. Admin role check is no longer done in proxy/middleware — it's now at the layout level only.
+- **Admin Product Form Fix**: Fixed `ProductBasicInfo` (name, shortDescription, fullDescription) being imported but never rendered — added as first section in the form shell. Removed duplicate `ProductVariants` block that was rendered twice. Added `stockQuantity` support to product update flow (both form submission and server action). Added `overflow-hidden` to AdminShell outer container to prevent content bleed.
+
 ## Open Questions
 
 - Should guest checkout be supported, or require authentication?
@@ -120,8 +130,8 @@ Update this file whenever the current phase, active feature, or implementation s
 - **Decision**: Single auth system using Supabase Auth for both customers and admins
 - **Implementation**: Prisma User.id uses Supabase auth ID as primary key (not auto-generated UUID)
 - **Email Verification**: Required before accessing protected routes
-- **Role System**: CUSTOMER (default) and ADMIN roles enforced via middleware
-- **Protected Routes**: Customer routes (/cart, /checkout, /orders, /addresses, /wishlist) and admin routes (/admin/*)
+- **Role System**: CUSTOMER (default) and ADMIN roles enforced at middleware (customer routes) and admin layout (admin routes)
+- **Protected Routes**: Customer routes (/cart, /checkout, /orders, /addresses, /wishlist) and admin routes (/admin/*) — admin role check at layout level, not in proxy/middleware
 
 **Payment Provider (2026-05-11)**
 - **Decision**: Use Cash App manual payment flow for Phase One (Stripe removed)
@@ -132,6 +142,54 @@ Update this file whenever the current phase, active feature, or implementation s
   - Admin manually verifies payment before order processing
   - Order status: `pending_payment` → `paid` (after admin verification)
 
+## Completed (This Session)
+
+- **Variant-specific product images**: Created `ProductVariantImages` component per-size upload cards; server actions `create-product.ts` and `update-product.ts` handle variant image add/replace/remove by size; PDP shows variant-aware images through `PdpDesktopClient`/`ProductGallery`/`ProductMobileCompact`.
+- **Admin form UX polish**: Added `disabled` prop to all 7 form section components and `canSave` to `ProductFormActions`; dirty-change detection via `JSON.stringify` comparison against `initialData`.
+- **Admin product update — variant restructuring**: `update-product.ts` accepts `sizes`/`compressionLevels` arrays, reconciles variant combinations (delete orphaned safely, create new, preserve existing with order items by nullifying stock), re-links variant images by size.
+- **Stock quantity distribution**: Stock divided evenly across all variants on product update, remainder assigned to first variants.
+- **Cart badge**: `useCart().summary.totalItems` badge on desktop cart icon and mobile nav cart link.
+- **Quick view modal**: `ProductQuickViewDialog` component + `getQuickViewProduct` server action, wired through `product-card.tsx` Eye button.
+- **Search dialog**: `SearchDialog` component using shadcn `CommandDialog` with live product search, integrated into desktop navbar.
+- **Sticky add-to-cart bar**: `ProductStickyBar` desktop-only fixed bottom bar, synced with variant selection state in `PdpDesktopClient`.
+- **Enhanced add-to-cart toasts**: `useAddToCart` default `onSuccess` shows "View Cart" action button; all call sites (`ProductPurchasePanel`, `ProductMobileCompact`, `ProductStickyBar`) use the enhanced toast.
+- **PNG MIME validation (Phase 1.1)**: Created `lib/utils/file-validation.ts` with `isAllowedImageType()` accepting `image/png`, `image/x-png`, and `.png` extension fallback. Updated `storage-service.ts` (both check + bucket `allowedMimeTypes`), `upload-product-image.ts`, `upload-temp-image.ts` + 3 client-side components (`product-variant-images.tsx`, `product-main-image.tsx`, `product-media.tsx`) with `accept` including `image/x-png`.
+- **serverActions bodySizeLimit (Phase 1.2)**: `next.config.ts` set `experimental.serverActions.bodySizeLimit: "6mb"` to prevent 4–5MB image upload drops.
+- **Admin settings double-mutate fix (Phase 1.3)**: Consolidated `update-payment-config.ts` to accept both Cash App + PayPal configs in one call; `admin-payment-settings.tsx` now calls `updateMutation.mutate()` once with both configs; added `$` prefix toast error. Hook `use-admin-settings.ts` updated to match new API.
+- **Fixed `require()` in `storage-service.ts`**: Replaced `require('@/lib/utils/file-validation')` with proper top-level ESM import to prevent runtime crash.
+- **Search dialog import fix**: Created `server/actions/products/index.ts` barrel to resolve file/directory collision with `products.ts`; `SearchDialog` dynamic import now resolves correctly.
+- **Phase 2 — Payment Proof Improvements**:
+  - Added `transactionRef String?` to `PaymentProof` Prisma model → regenerated client
+  - Fixed Zod validator: `.cuid()` → `.uuid()` (order IDs are UUIDs, not CUIDs)
+  - Updated API route (`app/api/uploads/payment-proof/route.ts`): accepts `transactionRef` from formData, stores in DB; uses `isAllowedImageType` for MIME validation; added `image/x-png` to `extMap`; wrapped duplicate-check + create in Prisma `$transaction` to prevent race condition
+  - Updated `PaymentProofDropzone`: sends `transactionRef` in formData; new `paymentHandle`/`paymentEmail` props; shows "Send Payment To" info panel when config data is available
+  - Updated `PaymentProofUploadClient`: fetches `usePaymentConfig()`, passes `paymentHandle`/`paymentEmail` to dropzone based on order payment method
+- **Phase 3 — Email Template Overhaul**:
+  - Added `appUrl: string` to ALL 14 email template data interfaces (welcome, order-confirmation, payment-received, payment-rejected, payment-instructions, login-alert, shipping-update, verification-email, password-reset, password-reset-success, order-processing, order-shipped, order-delivered, order-cancelled)
+  - Replaced all 14 hardcoded `https://lilywaistline.com` occurrences with `${appUrl}` — works on preview/staging/production
+  - Fixed `payment-instructions.ts` upload URL: now uses `orderId` (UUID) in path instead of `orderNumber`; new `orderId` field in data interface
+  - Fixed `payment-rejected.ts` `{{orderUrl}}` literal placeholder: replaced with dynamic `${orderUrl}` param; new `orderId` + `orderUrl` in data interface; CTA button now links to working upload page
+  - Updated `email-triggers.ts`: all 14 trigger functions call `getAppUrl()` and pass it to templates; `sendPaymentInstructionsEmail` accepts new `orderId` param; `sendPaymentRejectedEmail` accepts new `orderId` param
+  - Updated `send-payment-instructions.ts`: passes `orderId` to email trigger
+  - Updated `verify-payment.ts`: passes `orderId` to `sendPaymentRejectedEmail`
+  - Updated `signup.ts`: direct `getVerificationEmailTemplate` call now passes `appUrl` via proper async import pattern
+  - Fixed test scripts (`test-email-templates.ts`, `test-email-system.ts`): all template calls include `appUrl`
+- **Payment Config Consistency**: Verified all payment-related UI components use `usePaymentConfig()` to fetch Cash App handle / PayPal email from admin DB config — `PaymentNextStep` (confirmation page), `PaymentProofDropzone` (upload page), `send-payment-instructions.ts` (email trigger) all read from DB, not hardcoded. If admin updates the panel, all surfaces reflect the change immediately.
+- **Phase 4 — Order Number Consistency**:
+  - Made `orderNumber` required (`String` → was `String?`) in `prisma/schema.prisma` → regenerated client
+  - Updated `create-order.ts`: pre-generates UUID via `crypto.randomUUID()`, computes `orderNumber` from it, stores both in the initial create (no separate update step)
+  - Updated 7 server actions to read stored `orderNumber` from DB instead of recomputing: `get-order-details.ts`, `get-user-orders.ts`, `get-dashboard-metrics.ts`, `send-payment-instructions.ts`, `verify-payment.ts`, `update-fulfillment-status.ts`, `add-tracking-number.ts`
+  - Added `orderNumber` to `RecentOrder` type in `AdminService` + DB query select in `admin-service.ts`
+  - Removed unused `formatOrderNumber` imports from all affected server actions
+  - Fixed inconsistent fallback values: `order-details-card.tsx` (`"LWL-2024-XXXX"` → `"LWL-????-????"`), `order-confirmation-client.tsx` (`"LWL-XXXX-XXXX"` → `"LWL-????-????"`)
+  - All order numbers now consistent: generated once at creation, stored in DB column, read back directly everywhere
+
 ## Session Notes
 
-- Add context needed to resume work in the next session.
+- TypeScript compiles with zero errors.
+- All 4 phases complete.
+- Storage RLS SQL in `scripts/supabase-rls-fix.sql` — run in Supabase dashboard.
+- `PaymentProof.transactionRef` and `Order.orderNumber` required — need `prisma db push` or migration on the actual DB.
+- Pre-commit verification: `npm run lint:error`, `npm run typecheck`, and `npm run build` all pass. Fixed 2 lint errors (render-time quantity reset in `product-purchase-panel.tsx`, `prefer-const` in `update-product.ts`).
+- Email templates finalized at `lib/email/templates` (temporary `lib/email/temp` name reverted) — all imports updated.
+- Removed `prisma/seed.ts` and its dead references (`db:seed` script, `prisma.config.ts` seed config) plus the unused `/api/webhooks` route.
