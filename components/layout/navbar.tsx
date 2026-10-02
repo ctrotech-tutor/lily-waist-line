@@ -12,18 +12,11 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-
-// import {
-//   Drawer,
-//   DrawerContent,
-//   DrawerTrigger,
-//   DrawerClose,
-// } from "@/components/ui/drawer";
-
-// import { Separator } from "@/components/ui/separator";
 import { OptimizedImage } from "../shared/optimized-image";
 import { MobileNav } from "./mobile-nav";
+import { SearchDialog } from "./search-dialog";
 import { ROUTES } from "@/lib/constants/routes";
+import { useCart } from "@/hooks/use-cart";
 
 const navLinks = [
   { href: ROUTES.HOME, label: "Home" },
@@ -55,6 +48,9 @@ function ThemeToggle({ className }: { className?: string }) {
 
 /* ---------------- NAVBAR ---------------- */
 export function Navbar() {
+  const { data: cart } = useCart();
+  const totalItems = cart?.summary?.totalItems ?? 0;
+
   return (
     <header className="sticky top-0 z-50 w-full bg-transparent backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-360 items-center justify-between px-5 md:px-12 lg:px-20">
@@ -71,7 +67,7 @@ export function Navbar() {
               src="/logo.png"
               alt="Lily Waist Line"
               width={36}
-              height={36}
+              height={32}
               priority
               className="h-9 w-auto object-contain"
             />
@@ -98,6 +94,8 @@ export function Navbar() {
         {/* RIGHT */}
         <div className="flex items-center gap-2">
 
+          <SearchDialog />
+
           <ThemeToggle className="hidden lg:flex" />
 
           <Link
@@ -110,10 +108,15 @@ export function Navbar() {
 
           <Link
             href={ROUTES.CART}
-            className="hidden lg:flex h-10 w-10 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+            className="relative hidden lg:flex h-10 w-10 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
             aria-label="Shopping Cart"
           >
             <ShoppingBag className="h-4 w-4" />
+            {totalItems > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                {totalItems > 99 ? "99+" : totalItems}
+              </span>
+            )}
           </Link>
 
           <Link

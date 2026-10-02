@@ -1,6 +1,6 @@
 import { HeroSection } from "@/components/home/hero-section";
 import { WhyChooseSection } from "@/components/home/why-choose-section";
-import { NewsletterSection } from "@/components/home/newsletter-section";
+// import { NewsletterSection } from "@/components/home/newsletter-section";
 import { FeaturedProductsSection } from "@/components/home/featured-products-section";
 
 export default function Home() {
@@ -9,7 +9,7 @@ export default function Home() {
       <HeroSection />
       <FeaturedProductsSection />
       <WhyChooseSection />
-      <NewsletterSection />
+      {/* <NewsletterSection /> */}
     </div>
   );
 }

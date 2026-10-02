@@ -26,13 +26,14 @@ import type { ProductWithDetails } from "@/lib/services";
 
 interface ProductPurchasePanelProps {
   product: ProductWithDetails;
+  onVariantChange?: (size: string, compression: string) => void;
 }
 
-const compressionLevels = [
-  { value: "LIGHT", label: "Light Sculpt" },
-  { value: "MEDIUM", label: "Medium Sculpt" },
-  { value: "HIGH", label: "Maximum Sculpt" },
-];
+const compressionLabels: Record<string, string> = {
+  LIGHT: "Light Sculpt",
+  MEDIUM: "Medium Sculpt",
+  HIGH: "Maximum Sculpt",
+}
 
 const stockConfig = {
   "in-stock": {
@@ -51,6 +52,7 @@ const stockConfig = {
 
 export function ProductPurchasePanel({
   product,
+  onVariantChange,
 }: ProductPurchasePanelProps) {
   const router = useRouter();
   
@@ -61,16 +63,35 @@ export function ProductPurchasePanel({
   
   const [selectedSize, setSelectedSize] = useState<string>(defaultSize);
   const [compressionLevel, setCompressionLevel] = useState<string>(defaultCompression);
+
+  const handleSizeChange = (size: string) => {
+    setSelectedSize(size);
+    onVariantChange?.(size, compressionLevel);
+  };
+
+  const handleCompressionChange = (level: string) => {
+    setCompressionLevel(level);
+    onVariantChange?.(selectedSize, level);
+  };
   const [quantity, setQuantity] = useState<number>(1);
 
-
-  // Get unique sizes from variants
+  // Get unique sizes and compression levels from variants
   const availableSizes = Array.from(new Set(product.variants.map(v => v.size)));
+  const availableCompressions = Array.from(new Set(product.variants.map(v => v.compressionLevel)));
   
   // Find selected variant based on size and compression level
   const selectedVariant = product.variants.find(
     v => v.size === selectedSize && v.compressionLevel === compressionLevel
   );
+
+  // Reset quantity when variant changes
+  const [previousVariantId, setPreviousVariantId] = useState<string | undefined>(
+    selectedVariant?.id
+  );
+  if (previousVariantId !== selectedVariant?.id) {
+    setPreviousVariantId(selectedVariant?.id);
+    setQuantity(1);
+  }
 
   // Use shared hooks for wishlist and cart status
   const { isWishlisted } = useProductWishlistStatus(product.id);
@@ -101,9 +122,6 @@ export function ProductPurchasePanel({
     addToCartMutation.mutate(
       { variantId: selectedVariant.id, quantity },
       {
-        onSuccess: () => {
-          toast.success("Added to cart!")
-        },
         onError: (error) => {
           toast.error(error.message || "Failed to add to cart")
         }
@@ -137,12 +155,6 @@ export function ProductPurchasePanel({
     addToCartMutation.mutate(
       { variantId: selectedVariant.id, quantity },
       {
-        onSuccess: () => {
-          toast.success("Added to cart! Redirecting to checkout...")
-          setTimeout(() => {
-            router.push(ROUTES.CHECKOUT);
-          }, 1000);
-        },
         onError: (error) => {
           toast.error(error.message || "Failed to add to cart")
         }
@@ -153,7 +165,7 @@ export function ProductPurchasePanel({
   const isOutOfStock = !selectedVariant || selectedVariant.stockQuantity === 0;
   const isLowStock = selectedVariant && selectedVariant.stockQuantity > 0 && selectedVariant.stockQuantity <= 5;
   const stockStatus = isOutOfStock ? "out-of-stock" : isLowStock ? "low-stock" : "in-stock";
-  const price = product.basePrice;
+  const price = selectedVariant?.price ?? product.basePrice;
   const originalPrice = product.compareAtPrice;
 
   return (
@@ -216,7 +228,7 @@ export function ProductPurchasePanel({
                 key={size}
                 variant={selectedSize === size ? "default" : "outline"}
                 size="sm"
-                onClick={() => !isOutOfStock && setSelectedSize(size)}
+                onClick={() => !isOutOfStock && handleSizeChange(size)}
                 disabled={isOutOfStock}
                 className={cn(
                   "h-10 min-w-12 flex-1 sm:flex-none font-sans text-sm font-semibold",
@@ -238,22 +250,22 @@ export function ProductPurchasePanel({
             Compression Level
           </label>
           <div className="flex gap-2">
-            {compressionLevels.map((level) => (
+            {availableCompressions.map((level) => (
               <Button
-                key={level.value}
-                variant={compressionLevel === level.value ? "default" : "outline"}
+                key={level}
+                variant={compressionLevel === level ? "default" : "outline"}
                 size="sm"
-                onClick={() => !isOutOfStock && setCompressionLevel(level.value)}
+                onClick={() => !isOutOfStock && handleCompressionChange(level)}
                 disabled={isOutOfStock}
                 className={cn(
                   "flex-1 h-10 font-sans text-xs font-semibold uppercase tracking-wide rounded-md",
-                  compressionLevel === level.value
+                  compressionLevel === level
                     ? "bg-secondary text-secondary-foreground hover:bg-secondary/90"
                     : "border-border text-foreground hover:border-primary hover:text-primary",
                   "disabled:opacity-50 disabled:cursor-not-allowed"
                 )}
               >
-                {level.label}
+                {compressionLabels[level] || level}
               </Button>
             ))}
           </div>
@@ -282,7 +294,7 @@ export function ProductPurchasePanel({
               variant="outline"
               size="icon"
               onClick={handleQuantityIncrease}
-              disabled={quantity >= (selectedVariant?.stockQuantity || 10) || isOutOfStock}
+              disabled={!selectedVariant || quantity >= selectedVariant.stockQuantity || isOutOfStock}
               aria-label="Increase quantity"
               className="h-10 w-10"
             >
@@ -382,7 +394,6 @@ export function ProductPurchasePanel({
 }
 
 function DescriptionPreview({ description }: { description: string }) {
-  const [expanded, setExpanded] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
   const [needsTruncation, setNeedsTruncation] = useState(false);
 
@@ -390,16 +401,20 @@ function DescriptionPreview({ description }: { description: string }) {
     if (textRef.current) {
       setNeedsTruncation(textRef.current.scrollHeight > textRef.current.clientHeight);
     }
-  }, []);
+  }, [description]);
+
+  const handleReadMore = () => {
+    const el = document.getElementById('product-details')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
 
   return (
     <div className="mt-6">
       <div
         ref={textRef}
-        className={cn(
-          "font-sans text-sm text-muted-foreground leading-relaxed",
-          !expanded && "line-clamp-3"
-        )}
+        className="font-sans text-sm text-muted-foreground leading-relaxed line-clamp-3 overflow-hidden"
       >
         {description}
       </div>
@@ -407,10 +422,10 @@ function DescriptionPreview({ description }: { description: string }) {
         <Button
           variant="link"
           size="sm"
-          onClick={() => setExpanded(!expanded)}
+          onClick={handleReadMore}
           className="mt-2 font-sans text-xs font-semibold uppercase tracking-wider text-secondary hover:text-accent p-0 h-auto"
         >
-          {expanded ? "Show Less" : "Read More"}
+          Read More
         </Button>
       )}
     </div>

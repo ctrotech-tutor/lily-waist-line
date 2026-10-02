@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { ProductPurchasePanel } from "@/components/product/product-purchase-panel";
+import { ProductMobileCompact } from "@/components/product/product-mobile-compact";
 import { ProductDescription } from "@/components/product/product-description";
 import { ProductRelatedProducts } from "@/components/product/product-related-products";
-import { ProductGallery } from "@/components/product/product-gallery";
+import { PdpDesktopClient } from "@/components/product/pdp-desktop-client";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { JsonLd } from "@/components/seo/json-ld";
 import { productSchema } from "@/components/seo/structured-data";
@@ -111,31 +111,24 @@ export default async function ProductPage({
           name: product.name,
           description: product.description || product.shortDescription || "",
           url: `${baseUrl}/product/${product.id}/${slug}`,
-          imageUrl: product.images?.[0]?.url || `${baseUrl}/og-img.jpg`,
+          imageUrl: product.images?.[0]?.url || `${baseUrl}/og-img.png`,
           price: product.basePrice,
           sku: product.variants?.[0]?.sku,
           availability: product.inStock ? "InStock" : "OutOfStock",
         })}
       />
 
+      {/* Mobile: compact image + variant selectors side by side */}
+      <section className="mx-auto max-w-7xl px-4 py-6 lg:hidden">
+        <ProductMobileCompact
+          product={product}
+          images={product.images}
+        />
+      </section>
+
       {/* Gallery + Purchase Panel */}
-      <section className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-
-          <div className="lg:col-span-7">
-            <ProductGallery
-              images={product.images}
-              productName={product.name}
-            />
-          </div>
-
-          <div className="lg:col-span-5">
-            <div className="rounded-3xl border border-border bg-card p-5 md:p-8 lg:sticky lg:top-24">
-              <ProductPurchasePanel product={product} />
-            </div>
-          </div>
-
-        </div>
+      <section className="mx-auto max-w-7xl px-4 pb-6 md:px-6 lg:px-8">
+        <PdpDesktopClient product={product} />
       </section>
 
       {/* Full Description */}

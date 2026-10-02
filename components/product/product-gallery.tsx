@@ -29,12 +29,17 @@ interface ProductGalleryProps {
   }[];
 
   productName: string;
+  variantImage?: string;
 }
 
 export function ProductGallery({
   images,
   productName,
+  variantImage,
 }: ProductGalleryProps) {
+  const displayImages = variantImage
+    ? [{ url: variantImage }, ...images]
+    : images;
   const [selectedIndex, setSelectedIndex] =
     React.useState(0);
   const [fullscreenOpen, setFullscreenOpen] = React.useState(false);
@@ -102,7 +107,7 @@ export function ProductGallery({
             )}
           >
             <div className="flex">
-              {images.map(
+              {displayImages.map(
                 (image, index) => (
                   <div
                     key={index}
@@ -135,39 +140,41 @@ export function ProductGallery({
 
           {/* ARROWS */}
 
-          {images.length > 1 && (
+          {displayImages.length > 1 && (
             <>
-              <Button
-                variant="ghost"
-                size="icon"
+              <button
+                type="button"
                 onClick={scrollPrev}
                 className={cn(
-                  "absolute left-4 top-1/2 z-10",
+                  "absolute left-3 top-1/2 z-10",
                   "-translate-y-1/2",
-                  "hidden md:flex",
+                  "flex items-center justify-center",
                   "h-11 w-11",
                   "bg-background/80 text-foreground",
-                  "hover:bg-primary hover:text-primary-foreground"
+                  "hover:bg-primary hover:text-primary-foreground",
+                  "transition-colors duration-200"
                 )}
+                aria-label="Previous image"
               >
                 <ChevronLeft className="h-5 w-5" />
-              </Button>
+              </button>
 
-              <Button
-                variant="ghost"
-                size="icon"
+              <button
+                type="button"
                 onClick={scrollNext}
                 className={cn(
-                  "absolute right-4 top-1/2 z-10",
+                  "absolute right-3 top-1/2 z-10",
                   "-translate-y-1/2",
-                  "hidden md:flex",
+                  "flex items-center justify-center",
                   "h-11 w-11",
                   "bg-background/80 text-foreground",
-                  "hover:bg-primary hover:text-primary-foreground"
+                  "hover:bg-primary hover:text-primary-foreground",
+                  "transition-colors duration-200"
                 )}
+                aria-label="Next image"
               >
                 <ChevronRight className="h-5 w-5" />
-              </Button>
+              </button>
             </>
           )}
 
@@ -195,7 +202,7 @@ export function ProductGallery({
             "scrollbar-hide"
           )}
         >
-          {images.map(
+          {displayImages.map(
             (image, index) => (
               <button
                 key={index}
@@ -241,7 +248,7 @@ export function ProductGallery({
           </DialogHeader>
           <div className="relative w-full h-[85vh]">
             <OptimizedImage
-              src={images[selectedIndex]?.url}
+              src={displayImages[selectedIndex]?.url}
               alt={`${productName} ${selectedIndex + 1}`}
               fill
               className="object-contain"

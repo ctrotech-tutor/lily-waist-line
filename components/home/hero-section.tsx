@@ -18,10 +18,11 @@ export function HeroSection() {
       {/* Background Image */}
       <div
         className={cn(
-          "absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+          "absolute inset-0 z-0 bg-cover bg-no-repeat"
         )}
         style={{
-          backgroundImage: "url('/img-1.png')",
+          backgroundImage: "url('/Lily-Waistline940-960px.png')",
+          backgroundPosition: "50% 60%",
         }}
       >
         {/* Overlay */}

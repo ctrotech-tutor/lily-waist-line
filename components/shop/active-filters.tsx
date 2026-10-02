@@ -56,12 +56,10 @@ export const ActiveFilters = memo(function ActiveFilters({
   // Size filter
   if (searchParams?.size) {
     const sizeLabels: Record<string, string> = {
-      xs: "XS",
       s: "S",
       m: "M",
       l: "L",
       xl: "XL",
-      xxl: "XXL",
     };
     activeFilters.push({
       key: "size",

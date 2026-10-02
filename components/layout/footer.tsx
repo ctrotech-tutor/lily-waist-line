@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   ArrowUpRight,
   ChevronRight,
-  MessageCircle,
 } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
@@ -14,6 +13,48 @@ import { cn } from "@/lib/utils";
 
 import { OptimizedImage } from "@/components/shared/optimized-image";
 import { ROUTES } from "@/lib/constants/routes";
+
+function FacebookIcon({
+  className,
+}: {
+  className?: string;
+}) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+    </svg>
+  );
+}
+
+function TikTokIcon({
+  className,
+}: {
+  className?: string;
+}) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+    </svg>
+  );
+}
 
 function InstagramIcon({
   className,
@@ -62,8 +103,13 @@ const socialLinks = [
   },
   {
     href: "#",
-    label: "WhatsApp",
-    Icon: MessageCircle,
+    label: "Facebook",
+    Icon: FacebookIcon,
+  },
+  {
+    href: "#",
+    label: "TikTok",
+    Icon: TikTokIcon,
   },
 ];
 

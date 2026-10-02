@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Heart, Eye, ShoppingBag, Loader2 } from "lucide-react";
-import { ROUTES } from "@/lib/constants/routes";
+import { ROUTES, ROUTE_BUILDERS } from "@/lib/constants/routes";
 import { toast } from "sonner"
 
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ import {
 } from "@/hooks/use-product-interactions";
 
 import { ProductImage } from "../shared/optimized-image";
+import { ProductQuickViewDialog } from "./product-quick-view";
 
 import type { StockState } from "@/types/common";
 
@@ -55,6 +56,24 @@ export function ProductCard({
   const router = useRouter();
 
   const [isHovered, setIsHovered] = useState(false);
+  const [quickViewOpen, setQuickViewOpen] = useState(false);
+  const [quickViewProduct, setQuickViewProduct] = useState<{
+    id: string;
+    name: string;
+    slug: string;
+    shortDescription: string;
+    basePrice: number;
+    compareAtPrice: number | null;
+    images: { url: string; altText: string | null }[];
+    variants: {
+      id: string;
+      size: string;
+      compressionLevel: string;
+      price: number | null;
+      stockQuantity: number;
+      images: { url: string }[];
+    }[];
+  } | null>(null);
 
 
   const { isWishlisted: wishlisted } =
@@ -101,10 +120,20 @@ export function ProductCard({
     router.push(`/product/${id}/${slug}`);
   };
 
-  const handleQuickView = (
+  const handleQuickView = async (
     e: React.MouseEvent
   ) => {
     e.stopPropagation();
+    try {
+      const { getQuickViewProduct } = await import("@/server/actions/products/get-quick-view-product");
+      const result = await getQuickViewProduct(id);
+      if (result.success) {
+        setQuickViewProduct(result.data);
+        setQuickViewOpen(true);
+      }
+    } catch {
+      toast.error("Failed to load product details");
+    }
   };
 
   const handleAddToWishlist = (
@@ -152,10 +181,6 @@ export function ProductCard({
         quantity: 1,
       },
       {
-        onSuccess: () => {
-          toast.success("Added to cart!")
-        },
-
         onError: (error) => {
           toast.error(error.message || "Failed to add to cart")
           router.push(ROUTES.LOGIN)
@@ -324,6 +349,18 @@ export function ProductCard({
             </span>
           </Button>
         </div>
+
+        {/* Quick View Dialog */}
+        {quickViewProduct && (
+          <ProductQuickViewDialog
+            product={quickViewProduct}
+            open={quickViewOpen}
+            onOpenChange={(open) => {
+              setQuickViewOpen(open);
+              if (!open) setQuickViewProduct(null);
+            }}
+          />
+        )}
 
         {/* Out Of Stock */}
         {stockState ===

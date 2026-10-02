@@ -27,6 +27,7 @@ import { Separator } from "@/components/ui/separator";
 
 import { OptimizedImage } from "../shared/optimized-image";
 import { ROUTES } from "@/lib/constants/routes";
+import { useCart } from "@/hooks/use-cart";
 
 const navLinks = [
   { href: ROUTES.HOME, label: "Home" },
@@ -74,7 +75,7 @@ export function MobileNav({ className }: MobileNavProps) {
               src="/logo.png"
               alt="Lily Waist Line"
               width={40}
-              height={40}
+              height={36}
               priority
               className="h-10 w-auto object-contain"
             />
@@ -126,7 +127,7 @@ export function MobileNav({ className }: MobileNavProps) {
           <DrawerClose asChild>
             <Link
               href={ROUTES.CART}
-              className="flex items-center gap-4 px-6 py-4 font-sans text-sm font-medium uppercase tracking-wide transition-colors hover:bg-muted hover:text-primary"
+              className="relative flex items-center gap-4 px-6 py-4 font-sans text-sm font-medium uppercase tracking-wide transition-colors hover:bg-muted hover:text-primary"
             >
               <ShoppingBag className="h-5 w-5" />
               Cart

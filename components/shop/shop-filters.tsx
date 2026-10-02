@@ -22,12 +22,10 @@ const filterGroups: FilterGroup[] = [
     id: "size",
     title: "Size",
     options: [
-      { value: "xs", label: "XS" },
       { value: "s", label: "S" },
       { value: "m", label: "M" },
       { value: "l", label: "L" },
       { value: "xl", label: "XL" },
-      { value: "xxl", label: "XXL" },
     ],
   },
   {

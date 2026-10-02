@@ -20,7 +20,12 @@ export function useAddToCart() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.base() })
-      toast.success('Added to cart')
+      toast.success('Added to cart', {
+        action: {
+          label: 'View Cart',
+          onClick: () => window.location.href = '/cart',
+        },
+      })
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Failed to add to cart')
