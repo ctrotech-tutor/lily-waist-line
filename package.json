@@ -13,8 +13,8 @@
     "db:gen:sql": "prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script > init.sql",
     "db:push": "prisma db push",
     "db:pull": "prisma db pull",
-    "db:migrate": "prisma migrate dev",
-    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate": "node tools/check-prisma-migration-history.mjs && prisma migrate dev",
+    "db:migrate:deploy": "node tools/check-prisma-migration-history.mjs && prisma migrate deploy",
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
     "email:verify": "tsx lib/services/email/verify-email-config.ts",
@@ -24,7 +24,8 @@
     "test:email": "tsx --test tests/email/email-delivery.test.ts",
     "test:account": "tsx --test tests/account/profile-policy.test.ts tests/account/account-deletion-policy.test.ts",
     "test:orders": "tsx --test tests/orders/order-snapshots.test.ts",
-    "test": "npm run test:inventory && npm run test:payment && npm run test:products && npm run test:email && npm run test:account && npm run test:orders"
+    "test:database": "node --test tests/database/prisma-migration-guard.test.mjs",
+    "test": "npm run test:inventory && npm run test:payment && npm run test:products && npm run test:email && npm run test:account && npm run test:orders && npm run test:database"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
