@@ -19,7 +19,8 @@
     "db:studio": "prisma studio",
     "test:inventory": "tsx --test tests/inventory/stock-allocation.test.ts tests/inventory/reservation-policy.test.ts",
     "test:payment": "tsx --test tests/payment/payment-policy.test.ts tests/payment/payment-template.test.ts",
-    "test": "npm run test:inventory && npm run test:payment"
+    "test:products": "tsx --test tests/products/product-pricing.test.ts",
+    "test": "npm run test:inventory && npm run test:payment && npm run test:products"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

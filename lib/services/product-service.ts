@@ -1,7 +1,8 @@
 import prisma from '@/lib/prisma'
 import type { ProductModel, ProductVariantModel, ProductImageModel } from '@/lib/generated/prisma/models'
-import type { Prisma } from '@/lib/generated/prisma/client'
+import { Prisma } from '@/lib/generated/prisma/client'
 import type { ProductQueryOptions } from '@/types/product'
+import { getAvailableProductPriceRange, buildProductPriceSortQuery } from './product-pricing'
 
 // Service-specific result type (with computed fields)
 export interface ProductResult {
@@ -126,32 +127,47 @@ export class ProductService {
         break
     }
 
-    const [products, total] = await Promise.all([
-      prisma.product.findMany({
-        where,
+    const include = {
+      variants: {
         include: {
-          variants: {
-            include: {
-              images: {
-                where: { imageType: 'variant' },
-                orderBy: { sortOrder: 'asc' }
-              }
-            }
-          },
           images: {
-            where: {
-              OR: [
-                { imageType: 'main' },
-                { imageType: 'gallery' }
-              ]
-            },
+            where: { imageType: 'variant' },
             orderBy: { sortOrder: 'asc' }
           }
+        }
+      },
+      images: {
+        where: {
+          OR: [
+            { imageType: 'main' },
+            { imageType: 'gallery' }
+          ]
         },
-        orderBy,
-        take: limit,
-        skip: offset
-      }),
+        orderBy: { sortOrder: 'asc' }
+      }
+    } satisfies Prisma.ProductInclude
+
+    const priceSortDirection = sort === SortOptionEnum.PRICE_ASC
+      ? 'asc'
+      : sort === SortOptionEnum.PRICE_DESC
+        ? 'desc'
+        : null
+
+    const [products, total] = await Promise.all([
+      priceSortDirection
+        ? this.getProductsByEffectivePrice({
+            where,
+            include,
+            options: { search, size, compression, availability, limit, offset },
+            direction: priceSortDirection,
+          })
+        : prisma.product.findMany({
+            where,
+            include,
+            orderBy,
+            take: limit,
+            skip: offset
+          }),
       prisma.product.count({ where })
     ])
 
@@ -162,6 +178,44 @@ export class ProductService {
       total,
       hasMore: offset + limit < total
     }
+  }
+
+  /**
+   * Price-sort and paginate in PostgreSQL using the card's effective minimum price.
+   * Prisma relation ordering only supports relation counts, not a minimum over
+   * variant override/base prices, so the ordered IDs are hydrated through Prisma.
+   */
+  private static async getProductsByEffectivePrice<TInclude extends Prisma.ProductInclude>({
+    where,
+    include,
+    options,
+    direction,
+  }: {
+    where: Prisma.ProductWhereInput
+    include: TInclude
+    options: Pick<ProductQueryOptions, 'search' | 'size' | 'compression' | 'availability'> & {
+      limit: number
+      offset: number
+    }
+    direction: 'asc' | 'desc'
+  }): Promise<Prisma.ProductGetPayload<{ include: TInclude }>[]> {
+    const orderedProducts = await prisma.$queryRaw<Array<{ id: string }>>(
+      buildProductPriceSortQuery(options, direction),
+    )
+    if (orderedProducts.length === 0) return []
+
+    const products = await prisma.product.findMany({
+      where: {
+        AND: [where, { id: { in: orderedProducts.map(({ id }) => id) } }],
+      },
+      include,
+    })
+    const productsById = new Map(products.map((product) => [product.id, product]))
+
+    return orderedProducts.flatMap(({ id }) => {
+      const product = productsById.get(id)
+      return product ? [product] : []
+    })
   }
 
   /**
@@ -239,13 +293,8 @@ export class ProductService {
     const basePriceNumber = product.basePrice.toNumber()
     const compareAtPriceNumber = product.compareAtPrice ? product.compareAtPrice.toNumber() : null
 
-    // Calculate price range (respect per-variant prices)
-    const prices = variants
-      .map(v => v.stockQuantity > 0 ? (v.price ?? basePriceNumber) : null)
-      .filter(Boolean)
-    const availablePrices = prices as number[]
-    const minPrice = availablePrices.length > 0 ? Math.min(...availablePrices) : basePriceNumber
-    const maxPrice = availablePrices.length > 0 ? Math.max(...availablePrices) : basePriceNumber
+    // Calculate the same effective range used by the product-card price sort.
+    const { minPrice, maxPrice } = getAvailableProductPriceRange(basePriceNumber, variants)
 
     // Calculate total stock
     const totalStock = variants.reduce((sum: number, variant: ProductVariantWithStock) => sum + variant.stockQuantity, 0)
