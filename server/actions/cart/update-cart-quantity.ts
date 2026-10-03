@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import type { PrismaClient } from '@/lib/generated/prisma/client'
+import { releaseExpiredInventoryReservations } from '@/lib/services/inventory-reservations'
 
 const updateCartQuantitySchema = z.object({
   cartItemId: z.string().min(1, 'Cart item ID is required'),
@@ -26,6 +27,8 @@ export async function updateCartQuantity(formData: { cartItemId: string; quantit
         error: 'You must be logged in to update cart items'
       }
     }
+
+    await releaseExpiredInventoryReservations()
 
     // Use transaction to ensure stock consistency
     const result = await prisma.$transaction(async (tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$use' | '$extends'>) => {

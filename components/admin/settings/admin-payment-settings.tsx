@@ -20,15 +20,23 @@ function AdminPaymentSettingsForm({ configs }: { configs: PaymentConfig[] }) {
   const cashAppDefaults = configs.find((c) => c.paymentMethod === 'CASH_APP');
   const paypalDefaults = configs.find((c) => c.paymentMethod === 'PAYPAL');
 
-  const [cashAppEnabled, setCashAppEnabled] = useState(cashAppDefaults?.enabled ?? true);
+  const [cashAppEnabled, setCashAppEnabled] = useState(cashAppDefaults?.enabled ?? false);
   const [cashAppHandle, setCashAppHandle] = useState(cashAppDefaults?.cashAppHandle ?? "");
-  const [paypalEnabled, setPaypalEnabled] = useState(paypalDefaults?.enabled ?? true);
+  const [paypalEnabled, setPaypalEnabled] = useState(paypalDefaults?.enabled ?? false);
   const [paypalEmail, setPaypalEmail] = useState(paypalDefaults?.paypalEmail ?? "");
   const [paypalHandle, setPaypalHandle] = useState(paypalDefaults?.paypalHandle ?? "");
 
   const handleSave = () => {
-    if (cashAppEnabled && cashAppHandle && !cashAppHandle.startsWith("$")) {
+    if (cashAppEnabled && !cashAppHandle.trim()) {
+      toast.error("Enter a Cash App handle before enabling Cash App.");
+      return;
+    }
+    if (cashAppEnabled && !cashAppHandle.trim().startsWith("$")) {
       toast.error("Cash App handle must start with $");
+      return;
+    }
+    if (paypalEnabled && !paypalEmail.trim() && !paypalHandle.trim()) {
+      toast.error("Enter a PayPal email or PayPal.me handle before enabling PayPal.");
       return;
     }
 

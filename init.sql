@@ -130,14 +130,21 @@ CREATE TABLE "Address" (
 CREATE TABLE "Order" (
     "id" TEXT NOT NULL,
     "orderNumber" TEXT NOT NULL,
+    "idempotencyKey" TEXT,
     "userId" TEXT NOT NULL,
     "addressId" TEXT NOT NULL,
     "subtotal" DECIMAL(65,30) NOT NULL,
     "shippingFee" DECIMAL(65,30) NOT NULL DEFAULT 0,
     "total" DECIMAL(65,30) NOT NULL,
     "paymentMethod" "PaymentMethod" NOT NULL,
+    "paymentRecipient" TEXT,
+    "paymentUrl" TEXT,
     "paymentStatus" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
     "fulfillmentStatus" "FulfillmentStatus" NOT NULL DEFAULT 'PENDING',
+    "inventoryReservedAt" TIMESTAMP(3),
+    "reservationExpiresAt" TIMESTAMP(3),
+    "inventoryCommittedAt" TIMESTAMP(3),
+    "inventoryReleasedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -163,6 +170,7 @@ CREATE TABLE "PaymentProof" (
     "imageUrl" TEXT NOT NULL,
     "transactionRef" TEXT,
     "status" "PaymentProofStatus" NOT NULL DEFAULT 'PENDING',
+    "rejectionReason" TEXT,
     "uploadedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "PaymentProof_pkey" PRIMARY KEY ("id")
@@ -297,6 +305,9 @@ CREATE INDEX "Address_userId_isDefault_createdAt_idx" ON "Address"("userId", "is
 CREATE UNIQUE INDEX "Order_orderNumber_key" ON "Order"("orderNumber");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Order_idempotencyKey_key" ON "Order"("idempotencyKey");
+
+-- CreateIndex
 CREATE INDEX "Order_userId_idx" ON "Order"("userId");
 
 -- CreateIndex
@@ -316,6 +327,9 @@ CREATE INDEX "Order_createdAt_paymentStatus_fulfillmentStatus_idx" ON "Order"("c
 
 -- CreateIndex
 CREATE INDEX "Order_createdAt_paymentStatus_fulfillmentStatus_userId_idx" ON "Order"("createdAt" DESC, "paymentStatus", "fulfillmentStatus", "userId");
+
+-- CreateIndex
+CREATE INDEX "Order_reservationExpiresAt_paymentStatus_fulfillmentStatus_idx" ON "Order"("reservationExpiresAt", "paymentStatus", "fulfillmentStatus");
 
 -- CreateIndex
 CREATE INDEX "OrderItem_orderId_idx" ON "OrderItem"("orderId");

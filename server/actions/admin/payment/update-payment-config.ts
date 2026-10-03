@@ -8,10 +8,10 @@ import type { PaymentConfig } from '@/types/payment'
 
 const updatePaymentConfigsSchema = z.object({
   cashAppEnabled: z.boolean(),
-  cashAppHandle: z.string().optional(),
+  cashAppHandle: z.string().trim().regex(/^\$[A-Za-z0-9_]{1,30}$/).or(z.literal('')).optional(),
   paypalEnabled: z.boolean(),
-  paypalEmail: z.string().optional(),
-  paypalHandle: z.string().optional(),
+  paypalEmail: z.string().trim().email().or(z.literal('')).optional(),
+  paypalHandle: z.string().trim().regex(/^[A-Za-z0-9._-]{1,50}$/).or(z.literal('')).optional(),
 })
 
 export interface UpdatePaymentConfigsInput {
@@ -50,45 +50,43 @@ export async function updatePaymentConfigurations(input: UpdatePaymentConfigsInp
       return { success: false, error: 'Cash App handle is required when Cash App is enabled' }
     }
 
-    if (validatedData.cashAppHandle && !validatedData.cashAppHandle.startsWith('$')) {
-      return { success: false, error: 'Cash App handle must start with $' }
-    }
-
     if (validatedData.paypalEnabled && !validatedData.paypalEmail && !validatedData.paypalHandle) {
       return { success: false, error: 'PayPal email or handle is required when PayPal is enabled' }
     }
 
-    const cashAppConfig = await prisma.paymentConfiguration.upsert({
-      where: { paymentMethod: 'CASH_APP' },
-      update: {
-        enabled: validatedData.cashAppEnabled,
-        cashAppHandle: validatedData.cashAppEnabled ? validatedData.cashAppHandle : null,
-        paypalEmail: null,
-        updatedAt: new Date(),
-      },
-      create: {
-        paymentMethod: 'CASH_APP',
-        enabled: validatedData.cashAppEnabled,
-        cashAppHandle: validatedData.cashAppEnabled ? validatedData.cashAppHandle : null,
-      },
-    })
-
-    const paypalConfig = await prisma.paymentConfiguration.upsert({
-      where: { paymentMethod: 'PAYPAL' },
-      update: {
-        enabled: validatedData.paypalEnabled,
-        paypalEmail: validatedData.paypalEnabled ? validatedData.paypalEmail : null,
-        paypalHandle: validatedData.paypalEnabled ? validatedData.paypalHandle : null,
-        cashAppHandle: null,
-        updatedAt: new Date(),
-      },
-      create: {
-        paymentMethod: 'PAYPAL',
-        enabled: validatedData.paypalEnabled,
-        paypalEmail: validatedData.paypalEnabled ? validatedData.paypalEmail : null,
-        paypalHandle: validatedData.paypalEnabled ? validatedData.paypalHandle : null,
-      },
-    })
+    const [cashAppConfig, paypalConfig] = await prisma.$transaction([
+      prisma.paymentConfiguration.upsert({
+        where: { paymentMethod: 'CASH_APP' },
+        update: {
+          enabled: validatedData.cashAppEnabled,
+          cashAppHandle: validatedData.cashAppEnabled ? validatedData.cashAppHandle : null,
+          paypalEmail: null,
+          paypalHandle: null,
+          updatedAt: new Date(),
+        },
+        create: {
+          paymentMethod: 'CASH_APP',
+          enabled: validatedData.cashAppEnabled,
+          cashAppHandle: validatedData.cashAppEnabled ? validatedData.cashAppHandle : null,
+        },
+      }),
+      prisma.paymentConfiguration.upsert({
+        where: { paymentMethod: 'PAYPAL' },
+        update: {
+          enabled: validatedData.paypalEnabled,
+          paypalEmail: validatedData.paypalEnabled ? validatedData.paypalEmail : null,
+          paypalHandle: validatedData.paypalEnabled ? validatedData.paypalHandle : null,
+          cashAppHandle: null,
+          updatedAt: new Date(),
+        },
+        create: {
+          paymentMethod: 'PAYPAL',
+          enabled: validatedData.paypalEnabled,
+          paypalEmail: validatedData.paypalEnabled ? validatedData.paypalEmail : null,
+          paypalHandle: validatedData.paypalEnabled ? validatedData.paypalHandle : null,
+        },
+      }),
+    ])
 
     revalidatePath('/admin/settings')
 

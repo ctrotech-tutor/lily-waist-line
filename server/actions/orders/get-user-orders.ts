@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
+import { releaseExpiredInventoryReservations } from '@/lib/services/inventory-reservations'
 import { z } from 'zod'
 
 const paginationSchema = z.object({
@@ -27,6 +28,8 @@ export async function getUserOrders(params?: {
         error: 'You must be logged in to view your orders'
       }
     }
+
+    await releaseExpiredInventoryReservations()
 
     // Calculate pagination
     const skip = (page - 1) * limit

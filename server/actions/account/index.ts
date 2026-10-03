@@ -2,6 +2,7 @@
 
 import { getCurrentUser } from '@/lib/auth/guards'
 import prisma from '@/lib/prisma'
+import { releaseOrderInventory } from '@/lib/services/inventory-reservations'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -227,26 +228,49 @@ export async function deleteAccount(formData: FormData) {
       return { success: false, error: 'Password is incorrect' }
     }
 
-    // Check ownership - ensure user has no active orders
-    const activeOrders = await prisma.order.findMany({
-      where: {
-        userId: user.id,
-        fulfillmentStatus: { not: 'DELIVERED' },
-        paymentStatus: 'PAID',
+    const deletion = await prisma.$transaction(async (tx) => {
+      // Checkout takes a shared lock on this row; the exclusive lock prevents a
+      // new order from being created between this check and the cascade delete.
+      const lockedUser = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "User" WHERE "id" = ${user.id} FOR UPDATE
+      `
+      if (lockedUser.length === 0) return { deleted: false, reason: 'NOT_FOUND' as const }
+
+      const activeOrders = await tx.order.count({
+        where: {
+          userId: user.id,
+          fulfillmentStatus: { not: 'DELIVERED' },
+          paymentStatus: 'PAID',
+        },
+      })
+      if (activeOrders > 0) return { deleted: false, reason: 'ACTIVE_ORDERS' as const }
+
+      const outstandingReservations = await tx.order.findMany({
+        where: {
+          userId: user.id,
+          inventoryReservedAt: { not: null },
+          inventoryCommittedAt: null,
+          inventoryReleasedAt: null,
+        },
+        select: { id: true },
+      })
+      for (const order of outstandingReservations) {
+        await releaseOrderInventory(tx, order.id)
       }
+
+      await tx.user.delete({ where: { id: user.id } })
+      return { deleted: true as const }
     })
 
-    if (activeOrders.length > 0) {
-      return {
-        success: false,
-        error: 'Cannot delete account with active orders. Please complete or cancel your orders first.'
+    if (!deletion.deleted) {
+      if (deletion.reason === 'ACTIVE_ORDERS') {
+        return {
+          success: false,
+          error: 'Cannot delete account with active orders. Please complete or cancel your orders first.',
+        }
       }
+      return { success: false, error: 'Account not found' }
     }
-
-    // Delete user data from Prisma (cascade deletes will handle related records)
-    await prisma.user.delete({
-      where: { id: user.id }
-    })
 
     // Delete user from Supabase Auth
     const { error: deleteError } = await supabase.auth.admin.deleteUser(

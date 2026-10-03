@@ -3,37 +3,31 @@
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import { z } from 'zod'
-import type { PaymentStatus, PaymentProofStatus } from '@/lib/generated/prisma/enums'
-import { sendPaymentReceivedEmail, sendPaymentRejectedEmail, sendOrderCancelledEmail } from '@/lib/services/email/email-triggers'
+import type { PaymentProofStatus, PaymentStatus } from '@/lib/generated/prisma/enums'
+import { verifyPaymentSchema, type VerifyPaymentInput } from '@/lib/validators/admin/verify-payment'
+import { expireReservationForOrder, releaseOrderInventory } from '@/lib/services/inventory-reservations'
+import { sendPaymentReceivedEmail, sendPaymentRejectedEmail } from '@/lib/services/email/email-triggers'
 
-const verifyPaymentSchema = z.object({
-  orderId: z.string().min(1, 'Order ID is required'),
-  action: z.enum(['APPROVE', 'REJECT']),
-  reason: z.string().optional(),
-})
-
-export async function verifyPayment(input: z.infer<typeof verifyPaymentSchema>) {
+export async function verifyPayment(input: VerifyPaymentInput) {
   try {
-    const { orderId, action } = verifyPaymentSchema.parse(input)
+    const { orderId, action, reason } = verifyPaymentSchema.parse(input)
 
     const supabase = await createClient()
-
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new Error('Unauthorized')
-    }
+    if (authError || !user) throw new Error('Unauthorized')
 
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { role: true }
+      select: { role: true },
     })
-
     if (!dbUser || dbUser.role !== 'ADMIN') {
       throw new Error('Access denied. Admin access required.')
     }
 
-    // Use transaction for atomicity
+    // Handle an elapsed proof window before loading the review state. The helper
+    // is idempotent and cannot release an order whose proof already extended it.
+    await expireReservationForOrder(orderId)
+
     const result = await prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id: orderId },
@@ -45,66 +39,116 @@ export async function verifyPayment(input: z.infer<typeof verifyPaymentSchema>) 
           total: true,
           userId: true,
           fulfillmentStatus: true,
+          inventoryReservedAt: true,
+          inventoryCommittedAt: true,
+          inventoryReleasedAt: true,
           paymentProofs: {
             where: { status: 'PENDING' },
-            select: { id: true, status: true }
+            select: { id: true },
           },
           orderItems: {
             select: {
               quantity: true,
+              variantId: true,
               unitPrice: true,
-              product: { select: { name: true } }
-            }
-          }
-        }
+              product: { select: { name: true } },
+            },
+          },
+        },
       })
 
-      if (!order) {
-        throw new Error('Order not found')
-      }
-
+      if (!order) throw new Error('Order not found')
       if (order.paymentStatus !== 'PENDING') {
         throw new Error(`Cannot verify payment for order with status: ${order.paymentStatus}`)
       }
-
-      if (!order.paymentProofs || order.paymentProofs.length === 0) {
+      if (order.fulfillmentStatus === 'CANCELLED' || order.inventoryReleasedAt) {
+        throw new Error('This order is cancelled and its inventory has been released')
+      }
+      if (order.inventoryCommittedAt) {
+        throw new Error('Inventory for this order has already been committed')
+      }
+      if (order.paymentProofs.length === 0) {
         throw new Error('No payment proof found for this order')
       }
 
+      const now = new Date()
       const newPaymentStatus: PaymentStatus = action === 'APPROVE' ? 'PAID' : 'REJECTED'
       const newProofStatus: PaymentProofStatus = action === 'APPROVE' ? 'VERIFIED' : 'REJECTED'
 
-      await tx.order.update({
-        where: { id: orderId },
-        data: {
-          paymentStatus: newPaymentStatus,
-          ...(action === 'REJECT' ? { fulfillmentStatus: 'CANCELLED' } : {}),
+      if (action === 'APPROVE' && !order.inventoryReservedAt) {
+        // Orders created before reservation support need a fresh stock check at
+        // approval. Never mark an old order paid if its items can no longer be reserved.
+        const items = [...order.orderItems].sort((a, b) => a.variantId.localeCompare(b.variantId))
+        for (const item of items) {
+          const reservation = await tx.productVariant.updateMany({
+            where: {
+              id: item.variantId,
+              stockQuantity: { gte: item.quantity },
+            },
+            data: { stockQuantity: { decrement: item.quantity } },
+          })
+          if (reservation.count !== 1) {
+            throw new Error(`Cannot approve this legacy order: insufficient stock for ${item.product.name}`)
+          }
         }
+      }
+
+      const update = await tx.order.updateMany({
+        where: {
+          id: orderId,
+          paymentStatus: 'PENDING',
+          fulfillmentStatus: 'PENDING',
+          inventoryReleasedAt: null,
+          inventoryCommittedAt: null,
+        },
+        data: action === 'APPROVE'
+          ? {
+              paymentStatus: 'PAID',
+              inventoryReservedAt: order.inventoryReservedAt ?? now,
+              inventoryCommittedAt: now,
+              reservationExpiresAt: null,
+            }
+          : {
+              paymentStatus: 'REJECTED',
+              fulfillmentStatus: 'CANCELLED',
+              reservationExpiresAt: null,
+            },
       })
 
-      await tx.paymentProof.updateMany({
+      if (update.count !== 1) {
+        throw new Error('The order changed while it was being reviewed. Refresh and try again.')
+      }
+
+      if (action === 'REJECT' && order.inventoryReservedAt) {
+        await releaseOrderInventory(tx, orderId, now)
+      }
+
+      const proofTransition = await tx.paymentProof.updateMany({
         where: { orderId, status: 'PENDING' },
-        data: { status: newProofStatus }
+        data: {
+          status: newProofStatus,
+          rejectionReason: action === 'REJECT' ? reason! : null,
+        },
       })
+      if (proofTransition.count === 0) {
+        throw new Error('The pending payment proof was removed. Refresh and try again.')
+      }
 
       return { order, newPaymentStatus, newProofStatus }
     })
 
-    // Send email asynchronously (non-blocking, outside transaction)
     if (action === 'APPROVE') {
       try {
         const userData = await prisma.user.findUnique({
           where: { id: result.order.userId },
-          select: { fullName: true, email: true }
+          select: { fullName: true, email: true },
         })
 
         if (userData) {
           const firstName = userData.fullName.split(' ')[0] || 'there'
-          const orderNumber = result.order.orderNumber
           const paymentMethod = result.order.paymentMethod === 'CASH_APP' ? 'Cash App' : 'PayPal'
           const amount = `$${Number(result.order.total).toFixed(2)}`
-
-          const emailItems = result.order.orderItems.map(item => ({
+          const emailItems = result.order.orderItems.map((item) => ({
             name: item.product?.name || 'Product',
             quantity: item.quantity,
           }))
@@ -112,10 +156,10 @@ export async function verifyPayment(input: z.infer<typeof verifyPaymentSchema>) 
           sendPaymentReceivedEmail(
             firstName,
             userData.email,
-            orderNumber,
+            result.order.orderNumber,
             paymentMethod,
             amount,
-            emailItems
+            emailItems,
           )
         }
       } catch (error) {
@@ -127,16 +171,14 @@ export async function verifyPayment(input: z.infer<typeof verifyPaymentSchema>) 
       try {
         const userData = await prisma.user.findUnique({
           where: { id: result.order.userId },
-          select: { fullName: true, email: true }
+          select: { fullName: true, email: true },
         })
 
         if (userData) {
           const firstName = userData.fullName.split(' ')[0] || 'there'
-          const orderNumber = result.order.orderNumber
           const paymentMethod = result.order.paymentMethod === 'CASH_APP' ? 'Cash App' : 'PayPal'
           const amount = `$${Number(result.order.total).toFixed(2)}`
-
-          const emailItems = result.order.orderItems.map(item => ({
+          const emailItems = result.order.orderItems.map((item) => ({
             name: item.product?.name || 'Product',
             quantity: item.quantity,
           }))
@@ -144,14 +186,13 @@ export async function verifyPayment(input: z.infer<typeof verifyPaymentSchema>) 
           sendPaymentRejectedEmail(
             firstName,
             userData.email,
-            orderNumber,
+            result.order.orderNumber,
             orderId,
             paymentMethod,
             amount,
             emailItems,
-            input.reason,
+            reason,
           )
-          sendOrderCancelledEmail(firstName, userData.email, orderNumber, 'Payment was not approved')
         }
       } catch (error) {
         console.error('Failed to send payment rejected email:', error)
@@ -165,12 +206,11 @@ export async function verifyPayment(input: z.infer<typeof verifyPaymentSchema>) 
 
     return {
       success: true,
-      message: `Payment ${action.toLowerCase()}d successfully`,
+      message: action === 'APPROVE' ? 'Payment approved successfully' : 'Payment rejected successfully',
       orderId,
       newPaymentStatus: result.newPaymentStatus,
       newProofStatus: result.newProofStatus,
     }
-
   } catch (error) {
     console.error('Error in verifyPayment:', error)
     throw error

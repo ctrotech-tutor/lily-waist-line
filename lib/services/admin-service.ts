@@ -15,6 +15,8 @@ export type AdminOrderSerializable = {
   shippingFee: number
   total: number
   paymentMethod: string
+  paymentRecipient?: string | null
+  paymentUrl?: string | null
   paymentStatus: string
   fulfillmentStatus: string
   createdAt: Date
@@ -55,6 +57,7 @@ export type AdminOrderSerializable = {
     id: string
     imageUrl: string
     status: string
+    rejectionReason?: string | null
     uploadedAt: Date
   }>
   shipments: Array<{
@@ -449,6 +452,8 @@ export class AdminService {
         shippingFee: true,
         total: true,
         paymentMethod: true,
+        paymentRecipient: true,
+        paymentUrl: true,
         paymentStatus: true,
         fulfillmentStatus: true,
         createdAt: true,
@@ -504,6 +509,7 @@ export class AdminService {
             id: true,
             imageUrl: true,
             status: true,
+            rejectionReason: true,
             uploadedAt: true
           },
           orderBy: { uploadedAt: 'desc' },

@@ -2,7 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Globe, Check } from "lucide-react";
+import { DollarSign, Globe, Check, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UIPaymentMethod } from "@/types/checkout";
 
@@ -35,6 +35,7 @@ const paymentOptions: PaymentOption[] = [
 
 interface PaymentMethodSelectorProps {
   selectedMethod: PaymentMethod | null;
+  availableMethods: PaymentMethod[];
   onSelect: (method: PaymentMethod) => void;
   className?: string;
   disabled?: boolean;
@@ -42,13 +43,32 @@ interface PaymentMethodSelectorProps {
 
 export function PaymentMethodSelector({
   selectedMethod,
+  availableMethods,
   onSelect,
   className,
   disabled = false,
 }: PaymentMethodSelectorProps) {
+  const options = paymentOptions.filter((option) => availableMethods.includes(option.id));
+
+  if (options.length === 0) {
+    return (
+      <Card className={cn("border border-destructive/30 bg-destructive/5 p-5 rounded-xl", className)}>
+        <div className="flex items-start gap-3">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+          <div>
+            <h3 className="font-sans text-sm font-semibold text-foreground">No payment method available</h3>
+            <p className="mt-1 font-sans text-sm text-muted-foreground">
+              We cannot currently accept a configured payment method for this shipping address. Please contact support before placing an order.
+            </p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <div className={cn("space-y-4", className)}>
-      {paymentOptions.map((option) => {
+      {options.map((option) => {
         const isSelected = selectedMethod === option.id;
 
         return (

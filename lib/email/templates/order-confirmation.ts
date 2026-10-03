@@ -152,8 +152,7 @@ export const getOrderConfirmationTemplate = (data: OrderConfirmationData) => {
             <div class="order-number">Order Number: ${orderNumber}</div>
             
             <p>
-              Your order has been received and is now being processed. We'll send you another email 
-              when your order ships.
+              Your order has been received. We are holding the items while you complete payment and our team reviews your proof.
             </p>
             
             <div class="section">
@@ -202,9 +201,9 @@ export const getOrderConfirmationTemplate = (data: OrderConfirmationData) => {
             <div class="section">
               <div class="section-title">What's Next?</div>
               <p>
-                • We'll review your order and send a payment confirmation email<br>
-                • Once payment is verified, your order will be processed for shipping<br>
-                • You'll receive a shipping confirmation email with tracking details
+                • Send payment and upload your proof within 24 hours of placing this order; otherwise the order will be cancelled and stock released<br>
+                • If your proof is submitted on time, we keep the items reserved while our team reviews it<br>
+                • Once payment is verified, your order will be processed for shipping and you will receive tracking details
               </p>
             </div>
             
@@ -227,7 +226,7 @@ Order Confirmation - Lily Waist Line
 
 Dear ${firstName},
 
-Thank you for your order! Your order has been received and is now being processed.
+Thank you for your order! We are holding your items while you complete payment and our team reviews your proof.
 
 Order Number: ${orderNumber}
 
@@ -252,9 +251,9 @@ ${shippingAddress.country}
 ` : ''}
 
 What's Next?
-• We'll review your order and send a payment confirmation email
-• Once payment is verified, your order will be processed for shipping
-• You'll receive a shipping confirmation email with tracking details
+• Send payment and upload your proof within 24 hours of placing this order; otherwise the order will be cancelled and stock released
+• If your proof is submitted on time, we keep the items reserved while our team reviews it
+• Once payment is verified, your order will be processed for shipping and you will receive tracking details
 
 This email was sent to ${email}. If you have any questions about your order, please contact our support team.
 

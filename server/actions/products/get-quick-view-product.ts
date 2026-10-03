@@ -1,9 +1,12 @@
 "use server";
 
 import prisma from "@/lib/prisma";
+import { releaseExpiredInventoryReservations } from "@/lib/services/inventory-reservations";
 import { tryAction } from "@/lib/security/error-handling";
 
 export const getQuickViewProduct = tryAction(async (id: string) => {
+  await releaseExpiredInventoryReservations()
+
   const product = await prisma.product.findUnique({
     where: { id },
     select: {

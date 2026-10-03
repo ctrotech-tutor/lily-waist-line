@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { AdminService } from '@/lib/services/admin-service'
+import { expireReservationForOrder } from '@/lib/services/inventory-reservations'
 import { z } from 'zod'
 import { tryAction } from '@/lib/security/error-handling'
 
@@ -29,6 +30,7 @@ export const getOrderById = tryAction(async (input: z.infer<typeof getOrderByIdS
     throw new Error('Access denied. Admin access required.')
   }
 
+  await expireReservationForOrder(orderId)
   const order = await AdminService.getOrderById(orderId)
 
   if (!order) {

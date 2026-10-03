@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAdminOrder, useVerifyPayment, useUpdateFulfillmentStatus, useAddTrackingNumber } from "@/hooks/admin/use-admin-orders";
-import { useAdminPaymentConfig } from "@/hooks/admin/use-admin-settings";
 import { AdminOrderHeader, AdminPaymentReview, AdminOrderItems, AdminCustomerInfo, AdminFulfillmentPanel, AdminOrderAlerts, AdminOrderDetailSkeleton } from "@/components/admin/order";
 import type { AdminOrderDetail, AdminOrderDetailItem } from "@/components/admin/order/data";
 import type { AdminOrderSerializable } from "@/lib/services";
@@ -26,6 +25,8 @@ function toAdminOrderDetail(raw: AdminOrderSerializable): AdminOrderDetail {
     customerEmail: raw.user.email,
     paymentStatus: raw.paymentStatus,
     paymentMethod: raw.paymentMethod,
+    paymentRecipient: raw.paymentRecipient ?? null,
+    paymentUrl: raw.paymentUrl ?? null,
     fulfillmentStatus: raw.fulfillmentStatus,
     items: raw.orderItems.map((item): AdminOrderDetailItem => ({
       id: item.id ?? '',
@@ -53,6 +54,7 @@ function toAdminOrderDetail(raw: AdminOrderSerializable): AdminOrderDetail {
       id: paymentProof.id,
       imageUrl: paymentProof.imageUrl,
       status: paymentProof.status,
+      rejectionReason: paymentProof.rejectionReason ?? null,
       uploadedAt: typeof paymentProof.uploadedAt === 'string'
         ? paymentProof.uploadedAt
         : paymentProof.uploadedAt?.toISOString?.() || '',
@@ -70,14 +72,10 @@ export default function AdminOrderDetailsPage() {
   const orderId = params.orderId as string;
 
   const { data: rawOrder, isLoading, error } = useAdminOrder(orderId);
-  const { data: paymentConfigs } = useAdminPaymentConfig();
   const [pendingAction, setPendingAction] = useState<'approve' | 'reject' | null>(null);
   const verifyPayment = useVerifyPayment();
   const updateStatus = useUpdateFulfillmentStatus();
   const addTracking = useAddTrackingNumber();
-
-  const cashAppHandle = paymentConfigs?.find(c => c.paymentMethod === 'CASH_APP')?.cashAppHandle;
-  const paypalEmail = paymentConfigs?.find(c => c.paymentMethod === 'PAYPAL')?.paypalEmail;
 
   if (isLoading) {
     return (
@@ -128,15 +126,13 @@ export default function AdminOrderDetailsPage() {
         <div className="space-y-6 lg:col-span-2">
           <AdminPaymentReview
             order={order}
-            cashAppHandle={cashAppHandle}
-            paypalEmail={paypalEmail}
             onVerify={(id) => {
               setPendingAction('approve');
               verifyPayment.mutate({ orderId: id, action: 'APPROVE' }, { onSettled: () => setPendingAction(null) });
             }}
-            onReject={(id) => {
+            onReject={(id, reason) => {
               setPendingAction('reject');
-              verifyPayment.mutate({ orderId: id, action: 'REJECT' }, { onSettled: () => setPendingAction(null) });
+              verifyPayment.mutate({ orderId: id, action: 'REJECT', reason }, { onSettled: () => setPendingAction(null) });
             }}
             isVerifying={verifyPayment.isPending && pendingAction === 'approve'}
             isRejecting={verifyPayment.isPending && pendingAction === 'reject'}

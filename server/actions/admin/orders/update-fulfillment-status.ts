@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import type { FulfillmentStatus } from '@/lib/generated/prisma/enums'
+import { releaseOrderInventory } from '@/lib/services/inventory-reservations'
 import {
   sendOrderProcessingEmail,
   sendOrderShippedEmail,
@@ -54,6 +55,9 @@ export async function updateFulfillmentStatus(input: z.infer<typeof updateFulfil
           userId: true,
           paymentStatus: true,
           fulfillmentStatus: true,
+          inventoryReservedAt: true,
+          inventoryCommittedAt: true,
+          inventoryReleasedAt: true,
         }
       })
 
@@ -75,10 +79,36 @@ export async function updateFulfillmentStatus(input: z.infer<typeof updateFulfil
         )
       }
 
-      await tx.order.update({
-        where: { id: orderId },
-        data: { fulfillmentStatus: newStatus }
+      const statusChange = await tx.order.updateMany({
+        where: {
+          id: orderId,
+          fulfillmentStatus: currentStatus,
+        },
+        data: { fulfillmentStatus: newStatus },
       })
+      if (statusChange.count !== 1) {
+        throw new Error('The order changed while it was being updated. Refresh and try again.')
+      }
+
+      if (
+        newStatus === 'CANCELLED'
+        && order.paymentStatus !== 'PAID'
+        && order.inventoryReservedAt
+        && !order.inventoryCommittedAt
+        && !order.inventoryReleasedAt
+      ) {
+        await releaseOrderInventory(tx, orderId, new Date())
+      }
+
+      if (newStatus === 'CANCELLED') {
+        await tx.paymentProof.updateMany({
+          where: { orderId, status: 'PENDING' },
+          data: {
+            status: 'REJECTED',
+            rejectionReason: 'The order was cancelled before payment-proof review.',
+          },
+        })
+      }
 
       if (newStatus === 'SHIPPED') {
         const existingShipment = await tx.shipment.findFirst({ where: { orderId } })

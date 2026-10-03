@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { distributeTotalStock } from '@/lib/services/stock-allocation'
 import { z } from 'zod'
 
 const createProductSchema = z.object({
@@ -86,6 +87,7 @@ export async function createProduct(input: CreateProductInput) {
       }
 
       const sizeToVariantIds: Record<string, string[]> = {}
+      const stockByVariant = distributeTotalStock(validated.stockQuantity, variantCombinations.length)
 
     const result = await prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
@@ -102,6 +104,7 @@ export async function createProduct(input: CreateProductInput) {
 
       for (let i = 0; i < variantCombinations.length; i++) {
         const v = variantCombinations[i]
+        const stockQuantity = stockByVariant[i]
         const sku = `${slug.toUpperCase()}-${v.size}-${v.compressionLevel}`
         const variantPrice = validated.variantPrices?.[v.size]
         const created = await tx.productVariant.create({
@@ -111,7 +114,7 @@ export async function createProduct(input: CreateProductInput) {
             compressionLevel: v.compressionLevel,
             sku,
             price: variantPrice ?? undefined,
-            stockQuantity: validated.stockQuantity,
+            stockQuantity,
           }
         })
         if (!sizeToVariantIds[v.size]) sizeToVariantIds[v.size] = []
@@ -165,6 +168,8 @@ export async function createProduct(input: CreateProductInput) {
     })
 
     revalidatePath('/admin/products')
+    revalidatePath('/shop')
+    revalidatePath('/')
 
     return {
       success: true as const,

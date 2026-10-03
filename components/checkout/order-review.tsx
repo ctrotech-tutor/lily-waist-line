@@ -281,9 +281,9 @@ export function OrderReview({
 
       {/* 4. Trust & Assurance Section */}
       <Alert className="border-secondary/30 bg-secondary/5 rounded-lg">
-        <Shield className="w-5 h-5 text-secondary shrink-0" />
+        <Clock className="w-5 h-5 text-secondary shrink-0" />
         <AlertDescription className="font-sans text-sm text-foreground ml-2">
-          Your order is protected and will be processed securely after confirmation.
+          We reserve these items for 24 hours. Submit payment proof within that time; otherwise the order is cancelled and the stock is released. If you submit proof on time, the reservation stays active while we review it.
         </AlertDescription>
       </Alert>
 

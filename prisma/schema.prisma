@@ -103,7 +103,7 @@ model ProductVariant {
   compressionLevel String
   color            String?
   sku              String   @unique
-  price            Decimal?   // Per-variant price override; falls back to product basePrice
+  price            Decimal? // Per-variant price override; falls back to product basePrice
   stockQuantity    Int      @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -207,18 +207,25 @@ model Address {
 }
 
 model Order {
-  id                String            @id @default(uuid())
-  orderNumber       String            @unique
-  userId            String
-  addressId         String
-  subtotal          Decimal
-  shippingFee       Decimal           @default(0)
-  total             Decimal
-  paymentMethod     PaymentMethod
-  paymentStatus     PaymentStatus     @default(PENDING)
-  fulfillmentStatus FulfillmentStatus @default(PENDING)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                   String            @id @default(uuid())
+  orderNumber          String            @unique
+  idempotencyKey       String?           @unique(map: "Order_idempotencyKey_key")
+  userId               String
+  addressId            String
+  subtotal             Decimal
+  shippingFee          Decimal           @default(0)
+  total                Decimal
+  paymentMethod        PaymentMethod
+  paymentRecipient     String?
+  paymentUrl           String?
+  paymentStatus        PaymentStatus     @default(PENDING)
+  fulfillmentStatus    FulfillmentStatus @default(PENDING)
+  inventoryReservedAt  DateTime?
+  reservationExpiresAt DateTime?
+  inventoryCommittedAt DateTime?
+  inventoryReleasedAt  DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 
   // Relations
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -234,6 +241,7 @@ model Order {
   @@index([fulfillmentStatus, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc), paymentStatus, fulfillmentStatus])
   @@index([createdAt(sort: Desc), paymentStatus, fulfillmentStatus, userId])
+  @@index([reservationExpiresAt, paymentStatus, fulfillmentStatus], map: "Order_reservationExpiresAt_paymentStatus_fulfillmentStatus_idx")
 }
 
 model OrderItem {
@@ -261,6 +269,7 @@ model PaymentProof {
   imageUrl        String
   transactionRef  String?
   status          PaymentProofStatus @default(PENDING)
+  rejectionReason String?
   uploadedAt      DateTime           @default(now())
 
   // Relations
@@ -290,9 +299,9 @@ model PaymentConfiguration {
   id            String        @id @default(uuid()) // Keep UUID for payment configs
   paymentMethod PaymentMethod @unique
   enabled       Boolean       @default(true)
-  cashAppHandle String?       // For CASH_APP ($cashtag)
-  paypalEmail   String?       // For PAYPAL (legacy email)
-  paypalHandle  String?       // For PAYPAL (PayPal.me username)
+  cashAppHandle String? // For CASH_APP ($cashtag)
+  paypalEmail   String? // For PAYPAL (legacy email)
+  paypalHandle  String? // For PAYPAL (PayPal.me username)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 

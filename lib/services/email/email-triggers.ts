@@ -134,8 +134,6 @@ export const sendPaymentRejectedEmail = async (
     quantity: number
   }>,
   reason?: string,
-  paymentLink?: string,
-  paymentLabel?: string,
 ) => {
   try {
     const appUrl = getAppUrl()
@@ -149,8 +147,6 @@ export const sendPaymentRejectedEmail = async (
       amount,
       items,
       reason,
-      paymentLink,
-      paymentLabel,
     })
     
     await sendEmailAsync({
@@ -348,7 +344,7 @@ export const sendPaymentInstructionsEmail = async (
   orderNumber: string,
   orderId: string,
   paymentMethod: string,
-  paymentLink: string,
+  paymentLink: string | null,
   paymentLabel: string,
   amount: string,
   items: Array<{

@@ -73,7 +73,7 @@ export function ProductInventory({ data, onChange, disabled }: ProductInventoryP
           </div>
           <div className="flex-1">
             <Label htmlFor="stockQuantity" className="font-sans text-xs font-semibold uppercase tracking-widest text-foreground mb-2 block">
-              Stock Quantity
+              Total Available Units
             </Label>
             <Input
               id="stockQuantity"
@@ -84,6 +84,9 @@ export function ProductInventory({ data, onChange, disabled }: ProductInventoryP
               disabled={disabled}
               className="border-border focus-visible:border-secondary focus-visible:ring-0"
             />
+            <p className="text-xs text-muted-foreground mt-2">
+              Total available units across the product’s size and compression variants. A changed total is distributed evenly.
+            </p>
           </div>
         </div>
 

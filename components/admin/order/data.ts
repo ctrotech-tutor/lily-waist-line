@@ -21,6 +21,7 @@ export interface AdminOrderPaymentProof {
   id: string
   imageUrl: string
   status: string
+  rejectionReason?: string | null
   uploadedAt: string
 }
 
@@ -31,6 +32,8 @@ export interface AdminOrderDetail {
   customerEmail: string
   paymentStatus: string
   paymentMethod: string
+  paymentRecipient?: string | null
+  paymentUrl?: string | null
   fulfillmentStatus: string
   items: AdminOrderDetailItem[]
   shippingAddress: AdminOrderShippingAddress

@@ -98,6 +98,14 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
+              {order.latestPaymentProof?.rejectionReason && (
+                <div role="note" className="border border-destructive/30 bg-destructive/5 p-4 text-sm text-foreground">
+                  <strong>Payment review note:</strong> {order.latestPaymentProof.rejectionReason}
+                  <p className="mt-1 text-muted-foreground">
+                    This order is closed. If you have already paid, contact support before placing another order.
+                  </p>
+                </div>
+              )}
               <OrderStatusOverview
                 paymentStatus={order.paymentStatus}
                 fulfillmentStatus={order.fulfillmentStatus}
@@ -115,6 +123,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                   orderId={order.id}
                   paymentStatus={order.paymentStatus}
                   fulfillmentStatus={order.fulfillmentStatus}
+                  hasPendingPaymentProof={order.hasPendingPaymentProof}
                 />
               </div>
             </div>

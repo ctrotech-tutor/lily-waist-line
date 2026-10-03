@@ -12,6 +12,7 @@ export interface OrderActionsProps {
   orderId: string;
   paymentStatus: PaymentStatus;
   fulfillmentStatus: FulfillmentStatus;
+  hasPendingPaymentProof?: boolean;
   className?: string;
 }
 
@@ -19,11 +20,14 @@ export function OrderActions({
   orderId,
   paymentStatus,
   fulfillmentStatus,
+  hasPendingPaymentProof = false,
   className,
 }: OrderActionsProps) {
   const router = useRouter();
 
-  const showUploadPaymentProof = paymentStatus === "PENDING";
+  const showUploadPaymentProof = paymentStatus === "PENDING"
+    && fulfillmentStatus !== "CANCELLED"
+    && !hasPendingPaymentProof;
   const showTrackShipment = fulfillmentStatus === "SHIPPED";
 
   return (

@@ -16,6 +16,7 @@ export async function getPaymentConfiguration(): Promise<{
       enabled: c.enabled,
       cashAppHandle: c.cashAppHandle,
       paypalEmail: c.paypalEmail,
+      paypalHandle: c.paypalHandle,
     }))
 
     return { success: true, data }

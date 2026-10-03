@@ -14,12 +14,18 @@ export type PaymentMethodType = "cashapp" | "paypal" | null;
 export interface PaymentNextStepProps {
   method: PaymentMethodType;
   orderId?: string;
+  recipient?: string | null;
+  paymentUrl?: string | null;
+  amount?: number;
   className?: string;
 }
 
 export function PaymentNextStep({
   method,
   orderId,
+  recipient,
+  paymentUrl,
+  amount,
   className,
 }: PaymentNextStepProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -82,20 +88,38 @@ export function PaymentNextStep({
 
       <div className="mb-6 h-px w-full bg-border/50" />
 
+      <div className="mb-6 space-y-3 rounded-lg border border-border/60 bg-card/70 p-4 text-sm">
+        {recipient ? (
+          <>
+            <p><span className="text-muted-foreground">Send to:</span> <strong>{recipient}</strong></p>
+            {typeof amount === "number" && <p><span className="text-muted-foreground">Amount due:</span> <strong>${amount.toFixed(2)}</strong></p>}
+            {paymentUrl && (
+              <a href={paymentUrl} target="_blank" rel="noopener noreferrer" className="inline-flex font-semibold text-primary underline underline-offset-4">
+                Open {isCashApp ? "Cash App" : "PayPal"}
+              </a>
+            )}
+          </>
+        ) : (
+          <p className="font-medium text-destructive">
+            Payment details are unavailable for this order. Do not send money; contact support to confirm the correct recipient.
+          </p>
+        )}
+      </div>
+
       <div className="mb-6 space-y-5">
         <div className="flex items-start gap-3">
           <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <p className="font-sans text-sm leading-relaxed text-foreground">
             {isCashApp
-              ? "Send your payment using the details provided in the email."
-              : "Complete your payment using the link sent to your email."}
+              ? "Send the exact amount to the Cash App recipient above and include your order number in the payment note."
+              : "Send the exact amount to the PayPal recipient above and include your order number in the payment note."}
           </p>
         </div>
       </div>
 
       <Button
         onClick={handleCompletePayment}
-        disabled={isLoading || emailSent}
+        disabled={isLoading || emailSent || !recipient}
         className="h-12 w-full bg-primary text-primary-foreground font-sans text-sm font-semibold uppercase tracking-wider rounded-lg transition-all duration-300 hover:bg-primary/90"
       >
         {isLoading ? (
@@ -111,7 +135,7 @@ export function PaymentNextStep({
         ) : (
           <>
             <ExternalLink className="mr-2 h-4 w-4" />
-            Complete Payment
+            Email Payment Instructions
           </>
         )}
       </Button>

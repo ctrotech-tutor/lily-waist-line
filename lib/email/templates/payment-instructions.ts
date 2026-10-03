@@ -5,7 +5,7 @@ export interface PaymentInstructionsData {
   orderNumber: string
   orderId: string
   paymentMethod: string
-  paymentLink: string
+  paymentLink: string | null
   paymentLabel: string
   amount: string
   items: Array<{
@@ -16,6 +16,23 @@ export interface PaymentInstructionsData {
 
 export const getPaymentInstructionsTemplate = (data: PaymentInstructionsData) => {
   const { appUrl, firstName, email, orderNumber, orderId, paymentMethod, paymentLink, paymentLabel, amount, items } = data
+  const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character]!)
+  const escapedRecipient = escapeHtml(paymentLabel)
+  const escapedPaymentUrl = paymentLink && /^https:\/\/(cash\.app|www\.paypal\.me)\//.test(paymentLink)
+    ? escapeHtml(paymentLink)
+    : null
+  const recipientHtml = escapedPaymentUrl
+    ? `<a href="${escapedPaymentUrl}" style="color: #d4af37; text-decoration: underline;">${escapedRecipient}</a>`
+    : `<strong>${escapedRecipient}</strong>`
+  const paymentActionHtml = escapedPaymentUrl
+    ? `Click the link below to open ${escapeHtml(paymentMethod)}:<br>${recipientHtml}`
+    : `Open PayPal, choose Send, and enter this merchant email as the recipient: ${escapedRecipient}.`
 
   const uploadUrl = `${appUrl}/order/payment-proof/${orderId}`
 
@@ -189,7 +206,7 @@ export const getPaymentInstructionsTemplate = (data: PaymentInstructionsData) =>
                 </div>
                 <div class="detail-row">
                   <span>Send To</span>
-                  <span class="gold-accent"><strong><a href="${paymentLink}" style="color: #d4af37; text-decoration: underline;">${paymentLabel}</a></strong></span>
+                  <span class="gold-accent">${recipientHtml}</span>
                 </div>
                 <div class="detail-row">
                   <span>Amount Due</span>
@@ -202,7 +219,7 @@ export const getPaymentInstructionsTemplate = (data: PaymentInstructionsData) =>
               <div class="section-title">Payment Instructions</div>
               <div class="instructions">
                 <ol>
-                  <li>Click the link below to open ${paymentMethod}:<br><a href="${paymentLink}" style="color: #d4af37; font-weight: 600; text-decoration: underline;">${paymentLabel}</a></li>
+                  <li>${paymentActionHtml}</li>
                   <li>Send <strong>${amount}</strong> to the account above</li>
                   <li>Include your order number <strong>${orderNumber}</strong> in the payment note/reference</li>
                   <li>Take a screenshot of your payment confirmation showing the transaction details</li>
@@ -231,6 +248,7 @@ export const getPaymentInstructionsTemplate = (data: PaymentInstructionsData) =>
             <div class="section">
               <div class="section-title">Important Notes</div>
               <ul style="font-size: 14px; color: #666; line-height: 1.8;">
+                <li>Submit your payment proof within 24 hours of placing the order. After a timely proof is submitted, stock remains reserved while our team reviews it.</li>
                 <li>Please include your order number in the payment reference to help us process your payment faster</li>
                 <li>Your order will be processed within 24-48 hours after payment verification</li>
                 <li>You will receive a confirmation email once your payment is verified</li>
@@ -263,11 +281,11 @@ Order #${orderNumber}
 
 Payment Details:
 Payment Method: ${paymentMethod}
-Send To: ${paymentLabel} (${paymentLink})
+Send To: ${paymentLabel}${paymentLink ? ` (${paymentLink})` : ''}
 Amount Due: ${amount}
 
 Payment Instructions:
-1. Open this link to pay: ${paymentLink}
+1. ${paymentLink ? `Open this link to pay: ${paymentLink}` : `Open PayPal and send to the merchant email above`}
 2. Send ${amount} to the account above
 3. Include your order number ${orderNumber} in the payment note/reference
 4. Take a screenshot of your payment confirmation showing the transaction details
@@ -277,6 +295,7 @@ Order Items:
 ${items.map(item => `${item.name} (Quantity: ${item.quantity})`).join('\n')}
 
 Important Notes:
+- Submit your payment proof within 24 hours of placing the order. After a timely proof is submitted, stock remains reserved while our team reviews it.
 - Please include your order number in the payment reference to help us process your payment faster
 - Your order will be processed within 24-48 hours after payment verification
 - You will receive a confirmation email once your payment is verified

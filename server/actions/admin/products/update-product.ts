@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { releaseExpiredInventoryReservations } from '@/lib/services/inventory-reservations'
+import { distributeTotalStock } from '@/lib/services/stock-allocation'
 import { z } from 'zod'
 
 const updateProductSchema = z.object({
@@ -13,8 +15,8 @@ const updateProductSchema = z.object({
   basePrice: z.number().min(0).optional(),
   compareAtPrice: z.number().min(0).nullable().optional(),
   status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).optional(),
-  sizes: z.array(z.enum(['S', 'M', 'L', 'XL'])).optional(),
-  compressionLevels: z.array(z.enum(['LIGHT', 'MEDIUM', 'HIGH'])).optional(),
+  sizes: z.array(z.enum(['S', 'M', 'L', 'XL'])).min(1).optional(),
+  compressionLevels: z.array(z.enum(['LIGHT', 'MEDIUM', 'HIGH'])).min(1).optional(),
   stockQuantity: z.number().int().min(0).optional(),
   variantPrices: z.record(z.string(), z.number().min(0)).optional(),
   mainImage: z.object({
@@ -36,7 +38,10 @@ const updateProductSchema = z.object({
     existing: z.boolean(),
     id: z.string().optional(),
   }).nullable()).optional(),
-})
+}).refine(
+  (data) => (data.sizes === undefined) === (data.compressionLevels === undefined),
+  { message: 'Sizes and compression levels must be updated together', path: ['compressionLevels'] },
+)
 
 export type UpdateProductInput = z.infer<typeof updateProductSchema>
 
@@ -81,13 +86,11 @@ export async function updateProduct(input: UpdateProductInput) {
       return { success: false as const, error: 'Access denied. Admin access required.' }
     }
 
+    await releaseExpiredInventoryReservations()
+
     const existing = await prisma.product.findUnique({
       where: { id: validated.productId },
-      include: {
-        variants: {
-          select: { id: true, size: true, compressionLevel: true, stockQuantity: true, sku: true }
-        }
-      }
+      select: { id: true },
     })
 
     if (!existing) {
@@ -95,6 +98,60 @@ export async function updateProduct(input: UpdateProductInput) {
     }
 
     const result = await prisma.$transaction(async (tx) => {
+      const lockedProduct = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "Product" WHERE "id" = ${validated.productId} FOR UPDATE
+      `
+      if (lockedProduct.length !== 1) throw new Error('Product not found')
+
+      const lockedProductDetails = await tx.product.findUnique({
+        where: { id: validated.productId },
+        select: { slug: true },
+      })
+      if (!lockedProductDetails) throw new Error('Product not found')
+
+      const existingVariants = await tx.productVariant.findMany({
+        where: { productId: validated.productId },
+        select: { id: true, size: true, compressionLevel: true, stockQuantity: true, sku: true },
+      })
+      const currentCombos = new Set(existingVariants.map((variant) => `${variant.size}:${variant.compressionLevel}`))
+      const desiredCombos = new Set<string>()
+      const hasVariantConfiguration = validated.sizes !== undefined && validated.compressionLevels !== undefined
+      if (hasVariantConfiguration) {
+        for (const size of validated.sizes!) {
+          for (const compression of validated.compressionLevels!) {
+            desiredCombos.add(`${size}:${compression}`)
+          }
+        }
+      }
+      const combosChanged = hasVariantConfiguration && (
+        desiredCombos.size !== currentCombos.size
+        || [...desiredCombos].some((combo) => !currentCombos.has(combo))
+      )
+      const currentTotalStock = existingVariants.reduce((sum, variant) => sum + variant.stockQuantity, 0)
+      const stockQuantityChanged = validated.stockQuantity !== undefined
+        && validated.stockQuantity !== currentTotalStock
+
+      if (stockQuantityChanged || combosChanged) {
+        const outstandingReservation = await tx.orderItem.findFirst({
+          where: {
+            productId: validated.productId,
+            order: {
+              inventoryReservedAt: { not: null },
+              inventoryCommittedAt: null,
+              inventoryReleasedAt: null,
+            },
+          },
+          select: { id: true },
+        })
+        if (outstandingReservation) {
+          throw new Error('Resolve pending order reservations before changing this product’s stock or variants')
+        }
+      }
+
+      if (combosChanged && validated.stockQuantity === undefined) {
+        throw new Error('Provide the total stock quantity when changing product variants')
+      }
+
       // ── 1. Delete removed product images ──
       if (validated.imageIdsToRemove && validated.imageIdsToRemove.length > 0) {
         await tx.productImage.deleteMany({
@@ -102,44 +159,30 @@ export async function updateProduct(input: UpdateProductInput) {
         })
       }
 
-      // ── 2. Variant restructuring (when sizes or compression levels change) ──
-      const currentSlug = validated.name ? slugify(validated.name) : existing.slug
-      const restructuring = validated.sizes && validated.compressionLevels
+      // ── 2. Variant restructuring (only when the actual combination set changes) ──
+      const currentSlug = validated.name ? slugify(validated.name) : lockedProductDetails.slug
 
-      if (restructuring) {
-        const desiredCombos = new Set<string>()
-        for (const size of validated.sizes!) {
-          for (const compression of validated.compressionLevels!) {
-            desiredCombos.add(`${size}:${compression}`)
-          }
-        }
-
-        const existingVariants = existing.variants
-        const existingCombos = new Set(existingVariants.map(v => `${v.size}:${v.compressionLevel}`))
-
-        // Delete variants whose combo is no longer desired
-        // Skip deletion if variant has associated order items
+      if (combosChanged) {
         for (const variant of existingVariants) {
           const combo = `${variant.size}:${variant.compressionLevel}`
           if (!desiredCombos.has(combo)) {
             const orderItemCount = await tx.orderItem.count({ where: { variantId: variant.id } })
             if (orderItemCount > 0) {
-              // Orphan — nullify stock instead of deleting to preserve order history
+              // Keep historical variants for order relations, but make the retired
+              // combination unavailable for future checkout.
               await tx.productVariant.update({
                 where: { id: variant.id },
-                data: { stockQuantity: 0 }
+                data: { stockQuantity: 0 },
               })
             } else {
-              // Safe to delete — images cascade via onDelete
               await tx.productVariant.delete({ where: { id: variant.id } })
             }
           }
         }
 
-        // Create variants for new combos
-        const keptVariantIds = new Set(existingVariants.map(v => v.id))
+        const keptVariantIds = new Set(existingVariants.map((variant) => variant.id))
         for (const combo of desiredCombos) {
-          if (!existingCombos.has(combo)) {
+          if (!currentCombos.has(combo)) {
             const [size, compression] = combo.split(':')
             const sku = await generateUniqueSku(currentSlug, size, compression, Array.from(keptVariantIds))
             const created = await tx.productVariant.create({
@@ -149,7 +192,7 @@ export async function updateProduct(input: UpdateProductInput) {
                 compressionLevel: compression,
                 sku,
                 stockQuantity: 0,
-              }
+              },
             })
             keptVariantIds.add(created.id)
           }
@@ -235,22 +278,32 @@ export async function updateProduct(input: UpdateProductInput) {
         }
       }
 
-      // ── 7. Distribute stock quantity evenly across all variants ──
-      if (validated.stockQuantity !== undefined) {
-        const allVariants = await tx.productVariant.findMany({
-          where: { productId: validated.productId },
-          select: { id: true }
-        })
-        if (allVariants.length > 0) {
-          const perVariant = Math.floor(validated.stockQuantity / allVariants.length)
-          let remainder = validated.stockQuantity - perVariant * allVariants.length
+      // ── 7. Change stock only when the requested total or variant set changed ──
+      if (validated.stockQuantity !== undefined && (stockQuantityChanged || combosChanged)) {
+        const activeVariants = hasVariantConfiguration
+          ? desiredCombos.size === 0
+            ? []
+            : await tx.productVariant.findMany({
+                where: {
+                  productId: validated.productId,
+                  OR: [...desiredCombos].map((combo) => {
+                    const [size, compressionLevel] = combo.split(':')
+                    return { size, compressionLevel }
+                  }),
+                },
+                select: { id: true },
+              })
+          : await tx.productVariant.findMany({
+              where: { productId: validated.productId },
+              select: { id: true },
+            })
 
-          for (const variant of allVariants) {
-            const stock = perVariant + (remainder > 0 ? 1 : 0)
-            if (remainder > 0) remainder--
+        if (activeVariants.length > 0) {
+          const stockByVariant = distributeTotalStock(validated.stockQuantity, activeVariants.length)
+          for (let index = 0; index < activeVariants.length; index++) {
             await tx.productVariant.update({
-              where: { id: variant.id },
-              data: { stockQuantity: stock }
+              where: { id: activeVariants[index].id },
+              data: { stockQuantity: stockByVariant[index] },
             })
           }
         }
@@ -273,6 +326,8 @@ export async function updateProduct(input: UpdateProductInput) {
 
     revalidatePath('/admin/products')
     revalidatePath(`/admin/products/${validated.productId}`)
+    revalidatePath('/shop')
+    revalidatePath('/')
 
     return {
       success: true as const,
@@ -284,6 +339,9 @@ export async function updateProduct(input: UpdateProductInput) {
       return { success: false as const, error: error.issues[0]?.message || 'Invalid input' }
     }
     console.error('Update product error:', error)
-    return { success: false as const, error: 'Failed to update product' }
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : 'Failed to update product',
+    }
   }
 }

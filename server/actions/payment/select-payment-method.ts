@@ -2,126 +2,98 @@
 
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
+import { expireReservationForOrder } from '@/lib/services/inventory-reservations'
+import { getPaymentDestination, isPaymentMethodAllowedForCountry } from '@/lib/services/payment-policy'
 import { revalidatePath } from 'next/cache'
 import { selectPaymentMethodSchema, type SelectPaymentMethodInput } from '@/lib/validators/payment'
 
-/**
- * Validates payment method based on shipping address country
- * US customers can only use CASH_APP
- * International customers can only use PAYPAL
- */
-function validatePaymentMethodForRegion(country: string, paymentMethod: string): boolean {
-  const normalizedCountry = country.toLowerCase().trim()
-  
-  // United States variants - use exact matching or word boundaries to avoid false positives
-  const usCountries = ['united states', 'usa', 'us', 'america']
-  const isUS = usCountries.some(us => {
-    // Check for exact match or if country starts with/contains the US variant as a whole word
-    return normalizedCountry === us || 
-           normalizedCountry.startsWith(us + ' ') || 
-           normalizedCountry.endsWith(' ' + us) ||
-           normalizedCountry.includes(' ' + us + ' ')
-  })
-  
-  if (isUS) {
-    return paymentMethod === 'CASH_APP'
-  } else {
-    return paymentMethod === 'PAYPAL'
-  }
-}
-
 export async function selectPaymentMethod(input: SelectPaymentMethodInput) {
   try {
-    // Validate input
     const validatedData = selectPaymentMethodSchema.parse(input)
-
-    // Create Supabase client and validate user session
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return {
-        success: false,
-        error: 'You must be logged in to select a payment method'
-      }
+      return { success: false, error: 'You must be logged in to select a payment method' }
     }
 
-    // Fetch the order with shipping address to validate ownership and region
-    const order = await prisma.order.findUnique({
-      where: {
-        id: validatedData.orderId
-      },
-      select: {
-        id: true, userId: true, paymentStatus: true,
-        address: {
-          select: { country: true },
+    await expireReservationForOrder(validatedData.orderId)
+
+    const updatedOrder = await prisma.$transaction(async (tx) => {
+      const lockedOrder = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "Order"
+        WHERE "id" = ${validatedData.orderId} AND "userId" = ${user.id}
+        FOR UPDATE
+      `
+      if (lockedOrder.length !== 1) throw new Error('Order not found')
+
+      const order = await tx.order.findFirst({
+        where: { id: validatedData.orderId, userId: user.id },
+        select: {
+          id: true,
+          paymentStatus: true,
+          fulfillmentStatus: true,
+          total: true,
+          inventoryCommittedAt: true,
+          inventoryReleasedAt: true,
+          paymentProofs: { select: { id: true }, take: 1 },
+          address: { select: { country: true } },
         },
-      },
-    })
+      })
 
-    if (!order) {
-      return {
-        success: false,
-        error: 'Order not found'
+      if (!order) throw new Error('Order not found')
+      if (order.paymentStatus !== 'PENDING'
+        || order.fulfillmentStatus !== 'PENDING'
+        || order.inventoryCommittedAt
+        || order.inventoryReleasedAt
+        || order.paymentProofs.length > 0) {
+        throw new Error('Payment method cannot be changed after payment proof submission or order closure')
       }
-    }
 
-    // Validate order ownership
-    if (order.userId !== user.id) {
-      return {
-        success: false,
-        error: 'You can only modify your own orders'
+      if (!isPaymentMethodAllowedForCountry(order.address.country, validatedData.paymentMethod)) {
+        throw new Error(validatedData.paymentMethod === 'CASH_APP'
+          ? 'Cash App is only available for U.S. shipping addresses'
+          : 'PayPal is only available for non-U.S. shipping addresses')
       }
-    }
 
-    // Validate that payment method can be changed (future-proof for payment proof upload)
-    if (order.paymentStatus !== 'PENDING') {
-      return {
-        success: false,
-        error: 'Payment method cannot be changed after payment is initiated'
-      }
-    }
-
-    // Validate shipping address exists
-    if (!order.address) {
-      return {
-        success: false,
-        error: 'Shipping address is required before selecting payment method'
-      }
-    }
-
-    // Validate payment method based on region
-    const isPaymentMethodValid = validatePaymentMethodForRegion(
-      order.address.country,
-      validatedData.paymentMethod
-    )
-
-    if (!isPaymentMethodValid) {
-      const isUS = ['united states', 'usa', 'us', 'america'].some(
-        us => order.address!.country.toLowerCase().includes(us)
+      const configuration = await tx.paymentConfiguration.findUnique({
+        where: { paymentMethod: validatedData.paymentMethod },
+      })
+      const destination = getPaymentDestination(
+        validatedData.paymentMethod,
+        configuration,
+        order.total.toNumber(),
       )
-      
-      return {
-        success: false,
-        error: isUS 
-          ? 'Cash App is the only available payment method for US customers'
-          : 'PayPal is the only available payment method for international customers'
+      if (!destination) {
+        throw new Error('This payment method is disabled or has no valid recipient configured')
       }
-    }
 
-    // Update the order with the selected payment method
-    const updatedOrder = await prisma.order.update({
-      where: {
-        id: validatedData.orderId
-      },
-      data: {
-        paymentMethod: validatedData.paymentMethod,
-        // Keep payment status as PENDING as specified
-        updatedAt: new Date()
+      const update = await tx.order.updateMany({
+        where: {
+          id: order.id,
+          userId: user.id,
+          paymentStatus: 'PENDING',
+          fulfillmentStatus: 'PENDING',
+          inventoryCommittedAt: null,
+          inventoryReleasedAt: null,
+          OR: [
+            { reservationExpiresAt: null },
+            { reservationExpiresAt: { gt: new Date() } },
+          ],
+        },
+        data: {
+          paymentMethod: validatedData.paymentMethod,
+          paymentRecipient: destination.recipient,
+          paymentUrl: destination.url,
+          updatedAt: new Date(),
+        },
+      })
+      if (update.count !== 1) {
+        throw new Error('The order changed while its payment method was being updated')
       }
+      return { id: order.id, paymentMethod: validatedData.paymentMethod }
     })
 
-    // Revalidate relevant paths
     revalidatePath('/checkout')
     revalidatePath('/order/confirmation')
     revalidatePath(`/orders/${validatedData.orderId}`)
@@ -131,24 +103,14 @@ export async function selectPaymentMethod(input: SelectPaymentMethodInput) {
       data: {
         orderId: updatedOrder.id,
         paymentMethod: updatedOrder.paymentMethod,
-        paymentStatus: updatedOrder.paymentStatus
-      }
+        paymentStatus: 'PENDING',
+      },
     }
-
   } catch (error) {
     console.error('Error selecting payment method:', error)
-    
-    // Handle Zod validation errors
-    if (error instanceof Error && error.message.includes('Invalid payment method')) {
-      return {
-        success: false,
-        error: error.message
-      }
-    }
-
     return {
       success: false,
-      error: 'Failed to select payment method. Please try again.'
+      error: error instanceof Error ? error.message : 'Failed to select payment method. Please try again.',
     }
   }
 }

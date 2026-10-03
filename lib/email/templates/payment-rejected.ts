@@ -5,8 +5,6 @@ export interface PaymentRejectedData {
   orderNumber: string
   orderId: string
   paymentMethod: string
-  paymentLink?: string
-  paymentLabel?: string
   amount: string
   reason?: string
   items: Array<{
@@ -16,9 +14,17 @@ export interface PaymentRejectedData {
 }
 
 export const getPaymentRejectedTemplate = (data: PaymentRejectedData) => {
-  const { appUrl, firstName, email, orderNumber, orderId, paymentMethod, paymentLink, paymentLabel, amount, reason, items } = data
+  const { appUrl, firstName, email, orderNumber, orderId, paymentMethod, amount, reason, items } = data
+  const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character]!)
+  const escapedReason = reason ? escapeHtml(reason) : null
 
-  const orderUrl = `${appUrl}/order/payment-proof/${orderId}`
+  const orderUrl = `${appUrl}/orders/${orderId}`
 
   return {
     subject: `Payment Not Approved - ${orderNumber}`,
@@ -166,10 +172,10 @@ export const getPaymentRejectedTemplate = (data: PaymentRejectedData) => {
 
             <div class="order-number">Order Number: ${orderNumber}</div>
 
-            ${reason ? `
+            ${escapedReason ? `
             <div class="reason-box">
               <strong>Reason:</strong><br>
-              ${reason}
+              ${escapedReason}
             </div>
             ` : ''}
 
@@ -206,24 +212,15 @@ export const getPaymentRejectedTemplate = (data: PaymentRejectedData) => {
             <div class="section">
               <div class="section-title">What Happens Next?</div>
               <p>
-                Your payment could not be verified. This may be due to an unclear screenshot,
-                incorrect amount, or missing transaction reference.
+                This order is now closed and its stock reservation has been released. If you already sent payment,
+                do not pay again or place another order until support confirms what to do. Contact support with
+                your order number and transaction reference.
               </p>
-              ${paymentLink ? `
-              <p style="margin-bottom: 16px;">
-                <strong>Pay again here:</strong><br>
-                <a href="${paymentLink}" style="color: #d4af37; font-weight: 600; text-decoration: underline;">${paymentLabel || paymentLink}</a>
-              </p>
-              ` : ''}
               <p>
-                <strong>You can submit a new payment proof</strong> from your order page.
-                Please ensure your screenshot clearly shows:
+                If you have not sent payment and still want the items, you may place a new order; availability
+                and pricing may have changed.
               </p>
-              <ul>
-                <li>The payment amount matching your order total</li>
-                <li>The transaction reference or confirmation ID</li>
-              </ul>
-              <a href="${orderUrl}" class="cta-button">Upload New Proof</a>
+              <a href="${orderUrl}" class="cta-button">View Order Status</a>
             </div>
 
             <p style="font-size: 14px; color: #666; margin-top: 30px;">
@@ -258,14 +255,11 @@ Order Items:
 ${items.map(item => `${item.name} (Quantity: ${item.quantity})`).join('\n')}
 
 What Happens Next?
-Your payment could not be verified. You can submit a new payment proof from the link below.
-${paymentLink ? `Pay again here: ${paymentLink}` : ''}
+This order is now closed and its stock reservation has been released. If you already sent payment, do not pay again or place another order until support confirms what to do. Contact support with your order number and transaction reference.
 
-Please ensure your screenshot clearly shows:
-- The payment amount matching your order total
-- The transaction reference or confirmation ID
+If you have not sent payment and still want the items, you may place a new order; availability and pricing may have changed.
 
-Upload a new proof at: ${orderUrl}
+View order status: ${orderUrl}
 
 This email was sent to ${email}. If you have any questions, please contact our support team.
 

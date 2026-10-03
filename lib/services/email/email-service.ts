@@ -1,13 +1,14 @@
 import nodemailer from 'nodemailer'
+import type { Transporter } from 'nodemailer'
 import { getEmailConfig, isEmailConfigured } from '@/lib/config/email'
 import type { EmailMessage, EmailSendResult } from '@/types/email'
 
 export type { EmailMessage, EmailSendResult }
 
 class EmailService {
-  private transporter: nodemailer.Transporter | null = null
+  private transporter: Transporter | null = null
 
-  private getTransporter(): nodemailer.Transporter | null {
+  private getTransporter(): Transporter | null {
     if (!isEmailConfigured()) {
       return null
     }

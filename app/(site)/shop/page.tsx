@@ -11,6 +11,7 @@ import {
 } from "@/lib/shop-url-sync-server";
 
 import { ProductService } from "@/lib/services/product-service";
+import { releaseExpiredInventoryReservations } from "@/lib/services/inventory-reservations";
 import { ROUTES } from "@/lib/constants/routes";
 
 export const metadata: Metadata = {
@@ -70,8 +71,8 @@ export default async function ShopPage({
     offset: 0,
   };
 
-  const productResult =
-    await ProductService.getProducts(productOptions);
+  await releaseExpiredInventoryReservations()
+  const productResult = await ProductService.getProducts(productOptions);
 
   return (
     <div className="min-h-screen bg-background">

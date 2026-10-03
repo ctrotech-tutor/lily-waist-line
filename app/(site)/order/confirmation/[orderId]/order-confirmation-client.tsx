@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Shield, Clock, Zap, RotateCcw, ShoppingBag, Upload } from "lucide-react";
+import { Shield, Clock, Zap, RotateCcw, ShoppingBag, Upload, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -72,7 +72,9 @@ export default function OrderConfirmationClient({ orderId }: OrderConfirmationCl
       })
     : new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const paymentStatus = orderData.paymentStatus ?? PaymentStatus.PENDING;
-  const canUploadProof = paymentStatus === PaymentStatus.PENDING;
+  const isOrderCancelled = orderData.fulfillmentStatus === "CANCELLED" || paymentStatus === "REJECTED";
+  const hasPendingProof = Boolean(orderData.hasPendingPaymentProof);
+  const canUploadProof = paymentStatus === PaymentStatus.PENDING && !isOrderCancelled && !hasPendingProof;
 
   return (
     <OrderConfirmationShell>
@@ -86,7 +88,53 @@ export default function OrderConfirmationClient({ orderId }: OrderConfirmationCl
             orderDate={orderDate}
             paymentStatus={paymentStatus}
           />
-          <PaymentNextStep method={paymentMethod} orderId={orderId} />
+          {isOrderCancelled ? (
+            <Card className="p-6 border border-destructive/30 bg-destructive/5 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <h2 className="font-heading text-base font-semibold text-foreground">Order cancelled</h2>
+                  <p className="mt-1 font-sans text-sm text-muted-foreground">
+                    This order can no longer accept payment proof. Place a new order if you still want these items; if you have already sent payment, contact support before ordering again.
+                  </p>
+                  {orderData.latestPaymentProof?.rejectionReason && (
+                    <p className="mt-2 font-sans text-sm text-foreground">
+                      <strong>Review note:</strong> {orderData.latestPaymentProof.rejectionReason}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ) : hasPendingProof ? (
+            <Card className="p-6 border border-primary/30 bg-primary/[0.03] rounded-lg">
+              <div className="flex items-start gap-3">
+                <Clock className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <h2 className="font-heading text-base font-semibold text-foreground">Payment proof received</h2>
+                  <p className="mt-1 font-sans text-sm text-muted-foreground">
+                    {orderData.hasInventoryReservation
+                      ? "Your proof is awaiting review. We will keep the stock reserved while our team makes a decision."
+                      : "Your proof is awaiting review. Our team will confirm the order before processing it."}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ) : (
+            <PaymentNextStep
+              method={paymentMethod}
+              orderId={orderId}
+              recipient={orderData.paymentRecipient}
+              paymentUrl={orderData.paymentUrl}
+              amount={orderData.total}
+            />
+          )}
+          {canUploadProof && orderData.reservationExpiresAt && (
+            <Card className="p-4 border border-secondary/30 bg-secondary/5 rounded-lg">
+              <p className="font-sans text-sm text-foreground">
+                Submit payment proof by {new Date(orderData.reservationExpiresAt).toLocaleString()} to keep this reservation active.
+              </p>
+            </Card>
+          )}
         </div>
 
         {/* Right Column - Sidebar */}

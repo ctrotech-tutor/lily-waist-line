@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { AdminService, AdminOrderFilters } from '@/lib/services/admin-service'
+import { releaseExpiredInventoryReservations } from '@/lib/services/inventory-reservations'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { tryAction } from '@/lib/security/error-handling'
@@ -37,6 +38,8 @@ export const getAllOrders = tryAction(async (input: z.infer<typeof getAllOrdersS
   if (!dbUser || dbUser.role !== 'ADMIN') {
     throw new Error('Access denied. Admin access required.')
   }
+
+  await releaseExpiredInventoryReservations()
 
   // Use optimized admin service
   const filters: AdminOrderFilters = {

@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
+import { expireReservationForOrder } from '@/lib/services/inventory-reservations'
 import { z } from 'zod'
 
 const orderDetailsSchema = z.object({
@@ -24,6 +25,17 @@ export async function getOrderDetails(orderId: string) {
       }
     }
 
+    const ownedOrder = await prisma.order.findFirst({
+      where: { id: validatedOrderId, userId: user.id },
+      select: { id: true },
+    })
+
+    if (!ownedOrder) {
+      return { success: false, error: 'Order not found' }
+    }
+
+    await expireReservationForOrder(validatedOrderId)
+
     // Fetch order with strict ownership validation - single optimized query
     const order = await prisma.order.findFirst({
       where: {
@@ -39,8 +51,13 @@ export async function getOrderDetails(orderId: string) {
         shippingFee: true,
         total: true,
         paymentMethod: true,
+        paymentRecipient: true,
+        paymentUrl: true,
         paymentStatus: true,
         fulfillmentStatus: true,
+        reservationExpiresAt: true,
+        inventoryReservedAt: true,
+        inventoryReleasedAt: true,
         address: {
           select: {
             id: true, firstName: true, lastName: true, company: true,
@@ -71,7 +88,7 @@ export async function getOrderDetails(orderId: string) {
         },
         paymentProofs: {
           orderBy: { uploadedAt: 'desc' },
-          select: { id: true, status: true, uploadedAt: true, imageUrl: true, transactionRef: true },
+          select: { id: true, status: true, uploadedAt: true, imageUrl: true, transactionRef: true, rejectionReason: true },
         },
         shipments: {
           orderBy: { shippedAt: 'desc' },
@@ -100,9 +117,13 @@ export async function getOrderDetails(orderId: string) {
       total: order.total.toNumber(),
       // Payment information
       paymentMethod: order.paymentMethod,
+      paymentRecipient: order.paymentRecipient,
+      paymentUrl: order.paymentUrl,
       paymentStatus: order.paymentStatus,
       // Fulfillment information
       fulfillmentStatus: order.fulfillmentStatus,
+      reservationExpiresAt: order.reservationExpiresAt,
+      hasInventoryReservation: Boolean(order.inventoryReservedAt && !order.inventoryReleasedAt),
       // Address snapshot (immutable)
       shippingAddress: {
         id: order.address.id,
@@ -144,6 +165,7 @@ export async function getOrderDetails(orderId: string) {
         uploadedAt: proof.uploadedAt,
         imageUrl: proof.imageUrl, // Note: This would need signed URL generation for actual display
         transactionRef: proof.transactionRef,
+        rejectionReason: proof.rejectionReason,
       })),
       // Shipping and tracking information
       shipments: order.shipments.map(shipment => ({

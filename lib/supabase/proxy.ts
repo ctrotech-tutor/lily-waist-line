@@ -8,6 +8,7 @@ export async function updateSession(request: NextRequest) {
   // Skip static assets and auth callback
   if (
     pathname.startsWith("/_next/") ||
+    pathname.startsWith("/api/cron/") ||
     pathname.startsWith("/static/") ||
     pathname.startsWith("/images/") ||
     pathname.startsWith("/fonts/") ||

@@ -3,6 +3,7 @@ import { unstable_cache } from 'next/cache'
 import { revalidatePath } from 'next/cache'
 import type { CartItemData, CartItemWithDetails, CartData } from '@/types/cart'
 import { ROUTES } from '@/lib/constants/routes'
+import { releaseExpiredInventoryReservations } from './inventory-reservations'
 
 // Re-export cart types for backward compatibility
 export type { CartItemData, CartItemWithDetails, CartData }
@@ -16,6 +17,8 @@ export class CartService {
    * Uses single optimized query with proper indexes
    */
   static async getCart(userId: string): Promise<CartData> {
+    await releaseExpiredInventoryReservations()
+
     // Single optimized query using indexes
     const cartItems = await prisma.cartItem.findMany({
       where: { userId }, // Uses idx_cart_user_created
@@ -160,6 +163,8 @@ export class CartService {
    * Add item to cart with stock validation
    */
   static async addToCart(userId: string, variantId: string, quantity: number = 1) {
+    await releaseExpiredInventoryReservations()
+
     // Check variant stock in same query
     const variant = await prisma.productVariant.findFirst({
       where: { 
@@ -229,6 +234,8 @@ export class CartService {
    * Update cart item quantity with stock validation
    */
   static async updateCartItemQuantity(userId: string, cartItemId: string, quantity: number) {
+    await releaseExpiredInventoryReservations()
+
     if (quantity < 1) {
       throw new Error('Quantity must be at least 1')
     }

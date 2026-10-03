@@ -1,6 +1,6 @@
 "use client";
 export const dynamic = "force-dynamic"
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Lock } from "lucide-react";
@@ -21,6 +21,8 @@ import { useCart } from "@/hooks/use-cart";
 import { useAddresses } from "@/hooks/use-addresses";
 import { createOrder } from "@/server/actions/order";
 import { validateCheckoutAccess } from "@/server/actions/checkout/validate-checkout-access";
+import { getPaymentConfiguration } from "@/server/actions/payment/get-payment-config";
+import { getAvailablePaymentMethods } from "@/lib/services/payment-policy";
 import { toast } from "sonner";
 
 interface CheckoutCartItem {
@@ -39,6 +41,7 @@ export default function CheckoutPage() {
   const [selectedAddress, setSelectedAddress] = useState<AddressCardData | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const orderRequestKey = useRef<string | null>(null);
 
   // Validate checkout access
   const validationQuery = useQuery({
@@ -62,10 +65,22 @@ export default function CheckoutPage() {
   // Fetch cart
   const { data: cartData, isLoading: isCartLoading } = useCart();
 
-  // Fetch addresses
+  // Fetch addresses and public payment destinations for checkout display.
   const { data: addresses, isLoading: isAddressesLoading } = useAddresses();
+  const paymentConfigQuery = useQuery({
+    queryKey: ['checkout-payment-config'],
+    queryFn: async () => {
+      const result = await getPaymentConfiguration();
+      if (!result.success) throw new Error(result.error || 'Failed to load payment methods');
+      return result.data ?? [];
+    },
+    staleTime: 1000 * 60,
+  });
 
-  const isLoading = isCartLoading || isAddressesLoading || validationQuery.isLoading;
+  const isLoading = isCartLoading
+    || isAddressesLoading
+    || validationQuery.isLoading
+    || paymentConfigQuery.isLoading;
 
   // Map cart items
   const cartItems: CheckoutCartItem[] = (cartData?.items ?? []).map((item) => ({
@@ -92,6 +107,27 @@ export default function CheckoutPage() {
     isDefault: addr.isDefault,
   }));
 
+  const availablePaymentCodes = useMemo(
+    () => selectedAddress
+      ? getAvailablePaymentMethods(selectedAddress.country, paymentConfigQuery.data ?? [])
+      : [],
+    [selectedAddress, paymentConfigQuery.data],
+  );
+  const availablePaymentMethods: PaymentMethod[] = useMemo(
+    () => availablePaymentCodes.map((method) => method === 'CASH_APP' ? 'cashapp' : 'paypal'),
+    [availablePaymentCodes],
+  );
+  const selectedPaymentConfig = useMemo(() => selectedPayment
+    ? paymentConfigQuery.data?.find((config) =>
+        config.paymentMethod === (selectedPayment === 'cashapp' ? 'CASH_APP' : 'PAYPAL')
+      )
+    : null, [paymentConfigQuery.data, selectedPayment]);
+
+  const handleAddressSelect = (address: AddressCardData | null) => {
+    setSelectedAddress(address);
+    setSelectedPayment(null);
+  };
+
   // Handle payment method selection
   const handlePaymentMethodSelect = (method: PaymentMethod) => {
     setSelectedPayment(method);
@@ -107,8 +143,11 @@ export default function CheckoutPage() {
     setIsPlacingOrder(true);
 
     try {
+      const idempotencyKey = orderRequestKey.current ?? (orderRequestKey.current = crypto.randomUUID());
       const result = await createOrder({
         addressId: selectedAddress.id,
+        expectedTotal: total,
+        idempotencyKey,
         paymentMethod: selectedPayment === 'cashapp' ? 'CASH_APP' : 'PAYPAL'
       });
 
@@ -240,7 +279,7 @@ export default function CheckoutPage() {
           >
             <AddressSelector
               addresses={addressCardData}
-              onAddressSelect={setSelectedAddress}
+              onAddressSelect={handleAddressSelect}
               className="mb-6"
             />
 
@@ -276,10 +315,15 @@ export default function CheckoutPage() {
             <div className="space-y-6">
               <PaymentMethodSelector
                 selectedMethod={selectedPayment}
+                availableMethods={availablePaymentMethods}
                 onSelect={handlePaymentMethodSelect}
               />
 
-              <PaymentInstructions method={selectedPayment} />
+              <PaymentInstructions
+                method={selectedPayment}
+                configuration={selectedPaymentConfig}
+                amount={total}
+              />
 
               <div className="flex gap-4 pt-2">
                 <Button

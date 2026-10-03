@@ -64,5 +64,10 @@
       "destination": "/api/:path*"
     }
   ],
-  "crons": []
+  "crons": [
+    {
+      "path": "/api/cron/release-expired-inventory",
+      "schedule": "0 0 * * *"
+    }
+  ]
 }
