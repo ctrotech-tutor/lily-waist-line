@@ -153,7 +153,7 @@ export default function AboutPage() {
                 wear-testers. Our fabrics are selected for four-way stretch,
                 breathability, and compression consistency — because true
                 sculpting requires both support and comfort.
-            </p>
+              </p>
 
               <p className="font-sans text-base leading-relaxed text-muted-foreground md:text-lg">
                 We maintain strict quality standards across every stage of

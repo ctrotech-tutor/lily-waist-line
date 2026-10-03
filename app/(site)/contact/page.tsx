@@ -3,6 +3,12 @@ import { Sparkles, Mail, Clock } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants/routes";
+import { SITE_EMAIL, SITE_SOCIAL_LINKS } from "@/lib/constants/socials";
+import {
+  FacebookIcon,
+  InstagramIcon,
+  TikTokIcon,
+} from "@/components/shared/social-icons";
 
 export const metadata: Metadata = {
   title: "Contact | Lily Waist Line",
@@ -13,56 +19,30 @@ export const metadata: Metadata = {
   },
 };
 
-function FacebookIcon({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-    </svg>
-  )
-}
-
-function InstagramIcon({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <rect x="2" y="2" width="20" height="20" rx="5" />
-      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-    </svg>
-  )
-}
-
-function TikTokIcon({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-    </svg>
-  )
-}
-
 const supportChannels = [
   {
     icon: Mail,
     title: "Email Support",
     description:
       "Send us a message anytime and we'll respond within 24 hours.",
-    detail: "support@lilywaistline.com",
-    href: "mailto:support@lilywaistline.com",
+    detail: SITE_EMAIL,
+    href: `mailto:${SITE_EMAIL}`,
   },
   {
     icon: FacebookIcon,
     title: "Facebook",
     description:
       "Follow us on Facebook for updates, launches, and community stories.",
-    detail: "@lilywaistline",
-    href: "#",
+    detail: "Lily Waist Line",
+    href: SITE_SOCIAL_LINKS.facebook,
   },
   {
     icon: InstagramIcon,
     title: "Instagram",
     description:
       "Follow our journey on Instagram for styling inspiration and exclusive previews.",
-    detail: "@lilywaistline",
-    href: "#",
+    detail: "@lily.waistline",
+    href: SITE_SOCIAL_LINKS.instagram,
   },
   {
     icon: TikTokIcon,
@@ -70,7 +50,7 @@ const supportChannels = [
     description:
       "Join us on TikTok for fitness tips, behind-the-scenes, and transformation stories.",
     detail: "@lilywaistline",
-    href: "#",
+    href: SITE_SOCIAL_LINKS.tiktok,
   },
 ];
 
@@ -143,6 +123,9 @@ export default function ContactPage() {
                   <Link
                     key={channel.title}
                     href={channel.href}
+                    {...(channel.href.startsWith("http")
+                      ? { target: "_blank", rel: "noopener noreferrer" }
+                      : {})}
                     className={cn(
                       "group rounded-2xl border border-border bg-card p-6 transition-all duration-300",
                       "hover:border-primary/30 hover:bg-card/80"

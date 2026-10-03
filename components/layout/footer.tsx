@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ArrowUpRight,
   ChevronRight,
+  Mail,
 } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
@@ -12,74 +13,13 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 import { OptimizedImage } from "@/components/shared/optimized-image";
+import {
+  FacebookIcon,
+  InstagramIcon,
+  TikTokIcon,
+} from "@/components/shared/social-icons";
 import { ROUTES } from "@/lib/constants/routes";
-
-function FacebookIcon({
-  className,
-}: {
-  className?: string;
-}) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-    </svg>
-  );
-}
-
-function TikTokIcon({
-  className,
-}: {
-  className?: string;
-}) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-    </svg>
-  );
-}
-
-function InstagramIcon({
-  className,
-}: {
-  className?: string;
-}) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <rect x="2" y="2" width="20" height="20" rx="5" />
-
-      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-
-      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-    </svg>
-  );
-}
+import { SITE_EMAIL, SITE_SOCIAL_LINKS } from "@/lib/constants/socials";
 
 const navLinks = [
   { href: ROUTES.HOME, label: "Home" },
@@ -97,17 +37,17 @@ const policyLinks = [
 
 const socialLinks = [
   {
-    href: "#",
+    href: SITE_SOCIAL_LINKS.instagram,
     label: "Instagram",
     Icon: InstagramIcon,
   },
   {
-    href: "#",
+    href: SITE_SOCIAL_LINKS.facebook,
     label: "Facebook",
     Icon: FacebookIcon,
   },
   {
-    href: "#",
+    href: SITE_SOCIAL_LINKS.tiktok,
     label: "TikTok",
     Icon: TikTokIcon,
   },
@@ -178,12 +118,28 @@ export function Footer() {
               confidence, and transformation.
             </p>
 
+            <a
+              href={`mailto:${SITE_EMAIL}`}
+              className={cn(
+                "mt-4 inline-flex items-center gap-2",
+                "font-sans text-sm text-muted-foreground",
+                "transition-colors duration-300",
+                "hover:text-primary"
+              )}
+            >
+              <Mail className="h-4 w-4" strokeWidth={1.5} />
+
+              {SITE_EMAIL}
+            </a>
+
             {/* SOCIAL */}
             <div className="mt-8 flex items-center gap-3">
               {socialLinks.map((social) => (
                 <Link
                   key={social.label}
                   href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label={social.label}
                   className={cn(
                     "group flex h-11 w-11 items-center justify-center",

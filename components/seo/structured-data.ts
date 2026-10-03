@@ -1,3 +1,5 @@
+import { SITE_EMAIL, SITE_SOCIAL_LINKS } from "@/lib/constants/socials";
+
 type Schema = Record<string, unknown>;
 
 export function organizationSchema(baseUrl: string): Schema {
@@ -8,15 +10,15 @@ export function organizationSchema(baseUrl: string): Schema {
     url: baseUrl,
     logo: `${baseUrl}/logo.svg`,
     sameAs: [
-      "https://instagram.com/lilywaistline",
-      "https://facebook.com/lilywaistline",
-      "https://pinterest.com/lilywaistline",
+      SITE_SOCIAL_LINKS.instagram,
+      SITE_SOCIAL_LINKS.facebook,
+      SITE_SOCIAL_LINKS.tiktok,
     ],
     contactPoint: [
       {
         "@type": "ContactPoint",
         contactType: "customer service",
-        email: "support@lilywaistline.com",
+        email: SITE_EMAIL,
       },
     ],
   };
