@@ -64,24 +64,6 @@ export function useLogoutAccount() {
   })
 }
 
-export function useDeleteAccount() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async (formData: FormData) => {
-      const { deleteAccount } = await import('@/server/actions/account')
-      const result = await deleteAccount(formData)
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to delete account')
-      }
-      return result
-    },
-    onSuccess: () => {
-      queryClient.clear()
-    },
-  })
-}
-
 export function useUploadAvatar() {
   const queryClient = useQueryClient()
 

@@ -1,5 +1,5 @@
 export { useAccountProfile, useAccountStats } from "./use-account"
-export { useChangePassword, useDeleteAccount, useDeleteAvatar, useLogoutAccount, useResendVerificationEmail, useUpdateProfile, useUploadAvatar } from "./use-account-mutations"
+export { useChangePassword, useDeleteAvatar, useLogoutAccount, useResendVerificationEmail, useUpdateProfile, useUploadAvatar } from "./use-account-mutations"
 export { useAddresses } from "./use-addresses"
 export { useForgotPassword, useLogin, useLogout, useResendVerification, useResetPassword, useSignup } from "./use-auth-mutations"
 export { useCart } from "./use-cart"

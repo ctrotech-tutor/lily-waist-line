@@ -2,20 +2,16 @@
 
 import { getCurrentUser } from '@/lib/auth/guards'
 import prisma from '@/lib/prisma'
-import { releaseOrderInventory } from '@/lib/services/inventory-reservations'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { isLoginEmailUnchanged, updateProfileSchema } from '@/lib/validators/account/update-profile'
+import { getAccountDeletionResult } from '@/lib/services/account/deletion-policy'
 
 // Validation schemas
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
   newPassword: z.string().min(8, 'Password must be at least 8 characters'),
-})
-
-const deleteAccountSchema = z.object({
-  password: z.string().min(1, 'Password is required'),
 })
 
 /**
@@ -184,99 +180,17 @@ export async function resendVerificationEmail() {
 }
 
 /**
- * Delete user account
- * Requires password confirmation and ownership validation
+ * Self-service deletion stays fail-closed until Auth deletion and financial-record
+ * retention are coordinated. Never cascade order history and then report success
+ * when the Supabase Auth deletion may have failed.
  */
-export async function deleteAccount(formData: FormData) {
+export async function deleteAccount() {
   try {
     const user = await getCurrentUser()
-    if (!user) {
-      return { success: false, error: 'Unauthorized' }
-    }
-
-    const data = {
-      password: formData.get('password') as string,
-    }
-
-    const validatedData = deleteAccountSchema.parse(data)
-
-    const { createClient } = await import('@/lib/supabase/server')
-    const supabase = await createClient()
-
-    // Verify password
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email,
-      password: validatedData.password,
-    })
-
-    if (signInError) {
-      return { success: false, error: 'Password is incorrect' }
-    }
-
-    const deletion = await prisma.$transaction(async (tx) => {
-      // Checkout takes a shared lock on this row; the exclusive lock prevents a
-      // new order from being created between this check and the cascade delete.
-      const lockedUser = await tx.$queryRaw<Array<{ id: string }>>`
-        SELECT "id" FROM "User" WHERE "id" = ${user.id} FOR UPDATE
-      `
-      if (lockedUser.length === 0) return { deleted: false, reason: 'NOT_FOUND' as const }
-
-      const activeOrders = await tx.order.count({
-        where: {
-          userId: user.id,
-          fulfillmentStatus: { not: 'DELIVERED' },
-          paymentStatus: 'PAID',
-        },
-      })
-      if (activeOrders > 0) return { deleted: false, reason: 'ACTIVE_ORDERS' as const }
-
-      const outstandingReservations = await tx.order.findMany({
-        where: {
-          userId: user.id,
-          inventoryReservedAt: { not: null },
-          inventoryCommittedAt: null,
-          inventoryReleasedAt: null,
-        },
-        select: { id: true },
-      })
-      for (const order of outstandingReservations) {
-        await releaseOrderInventory(tx, order.id)
-      }
-
-      await tx.user.delete({ where: { id: user.id } })
-      return { deleted: true as const }
-    })
-
-    if (!deletion.deleted) {
-      if (deletion.reason === 'ACTIVE_ORDERS') {
-        return {
-          success: false,
-          error: 'Cannot delete account with active orders. Please complete or cancel your orders first.',
-        }
-      }
-      return { success: false, error: 'Account not found' }
-    }
-
-    // Delete user from Supabase Auth
-    const { error: deleteError } = await supabase.auth.admin.deleteUser(
-      user.id
-    )
-
-    if (deleteError) {
-      console.error('Error deleting Supabase user:', deleteError)
-      // Continue even if Supabase deletion fails - Prisma data is deleted
-    }
-
-    // Sign out user
-    await supabase.auth.signOut()
-
-    return { success: true }
+    return getAccountDeletionResult(Boolean(user))
   } catch (error) {
-    console.error('Error deleting account:', error)
-    if (error instanceof z.ZodError) {
-      return { success: false, error: error.issues[0].message }
-    }
-    return { success: false, error: 'Failed to delete account' }
+    console.error('Error preparing account deletion request:', error)
+    return { success: false, error: 'Unable to process the deletion request. Please contact support.' }
   }
 }
 
