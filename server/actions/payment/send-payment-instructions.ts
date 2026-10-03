@@ -46,11 +46,7 @@ export async function sendPaymentInstructions(input: z.infer<typeof sendPaymentI
         orderItems: {
           select: {
             quantity: true,
-            product: {
-              select: {
-                name: true
-              }
-            }
+            productNameSnapshot: true,
           }
         }
       }
@@ -91,7 +87,7 @@ export async function sendPaymentInstructions(input: z.infer<typeof sendPaymentI
       paymentLabel,
       amount: amountFormatted,
       items: order.orderItems.map(item => ({
-        name: item.product.name,
+        name: item.productNameSnapshot,
         quantity: item.quantity,
       }))
     }

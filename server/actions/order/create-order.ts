@@ -9,6 +9,7 @@ import { releaseExpiredInventoryReservations } from '@/lib/services/inventory-re
 import { createReservationExpiry } from '@/lib/services/reservation-policy'
 import { getPaymentDestination, isPaymentMethodAllowedForCountry } from '@/lib/services/payment-policy'
 import { formatOrderNumber } from '@/lib/utils/order'
+import { createOrderItemSnapshot, createShippingAddressSnapshot } from '@/lib/services/order-snapshots'
 
 const createOrderSchema = z.object({
   addressId: z.string().min(1, 'Address ID is required'),
@@ -97,6 +98,10 @@ export async function createOrder(formData: {
               stockQuantity: true,
               productId: true,
               price: true,
+              size: true,
+              compressionLevel: true,
+              color: true,
+              sku: true,
               product: {
                 select: {
                   name: true,
@@ -223,12 +228,14 @@ export async function createOrder(formData: {
       const orderId = crypto.randomUUID()
       const orderNumber = formatOrderNumber(orderId)
 
+      const shippingSnapshot = createShippingAddressSnapshot(address)
       const order = await tx.order.create({
         data: {
           id: orderId,
           idempotencyKey: validatedData.idempotencyKey,
           userId: user.id,
           addressId: validatedData.addressId,
+          ...shippingSnapshot,
           subtotal,
           shippingFee,
           total,
@@ -250,21 +257,11 @@ export async function createOrder(formData: {
               orderId: order.id,
               productId: item.variant.productId,
               variantId: item.variantId,
+              ...createOrderItemSnapshot(item.variant.product.name, item.variant),
               quantity: item.quantity,
               unitPrice: item.variant.price === null
                 ? currentBasePrices.get(item.variant.productId)!
                 : item.variant.price,
-            },
-            include: {
-              product: { select: { name: true } },
-              variant: {
-                select: {
-                  size: true,
-                  compressionLevel: true,
-                  color: true,
-                  sku: true,
-                },
-              },
             },
           }),
         ),
@@ -284,7 +281,6 @@ export async function createOrder(formData: {
           ...item,
           unitPrice: Number(item.unitPrice),
         })),
-        address,
       }
     })
 
@@ -310,24 +306,24 @@ export async function createOrder(formData: {
 
     try {
       const emailItems = result.orderItems.map((item) => ({
-        name: item.product.name,
+        name: item.productNameSnapshot,
         quantity: item.quantity,
         price: `$${Number(item.unitPrice).toFixed(2)}`,
-        size: item.variant.size,
-        compression: item.variant.compressionLevel,
+        size: item.variantSizeSnapshot,
+        compression: item.variantCompressionLevelSnapshot,
       }))
 
       const shippingAddress = {
-        name: `${result.address.firstName} ${result.address.lastName}`,
-        address: `${result.address.addressLine1}${result.address.addressLine2 ? ', ' + result.address.addressLine2 : ''}`,
-        city: result.address.city,
-        state: result.address.state,
-        country: result.address.country,
-        postalCode: result.address.postalCode,
+        name: `${result.order.shippingFirstName} ${result.order.shippingLastName}`,
+        address: `${result.order.shippingAddressLine1}${result.order.shippingAddressLine2 ? ', ' + result.order.shippingAddressLine2 : ''}`,
+        city: result.order.shippingCity,
+        state: result.order.shippingState,
+        country: result.order.shippingCountry,
+        postalCode: result.order.shippingPostalCode,
       }
 
       await sendOrderConfirmationEmail(
-        result.address.firstName,
+        result.order.shippingFirstName,
         user.email || '',
         result.order.orderNumber,
         emailItems,
@@ -353,25 +349,25 @@ export async function createOrder(formData: {
         reservationExpiresAt: result.order.reservationExpiresAt,
         items: result.orderItems.map((item) => ({
           id: item.id,
-          productName: item.product.name,
-          size: item.variant.size,
-          compressionLevel: item.variant.compressionLevel,
-          color: item.variant.color,
-          sku: item.variant.sku,
+          productName: item.productNameSnapshot,
+          size: item.variantSizeSnapshot,
+          compressionLevel: item.variantCompressionLevelSnapshot,
+          color: item.variantColorSnapshot,
+          sku: item.variantSkuSnapshot,
           quantity: item.quantity,
           unitPrice: Number(item.unitPrice),
           totalPrice: Number(item.unitPrice) * item.quantity,
         })),
         shippingAddress: {
-          fullName: `${result.address.firstName} ${result.address.lastName}`,
-          company: result.address.company,
-          addressLine1: result.address.addressLine1,
-          addressLine2: result.address.addressLine2,
-          city: result.address.city,
-          state: result.address.state,
-          postalCode: result.address.postalCode,
-          country: result.address.country,
-          phone: result.address.phone,
+          fullName: `${result.order.shippingFirstName} ${result.order.shippingLastName}`,
+          company: result.order.shippingCompany,
+          addressLine1: result.order.shippingAddressLine1,
+          addressLine2: result.order.shippingAddressLine2,
+          city: result.order.shippingCity,
+          state: result.order.shippingState,
+          postalCode: result.order.shippingPostalCode,
+          country: result.order.shippingCountry,
+          phone: result.order.shippingPhone,
         },
         subtotal: Number(result.order.subtotal),
         shippingFee: Number(result.order.shippingFee),

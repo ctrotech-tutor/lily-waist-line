@@ -159,22 +159,22 @@ export async function updateFulfillmentStatus(input: z.infer<typeof updateFulfil
             where: { orderId },
             select: {
               quantity: true,
-              product: { select: { name: true } }
+              productNameSnapshot: true
             }
           })
           sendOrderProcessingEmail(firstName, userData.email, orderNumber,
-            items.map(i => ({ name: i.product?.name || 'Product', quantity: i.quantity }))
+            items.map(i => ({ name: i.productNameSnapshot || 'Product', quantity: i.quantity }))
           )
         } else if (newStatus === 'SHIPPED') {
           const items = await prisma.orderItem.findMany({
             where: { orderId },
             select: {
               quantity: true,
-              product: { select: { name: true } }
+              productNameSnapshot: true
             }
           })
           sendOrderShippedEmail(firstName, userData.email, orderNumber,
-            items.map(i => ({ name: i.product?.name || 'Product', quantity: i.quantity }))
+            items.map(i => ({ name: i.productNameSnapshot || 'Product', quantity: i.quantity }))
           )
         } else if (newStatus === 'DELIVERED') {
           sendOrderDeliveredEmail(firstName, userData.email, orderNumber)

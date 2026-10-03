@@ -44,7 +44,7 @@ export async function addTrackingNumber(input: z.infer<typeof addTrackingNumberS
           orderItems: {
             select: {
               quantity: true,
-              product: { select: { name: true } }
+              productNameSnapshot: true
             }
           }
         }
@@ -109,7 +109,7 @@ export async function addTrackingNumber(input: z.infer<typeof addTrackingNumberS
         const estimatedDelivery = '3-5 business days'
 
         const emailItems = result.order.orderItems.map(item => ({
-          name: item.product?.name || 'Product',
+          name: item.productNameSnapshot || 'Product',
           quantity: item.quantity,
         }))
 

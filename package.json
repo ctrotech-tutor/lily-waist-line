@@ -23,7 +23,8 @@
     "test:products": "tsx --test tests/products/product-pricing.test.ts",
     "test:email": "tsx --test tests/email/email-delivery.test.ts",
     "test:account": "tsx --test tests/account/profile-policy.test.ts tests/account/account-deletion-policy.test.ts",
-    "test": "npm run test:inventory && npm run test:payment && npm run test:products && npm run test:email && npm run test:account"
+    "test:orders": "tsx --test tests/orders/order-snapshots.test.ts",
+    "test": "npm run test:inventory && npm run test:payment && npm run test:products && npm run test:email && npm run test:account && npm run test:orders"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

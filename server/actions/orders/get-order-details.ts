@@ -58,19 +58,28 @@ export async function getOrderDetails(orderId: string) {
         reservationExpiresAt: true,
         inventoryReservedAt: true,
         inventoryReleasedAt: true,
-        address: {
-          select: {
-            id: true, firstName: true, lastName: true, company: true,
-            addressLine1: true, addressLine2: true, city: true, state: true,
-            postalCode: true, country: true, phone: true,
-          },
-        },
+        addressId: true,
+        shippingFirstName: true,
+        shippingLastName: true,
+        shippingCompany: true,
+        shippingAddressLine1: true,
+        shippingAddressLine2: true,
+        shippingCity: true,
+        shippingState: true,
+        shippingPostalCode: true,
+        shippingCountry: true,
+        shippingPhone: true,
         orderItems: {
           select: {
             id: true, quantity: true, unitPrice: true,
+            productNameSnapshot: true,
+            variantSizeSnapshot: true,
+            variantCompressionLevelSnapshot: true,
+            variantColorSnapshot: true,
+            variantSkuSnapshot: true,
             product: {
               select: {
-                id: true, name: true, slug: true,
+                id: true, slug: true,
                 images: {
                   where: { imageType: 'main' },
                   orderBy: { sortOrder: 'asc' },
@@ -80,9 +89,7 @@ export async function getOrderDetails(orderId: string) {
               },
             },
             variant: {
-              select: {
-                id: true, size: true, compressionLevel: true, color: true, sku: true,
-              },
+              select: { id: true },
             },
           },
         },
@@ -126,17 +133,17 @@ export async function getOrderDetails(orderId: string) {
       hasInventoryReservation: Boolean(order.inventoryReservedAt && !order.inventoryReleasedAt),
       // Address snapshot (immutable)
       shippingAddress: {
-        id: order.address.id,
-        firstName: order.address.firstName,
-        lastName: order.address.lastName,
-        company: order.address.company,
-        addressLine1: order.address.addressLine1,
-        addressLine2: order.address.addressLine2,
-        city: order.address.city,
-        state: order.address.state,
-        postalCode: order.address.postalCode,
-        country: order.address.country,
-        phone: order.address.phone
+        id: order.addressId,
+        firstName: order.shippingFirstName,
+        lastName: order.shippingLastName,
+        company: order.shippingCompany,
+        addressLine1: order.shippingAddressLine1,
+        addressLine2: order.shippingAddressLine2,
+        city: order.shippingCity,
+        state: order.shippingState,
+        postalCode: order.shippingPostalCode,
+        country: order.shippingCountry,
+        phone: order.shippingPhone
       },
       // Order items with product snapshots
       items: order.orderItems.map(item => ({
@@ -146,16 +153,16 @@ export async function getOrderDetails(orderId: string) {
         totalPrice: item.unitPrice.mul(item.quantity).toNumber(),
         product: {
           id: item.product.id,
-          name: item.product.name,
+          name: item.productNameSnapshot,
           slug: item.product.slug,
           image: item.product.images[0] || null
         },
         variant: {
           id: item.variant.id,
-          size: item.variant.size,
-          compressionLevel: item.variant.compressionLevel,
-          color: item.variant.color,
-          sku: item.variant.sku
+          size: item.variantSizeSnapshot,
+          compressionLevel: item.variantCompressionLevelSnapshot,
+          color: item.variantColorSnapshot,
+          sku: item.variantSkuSnapshot
         }
       })),
       // Payment proof information

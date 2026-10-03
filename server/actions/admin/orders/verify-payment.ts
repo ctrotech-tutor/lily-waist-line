@@ -51,7 +51,7 @@ export async function verifyPayment(input: VerifyPaymentInput) {
               quantity: true,
               variantId: true,
               unitPrice: true,
-              product: { select: { name: true } },
+              productNameSnapshot: true,
             },
           },
         },
@@ -88,7 +88,7 @@ export async function verifyPayment(input: VerifyPaymentInput) {
             data: { stockQuantity: { decrement: item.quantity } },
           })
           if (reservation.count !== 1) {
-            throw new Error(`Cannot approve this legacy order: insufficient stock for ${item.product.name}`)
+            throw new Error(`Cannot approve this legacy order: insufficient stock for ${item.productNameSnapshot}`)
           }
         }
       }
@@ -149,7 +149,7 @@ export async function verifyPayment(input: VerifyPaymentInput) {
           const paymentMethod = result.order.paymentMethod === 'CASH_APP' ? 'Cash App' : 'PayPal'
           const amount = `$${Number(result.order.total).toFixed(2)}`
           const emailItems = result.order.orderItems.map((item) => ({
-            name: item.product?.name || 'Product',
+            name: item.productNameSnapshot || 'Product',
             quantity: item.quantity,
           }))
 
@@ -179,7 +179,7 @@ export async function verifyPayment(input: VerifyPaymentInput) {
           const paymentMethod = result.order.paymentMethod === 'CASH_APP' ? 'Cash App' : 'PayPal'
           const amount = `$${Number(result.order.total).toFixed(2)}`
           const emailItems = result.order.orderItems.map((item) => ({
-            name: item.product?.name || 'Product',
+            name: item.productNameSnapshot || 'Product',
             quantity: item.quantity,
           }))
 

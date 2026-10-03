@@ -212,6 +212,16 @@ model Order {
   idempotencyKey       String?           @unique(map: "Order_idempotencyKey_key")
   userId               String
   addressId            String
+  shippingFirstName    String
+  shippingLastName     String
+  shippingCompany      String?
+  shippingAddressLine1 String
+  shippingAddressLine2 String?
+  shippingCity         String
+  shippingState        String
+  shippingPostalCode   String
+  shippingCountry      String
+  shippingPhone        String?
   subtotal             Decimal
   shippingFee          Decimal           @default(0)
   total                Decimal
@@ -245,12 +255,17 @@ model Order {
 }
 
 model OrderItem {
-  id        String  @id @default(uuid()) // Keep UUID for order items
-  orderId   String
-  productId String
-  variantId String
-  quantity  Int
-  unitPrice Decimal
+  id                              String  @id @default(uuid()) // Keep UUID for order items
+  orderId                         String
+  productId                       String
+  variantId                       String
+  productNameSnapshot             String
+  variantSizeSnapshot             String
+  variantCompressionLevelSnapshot String
+  variantColorSnapshot            String?
+  variantSkuSnapshot              String
+  quantity                        Int
+  unitPrice                       Decimal
 
   // Relations
   order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)

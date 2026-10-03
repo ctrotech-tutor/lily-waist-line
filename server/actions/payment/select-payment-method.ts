@@ -37,7 +37,7 @@ export async function selectPaymentMethod(input: SelectPaymentMethodInput) {
           inventoryCommittedAt: true,
           inventoryReleasedAt: true,
           paymentProofs: { select: { id: true }, take: 1 },
-          address: { select: { country: true } },
+          shippingCountry: true,
         },
       })
 
@@ -50,7 +50,7 @@ export async function selectPaymentMethod(input: SelectPaymentMethodInput) {
         throw new Error('Payment method cannot be changed after payment proof submission or order closure')
       }
 
-      if (!isPaymentMethodAllowedForCountry(order.address.country, validatedData.paymentMethod)) {
+      if (!isPaymentMethodAllowedForCountry(order.shippingCountry, validatedData.paymentMethod)) {
         throw new Error(validatedData.paymentMethod === 'CASH_APP'
           ? 'Cash App is only available for U.S. shipping addresses'
           : 'PayPal is only available for non-U.S. shipping addresses')

@@ -30,9 +30,18 @@ export async function exportStoreData() {
       }),
       prisma.order.findMany({
         select: {
-          id: true, userId: true, addressId: true, total: true, subtotal: true, shippingFee: true, paymentStatus: true, fulfillmentStatus: true, paymentMethod: true, createdAt: true, updatedAt: true,
+          id: true, userId: true, addressId: true,
+          shippingFirstName: true, shippingLastName: true, shippingCompany: true,
+          shippingAddressLine1: true, shippingAddressLine2: true, shippingCity: true,
+          shippingState: true, shippingPostalCode: true, shippingCountry: true, shippingPhone: true,
+          total: true, subtotal: true, shippingFee: true, paymentStatus: true, fulfillmentStatus: true, paymentMethod: true, createdAt: true, updatedAt: true,
           orderItems: {
-            select: { id: true, orderId: true, productId: true, variantId: true, quantity: true, unitPrice: true },
+            select: {
+              id: true, orderId: true, productId: true, variantId: true,
+              productNameSnapshot: true, variantSizeSnapshot: true,
+              variantCompressionLevelSnapshot: true, variantColorSnapshot: true, variantSkuSnapshot: true,
+              quantity: true, unitPrice: true,
+            },
           },
           paymentProofs: {
             select: { id: true, orderId: true, imageUrl: true, status: true, uploadedAt: true },

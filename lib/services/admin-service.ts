@@ -30,6 +30,7 @@ export type AdminOrderSerializable = {
   address: {
     firstName: string
     lastName: string
+    company?: string | null
     addressLine1: string
     addressLine2?: string | null
     city: string
@@ -161,6 +162,16 @@ export class AdminService {
           fulfillmentStatus: true,
           createdAt: true,
           updatedAt: true,
+          shippingFirstName: true,
+          shippingLastName: true,
+          shippingCompany: true,
+          shippingAddressLine1: true,
+          shippingAddressLine2: true,
+          shippingCity: true,
+          shippingState: true,
+          shippingPostalCode: true,
+          shippingCountry: true,
+          shippingPhone: true,
           user: {
             select: {
               id: true,
@@ -168,39 +179,22 @@ export class AdminService {
               fullName: true
             }
           },
-          address: {
-            select: {
-              firstName: true,
-              lastName: true,
-              addressLine1: true,
-              addressLine2: true,
-              city: true,
-              state: true,
-              country: true,
-              postalCode: true,
-              phone: true
-            }
-          },
           orderItems: {
             select: {
               quantity: true,
               unitPrice: true,
+              productNameSnapshot: true,
+              variantSizeSnapshot: true,
+              variantCompressionLevelSnapshot: true,
+              variantSkuSnapshot: true,
               product: {
                 select: {
-                  name: true,
                   slug: true,
                   images: {
                     where: { imageType: 'main' },
                     take: 1,
                     select: { url: true }
                   }
-                }
-              },
-              variant: {
-                select: {
-                  size: true,
-                  compressionLevel: true,
-                  sku: true
                 }
               }
             },
@@ -239,15 +233,45 @@ export class AdminService {
     const hasNextPage = page < totalPages
     const hasPreviousPage = page > 1
 
-    const serializedOrders: AdminOrderSerializable[] = orders.map(order => ({
+    const serializedOrders: AdminOrderSerializable[] = orders.map(({
+      shippingFirstName,
+      shippingLastName,
+      shippingCompany,
+      shippingAddressLine1,
+      shippingAddressLine2,
+      shippingCity,
+      shippingState,
+      shippingPostalCode,
+      shippingCountry,
+      shippingPhone,
+      ...order
+    }) => ({
       ...order,
       subtotal: order.subtotal.toNumber(),
       shippingFee: order.shippingFee.toNumber(),
       total: order.total.toNumber(),
-      orderItems: order.orderItems.map(item => ({
+      address: {
+        firstName: shippingFirstName,
+        lastName: shippingLastName,
+        company: shippingCompany,
+        addressLine1: shippingAddressLine1,
+        addressLine2: shippingAddressLine2,
+        city: shippingCity,
+        state: shippingState,
+        country: shippingCountry,
+        postalCode: shippingPostalCode,
+        phone: shippingPhone,
+      },
+      orderItems: order.orderItems.map(({ productNameSnapshot, variantSizeSnapshot, variantCompressionLevelSnapshot, variantSkuSnapshot, ...item }) => ({
         ...item,
-        unitPrice: item.unitPrice.toNumber()
-      }))
+        unitPrice: item.unitPrice.toNumber(),
+        product: { ...item.product, name: productNameSnapshot },
+        variant: {
+          size: variantSizeSnapshot,
+          compressionLevel: variantCompressionLevelSnapshot,
+          sku: variantSkuSnapshot,
+        },
+      })),
     }))
 
     return {
@@ -458,6 +482,16 @@ export class AdminService {
         fulfillmentStatus: true,
         createdAt: true,
         updatedAt: true,
+        shippingFirstName: true,
+        shippingLastName: true,
+        shippingCompany: true,
+        shippingAddressLine1: true,
+        shippingAddressLine2: true,
+        shippingCity: true,
+        shippingState: true,
+        shippingPostalCode: true,
+        shippingCountry: true,
+        shippingPhone: true,
         user: {
           select: {
             id: true,
@@ -466,40 +500,23 @@ export class AdminService {
             phone: true
           }
         },
-        address: {
-          select: {
-            firstName: true,
-            lastName: true,
-            addressLine1: true,
-            addressLine2: true,
-            city: true,
-            state: true,
-            country: true,
-            postalCode: true,
-            phone: true
-          }
-        },
         orderItems: {
           select: {
             id: true,
             quantity: true,
             unitPrice: true,
+            productNameSnapshot: true,
+            variantSizeSnapshot: true,
+            variantCompressionLevelSnapshot: true,
+            variantSkuSnapshot: true,
             product: {
               select: {
-                name: true,
                 slug: true,
                 images: {
                   where: { imageType: 'main' },
                   take: 1,
                   select: { url: true }
                 }
-              }
-            },
-            variant: {
-              select: {
-                size: true,
-                compressionLevel: true,
-                sku: true
               }
             }
           }
@@ -531,15 +548,47 @@ export class AdminService {
 
     if (!order) return null
 
+    const {
+      shippingFirstName,
+      shippingLastName,
+      shippingCompany,
+      shippingAddressLine1,
+      shippingAddressLine2,
+      shippingCity,
+      shippingState,
+      shippingPostalCode,
+      shippingCountry,
+      shippingPhone,
+      ...orderData
+    } = order
+
     return {
-      ...order,
+      ...orderData,
       subtotal: order.subtotal.toNumber(),
       shippingFee: order.shippingFee.toNumber(),
       total: order.total.toNumber(),
-      orderItems: order.orderItems.map(item => ({
+      address: {
+        firstName: shippingFirstName,
+        lastName: shippingLastName,
+        company: shippingCompany,
+        addressLine1: shippingAddressLine1,
+        addressLine2: shippingAddressLine2,
+        city: shippingCity,
+        state: shippingState,
+        country: shippingCountry,
+        postalCode: shippingPostalCode,
+        phone: shippingPhone,
+      },
+      orderItems: order.orderItems.map(({ productNameSnapshot, variantSizeSnapshot, variantCompressionLevelSnapshot, variantSkuSnapshot, ...item }) => ({
         ...item,
-        unitPrice: item.unitPrice.toNumber()
-      }))
+        unitPrice: item.unitPrice.toNumber(),
+        product: { ...item.product, name: productNameSnapshot },
+        variant: {
+          size: variantSizeSnapshot,
+          compressionLevel: variantCompressionLevelSnapshot,
+          sku: variantSkuSnapshot,
+        },
+      })),
     }
   }
 

@@ -53,10 +53,13 @@ export async function getUserOrders(params?: {
               id: true,
               quantity: true,
               unitPrice: true,
+              productNameSnapshot: true,
+              variantSizeSnapshot: true,
+              variantCompressionLevelSnapshot: true,
+              variantColorSnapshot: true,
               product: {
                 select: {
                   id: true,
-                  name: true,
                   slug: true,
                   images: {
                     where: { imageType: 'main' },
@@ -65,15 +68,6 @@ export async function getUserOrders(params?: {
                   }
                 }
               },
-              variant: {
-                select: {
-                  id: true,
-                  size: true,
-                  compressionLevel: true,
-                  color: true,
-                  sku: true
-                }
-              }
             }
           },
           paymentProofs: {
@@ -140,14 +134,14 @@ export async function getUserOrders(params?: {
           unitPrice: order.orderItems[0].unitPrice.toNumber(),
           product: {
             id: order.orderItems[0].product.id,
-            name: order.orderItems[0].product.name,
+            name: order.orderItems[0].productNameSnapshot,
             slug: order.orderItems[0].product.slug,
             image: order.orderItems[0].product.images[0] || null
           },
           variant: {
-            size: order.orderItems[0].variant.size,
-            compressionLevel: order.orderItems[0].variant.compressionLevel,
-            color: order.orderItems[0].variant.color
+            size: order.orderItems[0].variantSizeSnapshot,
+            compressionLevel: order.orderItems[0].variantCompressionLevelSnapshot,
+            color: order.orderItems[0].variantColorSnapshot
           }
         } : null
       }
