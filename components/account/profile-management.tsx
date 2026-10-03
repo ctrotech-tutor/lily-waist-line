@@ -23,7 +23,6 @@ export function ProfileManagement({
   initialPhone,
 }: ProfileManagementProps) {
   const [fullName, setFullName] = useState(initialFullName)
-  const [email, setEmail] = useState(initialEmail)
   const [phone, setPhone] = useState(initialPhone)
 
   const updateProfileMutation = useUpdateProfile()
@@ -33,7 +32,7 @@ export function ProfileManagement({
 
     const formData = new FormData()
     formData.append('fullName', fullName)
-    formData.append('email', email)
+    formData.append('email', initialEmail)
     formData.append('phone', phone)
 
     updateProfileMutation.mutate(formData, {
@@ -48,7 +47,6 @@ export function ProfileManagement({
 
   const hasChanges =
     fullName !== initialFullName ||
-    email !== initialEmail ||
     phone !== initialPhone
 
   return (
@@ -84,10 +82,13 @@ export function ProfileManagement({
               <Input
                 id="email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                value={initialEmail}
+                readOnly
+                aria-describedby="email-change-help"
               />
+              <p id="email-change-help" className="text-xs text-muted-foreground">
+                Login email changes require verification. Contact support to request a change.
+              </p>
             </div>
 
             <div className="space-y-2">

@@ -5,13 +5,9 @@ import prisma from '@/lib/prisma'
 import { releaseOrderInventory } from '@/lib/services/inventory-reservations'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { isLoginEmailUnchanged, updateProfileSchema } from '@/lib/validators/account/update-profile'
 
 // Validation schemas
-const updateProfileSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().optional(),
-})
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
@@ -32,39 +28,27 @@ export async function updateProfile(formData: FormData) {
       return { success: false, error: 'Unauthorized' }
     }
 
-    const data = {
-      fullName: formData.get('fullName') as string,
-      email: formData.get('email') as string,
-      phone: formData.get('phone') as string | null,
-    }
+    const validatedData = updateProfileSchema.parse({
+      fullName: formData.get('fullName'),
+      email: formData.get('email'),
+      phone: formData.get('phone') ?? '',
+    })
 
-    const validatedData = updateProfileSchema.parse(data)
-
-    // Check if email is being changed and if it's already taken
-    if (validatedData.email !== user.email) {
-      const existingUser = await prisma.user.findUnique({
-        where: { email: validatedData.email }
-      })
-      if (existingUser) {
-        return { success: false, error: 'Email already in use' }
+    if (!isLoginEmailUnchanged(user.email, validatedData.email)) {
+      return {
+        success: false,
+        error: 'Login email changes require a verified auth flow. Contact support; your login email was not changed.',
       }
     }
 
-    // Update user in Prisma
+    // Email stays unchanged until the auth provider has confirmed a dedicated email-change flow.
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         fullName: validatedData.fullName,
-        email: validatedData.email,
+        phone: validatedData.phone || null,
       }
     })
-
-    // Note: Email change in Supabase Auth would require additional flow
-    // For now, we only update the Prisma record
-    // In a full implementation, you would:
-    // 1. Send verification email to new email
-    // 2. Update Supabase auth email
-    // 3. Sync with Prisma
 
     revalidatePath('/account')
 
@@ -74,6 +58,7 @@ export async function updateProfile(formData: FormData) {
         id: updatedUser.id,
         email: updatedUser.email,
         fullName: updatedUser.fullName,
+        phone: updatedUser.phone,
       }
     }
   } catch (error) {
