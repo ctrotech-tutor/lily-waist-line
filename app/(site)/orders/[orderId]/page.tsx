@@ -12,6 +12,21 @@ import {
 } from "@/components/orders";
 import { useOrder } from "@/hooks/use-orders";
 
+type OrderDetailsItem = {
+  id: string;
+  product: {
+    name: string;
+    image: { url: string } | null;
+  };
+  variant: {
+    size: string;
+    compressionLevel: string;
+  };
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+};
+
 function OrderDetailsSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
@@ -69,7 +84,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
     );
   }
 
-  const items: OrderItemData[] = order.items.map((item) => ({
+  const items: OrderItemData[] = order.items.map((item: OrderDetailsItem) => ({
     id: item.id,
     productName: item.product.name,
     productImage: item.product.image?.url || null,
