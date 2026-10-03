@@ -99,8 +99,8 @@ export async function sendPaymentInstructions(input: z.infer<typeof sendPaymentI
     // Import email trigger function
     const { sendPaymentInstructionsEmail } = await import('@/lib/services/email/email-triggers')
 
-    // Send email
-    await sendPaymentInstructionsEmail(
+    // Report the transport result instead of claiming success after a failed attempt.
+    const delivery = await sendPaymentInstructionsEmail(
       emailData.firstName,
       emailData.email,
       emailData.orderNumber,
@@ -112,9 +112,17 @@ export async function sendPaymentInstructions(input: z.infer<typeof sendPaymentI
       emailData.items
     )
 
+    if (!delivery.success) {
+      return {
+        success: false,
+        message: 'We could not email the instructions. Payment details remain visible on this page; use them or try again later.',
+        orderId,
+      }
+    }
+
     return {
       success: true,
-      message: 'Payment instructions sent successfully',
+      message: 'Payment instructions were accepted for delivery to your email.',
       orderId,
     }
 

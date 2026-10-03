@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer'
 import type { Transporter } from 'nodemailer'
 import { getEmailConfig, isEmailConfigured } from '@/lib/config/email'
 import type { EmailMessage, EmailSendResult } from '@/types/email'
+import { sendEmailWithResult } from './email-delivery'
 
 export type { EmailMessage, EmailSendResult }
 
@@ -38,16 +39,12 @@ class EmailService {
     try {
       const transporter = this.getTransporter()
       if (!transporter) {
-        const error = 'Email service not configured'
-        console.error('Email send failed:', error)
-        return { success: false, error }
+        return { success: false, error: 'Email service not configured' }
       }
 
       const config = getEmailConfig()
       if (!config) {
-        const error = 'Email configuration not available'
-        console.error('Email send failed:', error)
-        return { success: false, error }
+        return { success: false, error: 'Email configuration not available' }
       }
 
       const mailOptions = {
@@ -62,9 +59,8 @@ class EmailService {
 
       const result = await transporter.sendMail(mailOptions)
       
-      console.log('Email sent successfully:', {
+      console.info('Email accepted by SMTP transport:', {
         messageId: result.messageId,
-        to: message.to,
         subject: message.subject,
       })
 
@@ -73,16 +69,9 @@ class EmailService {
         messageId: result.messageId,
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      console.error('Email send failed:', {
-        error: errorMessage,
-        to: message.to,
-        subject: message.subject,
-      })
-
       return {
         success: false,
-        error: errorMessage,
+        error: error instanceof Error ? error.message : 'Unknown error',
       }
     }
   }
@@ -101,19 +90,25 @@ class EmailService {
       return false
     }
   }
+
+  closeTransport(): void {
+    this.transporter?.close()
+    this.transporter = null
+  }
 }
 
 // Singleton instance
 export const emailService = new EmailService()
 
-// Helper function for non-blocking email sending
-export const sendEmailAsync = async (message: EmailMessage): Promise<void> => {
-  // Send email in background without blocking the main flow
-  try {
-    await emailService.sendEmail(message)
-  } catch (error) {
-    // Error is already logged in the email service
-    // We don't throw here to avoid breaking business flows
-    console.error('Background email send failed:', error)
+// Kept under its existing name for compatibility; the send outcome is returned
+// so business flows can distinguish a successful SMTP handoff from a failure.
+export const sendEmailAsync = async (message: EmailMessage): Promise<EmailSendResult> => {
+  const result = await sendEmailWithResult(message, (emailMessage) => emailService.sendEmail(emailMessage))
+  if (!result.success) {
+    console.error('Email delivery failed:', {
+      subject: message.subject,
+      error: result.error,
+    })
   }
+  return result
 }

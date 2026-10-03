@@ -73,6 +73,7 @@ export async function signup(formData: SignupFormData) {
     sendWelcomeEmail(validatedData.firstName, validatedData.email)
 
     // Step 4: Send branded verification email with the action_link from generateLink
+    let verificationEmailSent = false
     if (linkData?.properties?.action_link) {
       const [{ getVerificationEmailTemplate }, { getAppUrl }] = await Promise.all([
         import('@/lib/email/templates'),
@@ -85,14 +86,18 @@ export async function signup(formData: SignupFormData) {
         verificationLink: linkData.properties.action_link,
       })
       const { sendEmailAsync } = await import('@/lib/services/email/email-service')
-      await sendEmailAsync({ to: validatedData.email, subject: template.subject, html: template.html, text: template.text })
+      const delivery = await sendEmailAsync({ to: validatedData.email, subject: template.subject, html: template.html, text: template.text })
+      verificationEmailSent = delivery.success
     }
 
     revalidatePath('/')
     
     return {
       success: true,
-      message: 'Account created successfully! Please check your email to verify your account.',
+      emailDeliveryStatus: verificationEmailSent ? 'sent' as const : 'failed' as const,
+      message: verificationEmailSent
+        ? 'Account created. A verification email was accepted for delivery; check your inbox and spam folder.'
+        : 'Account created, but the verification email could not be sent. Use the resend option on the next screen or contact support; do not create another account.',
       requiresEmailVerification: true
     }
 

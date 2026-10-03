@@ -21,14 +21,14 @@ export async function resendVerification(formData: { email: string }) {
 
     const firstName = user ? user.fullName.split(' ')[0] || 'there' : 'there'
 
-    // Send custom verification email with our branded template
-    sendCustomVerificationEmail(firstName, validatedData.email)
+    // Keep the response generic and non-blocking to avoid an account-existence timing signal.
+    void sendCustomVerificationEmail(firstName, validatedData.email)
 
     revalidatePath('/verify-email')
 
     return {
       success: true,
-      message: 'If an account with this email exists, a verification email has been sent.',
+      message: 'If an account exists, verification instructions will be sent when email service is available. Check spam or contact support if nothing arrives.',
     }
 
   } catch (error) {

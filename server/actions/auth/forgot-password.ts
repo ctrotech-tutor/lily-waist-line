@@ -17,14 +17,14 @@ export async function forgotPassword(formData: ForgotPasswordFormData) {
 
     const firstName = user ? user.fullName.split(' ')[0] || 'there' : 'there'
 
-    // Send custom password reset email (non-blocking)
-    sendCustomPasswordResetEmail(firstName, validatedData.email)
+    // Keep the response generic and non-blocking to avoid an account-existence timing signal.
+    void sendCustomPasswordResetEmail(firstName, validatedData.email)
 
     revalidatePath('/forgot-password')
 
     return {
       success: true,
-      message: 'If an account with this email exists, you will receive password reset instructions.',
+      message: 'If an account exists, reset instructions may take a few minutes. Check spam or contact support if they do not arrive.',
     }
 
   } catch (error) {

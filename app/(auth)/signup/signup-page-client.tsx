@@ -55,11 +55,16 @@ export default function SignupPage() {
         agreeToTerms,
       })
 
-      toast.success(result.message || "Account created successfully!")
+      if (result.emailDeliveryStatus === 'failed') {
+        toast.warning(result.message || "Account created, but verification email delivery failed.")
+      } else {
+        toast.success(result.message || "Account created successfully!")
+      }
 
       if (result.requiresEmailVerification) {
         setTimeout(() => {
-          router.replace(`/verify-email?email=${encodeURIComponent(email)}&redirectTo=${encodeURIComponent(redirectTo)}`)
+          const deliveryWarning = result.emailDeliveryStatus === 'failed' ? '&emailDelivery=failed' : ''
+          router.replace(`/verify-email?email=${encodeURIComponent(email)}&redirectTo=${encodeURIComponent(redirectTo)}${deliveryWarning}`)
         }, 1500)
       } else {
         setTimeout(() => {

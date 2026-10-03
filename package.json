@@ -17,10 +17,12 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
+    "email:verify": "tsx lib/services/email/verify-email-config.ts",
     "test:inventory": "tsx --test tests/inventory/stock-allocation.test.ts tests/inventory/reservation-policy.test.ts",
     "test:payment": "tsx --test tests/payment/payment-policy.test.ts tests/payment/payment-template.test.ts",
     "test:products": "tsx --test tests/products/product-pricing.test.ts",
-    "test": "npm run test:inventory && npm run test:payment && npm run test:products"
+    "test:email": "tsx --test tests/email/email-delivery.test.ts",
+    "test": "npm run test:inventory && npm run test:payment && npm run test:products && npm run test:email"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

@@ -26,6 +26,7 @@ export default function VerifyEmailPage() {
   const redirectTo = searchParams.get("redirectTo") || "/"
   const emailParam = searchParams.get("email") || ""
   const verified = searchParams.get("verified") === "true"
+  const emailDeliveryFailed = searchParams.get("emailDelivery") === "failed"
 
   const [email, setEmail] = React.useState(emailParam)
 
@@ -39,8 +40,8 @@ export default function VerifyEmailPage() {
     }
 
     try {
-      await resendMutation.mutateAsync({ email })
-      toast.success("Verification email sent!")
+      const result = await resendMutation.mutateAsync({ email })
+      toast.info(result.message || "If an account exists, verification instructions will be sent when email service is available.")
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to resend verification email.")
     }
@@ -99,14 +100,22 @@ export default function VerifyEmailPage() {
 
       <AuthHeader
         title="Verify Your Email"
-        subtitle="We've sent a confirmation link to your email address."
+        subtitle={emailDeliveryFailed
+          ? "Your account was created, but the verification email was not delivered."
+          : "Check for a confirmation link sent to your email address."}
         className="text-center"
       />
 
       <div className="text-center mb-8">
-        <p className="font-sans text-sm md:text-base text-muted-foreground leading-relaxed">
-          Check your inbox and click the link to activate your account.
-        </p>
+        {emailDeliveryFailed ? (
+          <p role="alert" className="font-sans text-sm md:text-base text-destructive leading-relaxed">
+            Use the resend button after email service is available, or contact support. Your account already exists; do not submit the signup form again.
+          </p>
+        ) : (
+          <p className="font-sans text-sm md:text-base text-muted-foreground leading-relaxed">
+            Check your inbox and spam folder, then click the link to activate your account.
+          </p>
+        )}
       </div>
 
       <div className="space-y-4 mb-6">

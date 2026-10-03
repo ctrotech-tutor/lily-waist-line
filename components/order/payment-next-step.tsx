@@ -44,9 +44,10 @@ export function PaymentNextStep({
       if (result.success) {
         setEmailSent(true);
         setShowInstructions(true);
-        toast.success("Payment instructions sent to your email");
+        toast.success(result.message || "Payment instructions email accepted for delivery");
       } else {
-        toast.error(result.message || "Failed to send payment instructions");
+        setShowInstructions(true);
+        toast.error(result.message || "Email failed. Use the payment details shown above or try again.");
       }
     } catch (error) {
       console.error("Error sending payment instructions:", error);
@@ -143,9 +144,11 @@ export function PaymentNextStep({
       {showInstructions && (
         <div className="mt-6 border border-primary/20 bg-card/50 p-4 rounded-lg">
           <p className="font-sans text-sm leading-relaxed text-foreground">
-            {isCashApp
-              ? "Please open your Cash App and send the payment to the handle shown above. Include your order number in the payment note."
-              : "You will be redirected to PayPal to complete your payment securely."}
+            {emailSent
+              ? isCashApp
+                ? "Open Cash App and send the exact amount to the handle shown above. Include your order number in the payment note."
+                : "Use the PayPal recipient and payment link shown above to send the exact amount. Include your order number in the payment note."
+              : "The email could not be sent. Payment details remain visible above, so you can use them now or try emailing again later."}
           </p>
         </div>
       )}
